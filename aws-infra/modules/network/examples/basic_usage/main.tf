@@ -4,7 +4,7 @@
 # =============================================================================
 
 terraform {
-  required_version = "1.12.2
+  required_version = "1.12.2"
 
   required_providers {
     aws = {
@@ -15,7 +15,7 @@ terraform {
 }
 
 provider "aws" {
-  region = "eu-central-1"
+  region  = "eu-central-1"
   profile = "layered-qa-694816839566"
 }
 
@@ -32,10 +32,11 @@ module "network" {
     Project     = "layered-infra"
     ManagedBy   = "Terraform"
     Environment = "Development"
-    Team        =  "A"
-    Module = "Network"
+    Team        = "A"
+    Module      = "Network"
   }
-
+  wireguard_admin_cidr = "192.168.1.0/24" # Example: restrict to test network
+  ssh_admin_cidr       = "10.0.0.0/8"     # Example: wider range for testing
   # Network configuration
   #cidr_block = "10.0.0.0/16"
 
@@ -49,8 +50,4 @@ module "network" {
   #  }
 
   # Security configuration (override defaults for testing)
-  wireguard_admin_cidr = "192.168.1.0/24" # Example: restrict to test network
-  ssh_admin_cidr       = "10.0.0.0/8"     # Example: wider range for testing
-
-
 }
