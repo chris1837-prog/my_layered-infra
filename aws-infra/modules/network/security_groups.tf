@@ -17,7 +17,7 @@ resource "aws_security_group" "edge" {
 # Security Group for the private App VM
 resource "aws_security_group" "app" {
   name        = "${var.project_name}-app-sg"
-  description = "Controls traffic for the private App VM. Only allows connections from Edge SG on port 3000."
+  description = "Controls traffic for the private App VM. Only allows connections from Edge SG on the application port."
   vpc_id      = aws_vpc.this.id
 
   tags = merge(
@@ -34,29 +34,29 @@ resource "aws_security_group" "app" {
 resource "aws_vpc_security_group_ingress_rule" "edge_https" {
   security_group_id = aws_security_group.edge.id
   description       = "Allow HTTPS from the internet to Caddy"
-  ip_protocol       = "tcp"
-  from_port         = 443
-  to_port           = 443
-  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = var.tcp_protocol
+  from_port         = var.https_port
+  to_port           = var.https_port
+  cidr_ipv4         = var.open_internet_cidr
 }
 
 # Allow HTTP from the public internet to Caddy (for redirects)
 resource "aws_vpc_security_group_ingress_rule" "edge_http" {
   security_group_id = aws_security_group.edge.id
   description       = "Allow HTTP from the internet to Caddy (for redirects)"
-  ip_protocol       = "tcp"
-  from_port         = 80
-  to_port           = 80
-  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = var.tcp_protocol
+  from_port         = var.http_port
+  to_port           = var.http_port
+  cidr_ipv4         = var.open_internet_cidr
 }
 
 # Allow WireGuard VPN traffic from admin devices
 resource "aws_vpc_security_group_ingress_rule" "edge_wireguard" {
   security_group_id = aws_security_group.edge.id
   description       = "Allow WireGuard UDP traffic from admin devices"
-  ip_protocol       = "udp"
-  from_port         = 51820
-  to_port           = 51820
+  ip_protocol       = var.udp_protocol
+  from_port         = var.wireguard_port
+  to_port           = var.wireguard_port
   cidr_ipv4         = var.allowed_admin_cidr
 }
 
@@ -64,9 +64,9 @@ resource "aws_vpc_security_group_ingress_rule" "edge_wireguard" {
 resource "aws_vpc_security_group_ingress_rule" "edge_ssh" {
   security_group_id = aws_security_group.edge.id
   description       = "Allow SSH for management"
-  ip_protocol       = "tcp"
-  from_port         = 22
-  to_port           = 22
+  ip_protocol       = var.tcp_protocol
+  from_port         = var.ssh_port
+  to_port           = var.ssh_port
   cidr_ipv4         = var.allowed_admin_cidr
 }
 
@@ -79,9 +79,9 @@ resource "aws_vpc_security_group_ingress_rule" "edge_ssh" {
 resource "aws_vpc_security_group_ingress_rule" "app_http" {
   security_group_id            = aws_security_group.app.id
   description                  = "Allow HTTP app traffic from Edge SG"
-  ip_protocol                  = "tcp"
-  from_port                    = 3000
-  to_port                      = 3000
+  ip_protocol                  = var.tcp_protocol
+  from_port                    = var.application_port
+  to_port                      = var.application_port
   referenced_security_group_id = aws_security_group.edge.id
 }
 
@@ -93,16 +93,16 @@ resource "aws_vpc_security_group_ingress_rule" "app_http" {
 resource "aws_vpc_security_group_egress_rule" "edge_egress" {
   security_group_id = aws_security_group.edge.id
   description       = "Allow all outbound traffic from Edge VM"
-  ip_protocol       = "-1"
-  cidr_ipv4         = "0.0.0.0/0"
+  ip_protocol       = var.all_protocols
+  cidr_ipv4         = var.open_internet_cidr
 }
 
 # App SG Egress (Allow all outbound)
 resource "aws_vpc_security_group_egress_rule" "app_egress_all" {
   security_group_id = aws_security_group.app.id
-  from_port         = 0
-  to_port           = 0
-  ip_protocol       = "-1"
-  cidr_ipv4         = "0.0.0.0/0"
   description       = "Allow all outbound traffic"
+  ip_protocol       = var.all_protocols
+  from_port         = 0 # These could also be variables, but 0/0 for "all ports" is very standard.
+  to_port           = 0
+  cidr_ipv4         = var.open_internet_cidr
 }
