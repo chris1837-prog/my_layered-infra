@@ -6,11 +6,23 @@ const { Pool } = require('pg');
 const app = express();
 
 const PORT = Number(process.env.PORT || 3000);
-const DATABASE_URL = process.env.DATABASE_URL; // will later point to PgBouncer:6432
 const MAX_RETRIES = Number(process.env.DB_CONNECT_MAX_RETRIES || 20);
 const BASE_DELAY_MS = Number(process.env.DB_CONNECT_BASE_DELAY_MS || 500);
 
-// IMPORTANT: create a pool ONLY if DATABASE_URL is provided
+// Build DATABASE_URL from either DATABASE_URL or DB_* parts (Compose-friendly)
+const DB_HOST = process.env.DB_HOST;
+const DB_PORT = process.env.DB_PORT || '6432';
+const DB_NAME = process.env.DB_NAME || 'myapp';
+const DB_USER = process.env.DB_USER || 'myuser';
+const DB_PASSWORD = process.env.DB_PASSWORD || 'mypassword';
+
+const DATABASE_URL =
+  process.env.DATABASE_URL ||
+  (DB_HOST
+    ? `postgresql://${encodeURIComponent(DB_USER)}:${encodeURIComponent(DB_PASSWORD)}@${DB_HOST}:${DB_PORT}/${encodeURIComponent(DB_NAME)}`
+    : null);
+
+// IMPORTANT: create a pool ONLY if DB config exists
 let pool = null;
 if (DATABASE_URL) {
   pool = new Pool({
@@ -19,13 +31,13 @@ if (DATABASE_URL) {
     idleTimeoutMillis: 30000,
   });
 } else {
-  console.warn('[app] DATABASE_URL is not set. /readyz will return 503 until set.');
+  console.warn('[app] No DB config (DATABASE_URL nor DB_*). /health and /readyz will return 503.');
 }
 
 let dbReady = false;
 
 function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 function backoffDelay(i) {
   // exponential backoff with a cap ~30s
@@ -71,26 +83,32 @@ function backoffDelay(i) {
 })().catch((e) => console.error('[app] Unexpected DB init error:', e));
 
 // Routes
-app.get('/', (_req, res) => {
-  // Proof the app runs (no DB required)
-  res.status(200).send('ok');
-});
+
+// Proof the app runs (no DB required)
+app.get('/', (_req, res) => res.status(200).send('ok'));
 
 // Liveness: process up = 200 (no DB required)
-app.get('/healthz', (_req, res) => {
-  res.status(200).json({ ok: true });
-});
+app.get('/healthz', (_req, res) => res.status(200).json({ ok: true }));
 
-// Readiness: 200 only if a SELECT 1 via DB succeeds; 503 when missing or failing
+// Readiness: 200 only if DB SELECT 1 succeeds; 503 without DB config
 app.get('/readyz', async (_req, res) => {
-  if (!pool) {
-    return res.status(503).json({ ready: false, reason: 'NO_DATABASE_URL' });
-  }
+  if (!pool) return res.status(503).json({ ready: false, reason: 'NO_DB_CONFIG' });
   try {
     await pool.query('SELECT 1');
     return res.status(200).json({ ready: true });
-  } catch (_err) {
+  } catch {
     return res.status(503).json({ ready: false });
+  }
+});
+
+// DB-based health for Compose healthcheck
+app.get('/health', async (_req, res) => {
+  if (!pool) return res.status(503).json({ status: 'unhealthy', reason: 'NO_DB_CONFIG' });
+  try {
+    await pool.query('SELECT 1');
+    return res.status(200).json({ status: 'ok' });
+  } catch {
+    return res.status(503).json({ status: 'unhealthy' });
   }
 });
 
