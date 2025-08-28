@@ -13,3 +13,15 @@ variable "common_tags" {
   type        = map(string)
 }
 
+variable "enable_dns_support" {
+  description = "Whether DNS support is enabled for the VPC"
+  type        = bool
+  default     = true
+}
+
+variable "enable_dns_hostnames" {
+  description = "Whether DNS hostnames are enabled for the VPC"
+  type        = bool
+  default     = true
+}
+
