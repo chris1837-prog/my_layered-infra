@@ -1,15 +1,11 @@
-# Internet Gateway
 resource "aws_internet_gateway" "this" {
-  vpc_id = aws_vpc.this.id
+  vpc_id = var.vpc_id
 
-  tags = {
-    Name = "${var.project_name}-igw"
-  }
-}
-
-# Output (para exponerlo)
-output "igw_id" {
-  description = "The ID of the Internet Gateway"
-  value       = aws_internet_gateway.this.id
+  tags = merge(
+    var.common_tags,
+    {
+      Name = "${var.project_name}-igw"
+    }
+  )
 }
 
