@@ -12,14 +12,8 @@ variable "common_tags" {
   default     = {}
 }
 
-variable "wireguard_admin_cidr" {
-  description = "CIDR block for WireGuard admin access. Restrict this in production."
-  type        = string
-  default     = "0.0.0.0/0"
-}
-
-variable "ssh_admin_cidr" {
-  description = "CIDR block for SSH admin access. Should be restricted to specific IPs in production."
+variable "allowed_admin_cidr" {
+  description = "CIDR block for WireGuard/SSH admin access. Restrict this in production."
   type        = string
   default     = "0.0.0.0/0"
 }

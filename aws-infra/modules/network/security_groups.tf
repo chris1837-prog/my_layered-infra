@@ -57,7 +57,7 @@ resource "aws_vpc_security_group_ingress_rule" "edge_wireguard" {
   ip_protocol       = "udp"
   from_port         = 51820
   to_port           = 51820
-  cidr_ipv4         = var.wireguard_admin_cidr
+  cidr_ipv4         = var.allowed_admin_cidr
 }
 
 # Allow SSH access for management
@@ -67,7 +67,7 @@ resource "aws_vpc_security_group_ingress_rule" "edge_ssh" {
   ip_protocol       = "tcp"
   from_port         = 22
   to_port           = 22
-  cidr_ipv4         = var.ssh_admin_cidr
+  cidr_ipv4         = var.allowed_admin_cidr
 }
 
 # =============================================================================
@@ -97,4 +97,12 @@ resource "aws_vpc_security_group_egress_rule" "edge_egress" {
   cidr_ipv4         = "0.0.0.0/0"
 }
 
-# The App SG intentionally has no egress rules
+# App SG Egress (Allow all outbound)
+resource "aws_vpc_security_group_egress_rule" "app_egress_all" {
+  security_group_id = aws_security_group.app.id
+  from_port         = 0
+  to_port           = 0
+  ip_protocol       = "-1"
+  cidr_ipv4         = "0.0.0.0/0"
+  description       = "Allow all outbound traffic"
+}
