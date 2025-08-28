@@ -35,19 +35,19 @@ module "network" {
     Team        = "A"
     Module      = "Network"
   }
-  wireguard_admin_cidr = "192.168.1.0/24" # Example: restrict to test network
-  ssh_admin_cidr       = "10.0.0.0/8"     # Example: wider range for testing
+
+  allowed_admin_cidr       = "10.0.0.0/8"     # Example: wider range for testing
   # Network configuration
   #cidr_block = "10.0.0.0/16"
 
-  # # Single AZ configuration matching the architecture diagram
-  #  az_configurations = {
-  #    # Use the first available AZ
-  #    (data.aws_availability_zones.available.names[0]) = {
-  #      public_subnet_cidr  = "10.0.1.0/24"  # For Edge VM (10.0.1.10)
-  #      private_subnet_cidr = "10.0.2.0/24"  # For App VM (10.0.2.10)
-  #    }
-  #  }
+   # Single AZ configuration matching the architecture diagram
+    #az_configurations = {
+      # Use the first available AZ
+      #(data.aws_availability_zones.available.names[0]) = {
+        #public_subnet_cidr  = "10.0.1.0/24"  # For Edge VM (10.0.1.10)
+        #private_subnet_cidr = "10.0.2.0/24"  # For App VM (10.0.2.10)
+      #}
+    #}
 
   # Security configuration (override defaults for testing)
 }
