@@ -112,6 +112,16 @@ app.get('/health', async (_req, res) => {
   }
 });
 
+// Graceful shutdown: close DB pool when the container receives a stop signal
+process.on('SIGTERM', async () => {
+  try { await pool?.end(); }
+  finally { process.exit(0); }
+});
+process.on('SIGINT', async () => {
+  try { await pool?.end(); }
+  finally { process.exit(0); }
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`[app] Listening on ${PORT}`);
