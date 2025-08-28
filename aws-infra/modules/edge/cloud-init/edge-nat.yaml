@@ -1,0 +1,16 @@
+#cloud-config
+packages:
+  - iptables-persistent
+
+runcmd:
+  # Enable IPv4 forwarding immediately
+  - sysctl -w net.ipv4.ip_forward=1
+
+  # Persist IPv4 forwarding across reboots
+  - sed -i 's/^#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+
+  # Add MASQUERADE rule
+  - iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+
+  # Save rules for persistence
+  - sh -c "iptables-save > /etc/iptables/rules.v4"
