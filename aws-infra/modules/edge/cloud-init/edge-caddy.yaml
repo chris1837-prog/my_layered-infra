@@ -6,6 +6,13 @@ packages:
   - curl
 
 write_files:
+  # Caddyfile for reverse proxy with Let's Encrypt
+  - path: /etc/caddy/Caddyfile
+    permissions: '0644'
+    content: |
+      edge.example.com {
+          reverse_proxy localhost:8080
+      }
   - path: /var/www/html/index.html
     permissions: '0644'
     content: |
