@@ -27,3 +27,9 @@ variable "igw_id" {
   description = "The ID of the Internet Gateway to attach to the VPC."
   type        = string
 }
+
+variable "allow_map_public_ip_on_launch" {
+  description = "Whether to assign public IPs to instances launched in public subnets."
+  type        = bool
+  default     = true
+}

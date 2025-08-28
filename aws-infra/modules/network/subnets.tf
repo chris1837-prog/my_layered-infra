@@ -7,7 +7,7 @@ resource "aws_subnet" "public" {
   vpc_id                  = var.vpc_id
   availability_zone       = each.key # key is the AZ name (e.g. "eu-central-1a")
   cidr_block              = each.value.public_subnet_cidr
-  map_public_ip_on_launch = true
+  map_public_ip_on_launch = var.allow_map_public_ip_on_launch
 
   tags = merge({ Name = "${var.project_name}-public-subnet-${each.key}" }, var.common_tags)
 }
