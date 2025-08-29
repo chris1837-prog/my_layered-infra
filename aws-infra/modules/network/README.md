@@ -35,45 +35,39 @@ aws-infra/modules/network/
 - `versions.tf`: Specifies the required Terraform and provider versions to ensure compatibility and reproducibility.
 - `examples/basic_usage/`: Internal test configuration for validating the module. Not intended as user documentation or usage example.
 
-## Usage Example
 
+## Usage
 
 ### Basic Usage
 
-See `examples/basic_usage/main.tf` for a internal test example. 
-
 ```hcl
 module "network" {
-  source = "../.." # Points to the root network module directory
+  source = "./modules/network"
 
-  project_name = "layered-infra-test"
-  common_tags = {
-    Project     = "layered-infra"
-    ManagedBy   = "Terraform"
-    Environment = "Testing"
-    Team        = "A"
-    Module      = "Network"
-  }
-
-  vpc_cidr           = "10.0.0.0/16"
-  allowed_admin_cidr = "10.0.0.0/8" # Example: wider range for testing
-
-
-
-  # Single AZ configuration matching the architecture diagram
+  project_name = "myapp-production"
+  cidr_block   = "10.0.0.0/16"
+  
   az_configurations = {
-    # Use the first available AZ
-    (data.aws_availability_zones.available.names[0]) = {
-      public_subnet_cidr  = "10.0.1.0/24" # For Edge VM (10.0.1.10)
-      private_subnet_cidr = "10.0.2.0/24" # For App VM (10.0.2.10)
+    "us-east-1a" = {
+      public_subnet_cidr  = "10.0.1.0/24"
+      private_subnet_cidr = "10.0.2.0/24"
     }
   }
+
+  common_tags = {
+    Environment = "production"
+    Project     = "myapp"
+  }
+
+  ssh_admin_cidr       = "192.168.1.0/24"
+  wireguard_admin_cidr = "10.0.0.0/16"
 }
 ```
 
 To validate and test, run:
 
 ```sh
+cd examples/basic_usage/
 terraform init
 terraform validate 
 terraform plan
