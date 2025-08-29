@@ -21,10 +21,6 @@ variable "open_internet_cidr" {
 }
 
 # VPC variables
-variable "vpc_id" {
-  description = "The ID of the VPC where subnets will be created."
-  type        = string
-}
 
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
@@ -43,12 +39,6 @@ variable "enable_dns_hostnames" {
   default     = true
 }
 
-# IGW variables
-variable "igw_id" {
-  description = "The ID of the Internet Gateway to attach to the VPC."
-  type        = string
-}
-
 # Subnet variables
 variable "az_configurations" {
   description = "A map of objects defining the configuration for each Availability Zone."
@@ -64,20 +54,13 @@ variable "allow_map_public_ip_on_launch" {
   default     = true
 }
 
-# Route table variables
-variable "public_subnets" {
-  description = "A map of public subnets."
-  type        = map(object({ id = string }))
-}
-
-variable "private_subnets" {
-  description = "A map of private subnets."
-  type        = map(object({ id = string }))
-}
-
 # =============================================================================
 # Security Group Configuration Variables
 # =============================================================================
+variable "allowed_admin_cidr" {
+  type        = string
+  description = "The CIDR block from which administrative access (SSH, WireGuard) is allowed."
+}
 
 variable "application_port" {
   description = "The port number on which the internal application listens for traffic (e.g., 3000 for a Node.js app)."
