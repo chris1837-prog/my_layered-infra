@@ -40,23 +40,43 @@ aws-infra/modules/network/
 
 ### Basic Usage
 
-See `examples/basic_usage/main.tf` for a complete example. To use this module in your own configuration:
+See `examples/basic_usage/main.tf` for a internal test example. 
 
 ```hcl
 module "network" {
-	source = "../../modules/network"
-	vpc_cidr_block      = "10.0.0.0/16"
-	public_subnet_cidrs = ["10.0.1.0/24"]
-	private_subnet_cidrs = ["10.0.2.0/24"]
-	# Add other required variables as needed
+  source = "../.." # Points to the root network module directory
+
+  project_name = "layered-infra-test"
+  common_tags = {
+    Project     = "layered-infra"
+    ManagedBy   = "Terraform"
+    Environment = "Testing"
+    Team        = "A"
+    Module      = "Network"
+  }
+
+  vpc_cidr           = "10.0.0.0/16"
+  allowed_admin_cidr = "10.0.0.0/8" # Example: wider range for testing
+
+
+
+  # Single AZ configuration matching the architecture diagram
+  az_configurations = {
+    # Use the first available AZ
+    (data.aws_availability_zones.available.names[0]) = {
+      public_subnet_cidr  = "10.0.1.0/24" # For Edge VM (10.0.1.10)
+      private_subnet_cidr = "10.0.2.0/24" # For App VM (10.0.2.10)
+    }
+  }
 }
 ```
 
-After configuring your variables, run:
+To validate and test, run:
 
 ```sh
 terraform init
-terraform apply
+terraform validate 
+terraform plan
 ```
 
 This will provision the VPC, subnets, route tables, security groups, and internet gateway as defined in the module.
@@ -79,4 +99,4 @@ Edit `variables.tf` to add or change input variables. Update `outputs.tf` to exp
 
 ### Example Directory
 
-**Note:** The `examples/basic_usage/` directory is used only for internal module testing and is not intended as a reference, template, or usage example for users.
+**Note:** The `examples/basic_usage/` directory is used only for internal module testing and is not intended as a reference or template.
