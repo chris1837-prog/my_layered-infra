@@ -1,20 +1,3 @@
-<<<<<<< HEAD
-
-variable "public_subnets" {
-  description = "A map of public subnets."
-  type        = map(object({ id = string }))
-}
-
-variable "private_subnets" {
-  description = "A map of private subnets."
-  type        = map(object({ id = string }))
-}
-
-variable "open_internet_cidr" {
-  description = "The CIDR block representing the open internet. Typically 0.0.0.0/0. Made into a variable for rare cases where it might need to be restricted (e.g., in more complex networking scenarios)."
-  type        = string
-  default     = "0.0.0.0/0"
-=======
 # General variables
 
 variable "project_name" {
@@ -69,5 +52,21 @@ variable "allow_map_public_ip_on_launch" {
   description = "Whether to assign public IPs to instances launched in public subnets."
   type        = bool
   default     = true
->>>>>>> origin/feat/network_module
+}
+
+# Route table variables
+variable "public_subnets" {
+  description = "A map of public subnets."
+  type        = map(object({ id = string }))
+}
+
+variable "private_subnets" {
+  description = "A map of private subnets."
+  type        = map(object({ id = string }))
+}
+
+variable "open_internet_cidr" {
+  description = "The CIDR block representing the open internet. Typically 0.0.0.0/0. Made into a variable for rare cases where it might need to be restricted (e.g., in more complex networking scenarios)."
+  type        = string
+  default     = "0.0.0.0/0"
 }
