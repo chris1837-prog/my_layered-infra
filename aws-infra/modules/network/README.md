@@ -5,6 +5,26 @@ This Terraform module provisions AWS networking resources for your cloud infrast
 
 ## File Structure
 
+### Directory Tree
+
+```
+aws-infra/modules/network/
+├── igw.tf
+├── outputs.tf
+├── README.md
+├── route_tables.tf
+├── security_groups.tf
+├── subnets.tf
+├── variables.tf
+├── versions.tf
+├── vpc.tf
+└── examples/           # Internal module test only, not usage examples
+	└── basic_usage/
+		├── main.tf
+		├── outputs.tf
+		└── versions.tf
+```
+
 - `vpc.tf`: Defines the main Virtual Private Cloud (VPC) resource, including its CIDR block and tags. This is the foundational network component for all other resources.
 - `subnets.tf`: Provisions public and private subnets within the VPC. Subnets are configured based on input variables, allowing for flexible network segmentation.
 - `route_tables.tf`: Creates and associates route tables for subnets, enabling routing between subnets and to external networks (e.g., internet gateway).
@@ -13,7 +33,7 @@ This Terraform module provisions AWS networking resources for your cloud infrast
 - `variables.tf`: Declares all input variables required by the module, such as CIDR blocks, subnet counts, and tags. Customize these to fit your environment.
 - `outputs.tf`: Exposes key resource attributes (e.g., VPC ID, subnet IDs, security group IDs) for use by parent modules or other resources.
 - `versions.tf`: Specifies the required Terraform and provider versions to ensure compatibility and reproducibility.
-- `examples/basic_usage/`: Internal test configuration for validating the module. Not intended as user documentation or reference.
+- `examples/basic_usage/`: Internal test configuration for validating the module. Not intended as user documentation or usage example.
 
 ## Usage Example
 
@@ -59,4 +79,4 @@ Edit `variables.tf` to add or change input variables. Update `outputs.tf` to exp
 
 ### Example Directory
 
-**Note:** The `examples/basic_usage/` directory is used internally for testing the module and is not intended as a reference or template for users.
+**Note:** The `examples/basic_usage/` directory is used only for internal module testing and is not intended as a reference, template, or usage example for users.
