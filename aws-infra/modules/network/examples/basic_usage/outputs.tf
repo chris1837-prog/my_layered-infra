@@ -8,6 +8,11 @@ output "vpc_id" {
   value       = module.network.vpc_id
 }
 
+output "igw_id" {
+  description = "The ID of the Internet Gateway"
+  value       = module.network.igw_id
+}
+
 output "public_subnet_ids" {
   description = "List of IDs of the public subnets."
   value       = module.network.public_subnet_ids
