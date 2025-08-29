@@ -4,7 +4,7 @@
 # This annotated version is for **learning only**.
 # Use `docker-compose.yml` to actually run the stack.
 
-version: "2.4"   # v2.4 allows mem_limit/cpus on single-host Compose, Compose v3 deploy.resources are only enforced in Swarm
+version: "2.4"   # v2.4 allows mem_limit/cpus on single-host Compose; v3 deploy.resources are Swarm-only
 
 services:
   # ---------------------------
@@ -13,50 +13,50 @@ services:
   postgres:
     image: postgres:${POSTGRES_VERSION:-16.10}   # Pull Postgres image (version comes from .env)
     container_name: layered-postgres
-    restart: unless-stopped                   # I keep it running through crashes and reboots, unless I explicitly tell you to stop.
+    restart: unless-stopped                   # Keep it running through crashes/reboots unless explicitly stopped
 
-    environment:                              # Pass environment vars into container. On first startup (empty data volume), Postgres creates:
+    environment:                              # On first startup (empty data volume), Postgres creates:
       POSTGRES_DB: ${POSTGRES_DB:-myapp}      # a database named POSTGRES_DB
       POSTGRES_USER: ${POSTGRES_USER:-myuser} # a role/user POSTGRES_USER
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword} # with password POSTGRES_PASSWORD
-# Take e.g. POSTGRES_DB from my .env.example file or shell. If it’s not set anywhere, fall back to myapp.
-# On subsequent starts (existing volume), Postgres ignores changes here—because the DB cluster already exists. To change them later you’d alter the DB or recreate the volume.
+# Take e.g. POSTGRES_DB from .env (or shell). If not set, fallback to myapp.
+# On subsequent starts (existing volume), Postgres ignores changes here—DB already exists. To change later, alter in DB or recreate the volume.
 
     command: ["postgres", "-c", "password_encryption=md5"]
-    # Force Postgres to use MD5 password hashing (works with PgBouncer -no scram-sha-256 possible which is default on postgres 14+)
+    # Force Postgres to use MD5 password hashing (works with PgBouncer — the default since PG14 is SCRAM-SHA-256)
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data     # Docker volume:postgres_data is mounted. Postgres stores all its DB data persistent in /var/lib/postgresql/data
-      - ./init-db:/docker-entrypoint-initdb.d      # mounts a local folder from my repo in a special folder -then: SQL/scripts here run only on first init
+      - postgres_data:/var/lib/postgresql/data     # Named volume: persistent DB data
+      - ./init-db:/docker-entrypoint-initdb.d      # SQL/scripts here run only on first init
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myuser} -d ${POSTGRES_DB:-myapp}"]
-      # Check if Postgres is ready for connections. Only then PgBouncer
+      # Check if Postgres is ready for connections.
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
     # Postgres launches but isn’t ready → pg_isready fails → container = starting.
-    # After ~20s, Postgres begins accepting connections → pg_isready passes → container = healthy.
+    # After ~20s, Postgres accepts connections → pg_isready passes → container = healthy.
 
-    # Resource controls (enforced on local Compose because v2.4 is used)
-    mem_limit: "1g"   # Limit container memory
-    cpus: "1.0"       # Limit to 1 CPU core - on an 8 core M2 try out while docker is running: docker stats
+    # Resource controls (enforced locally because version is 2.4)
+    mem_limit: "1g"
+    cpus: "1.0"
 
     networks:
-      - app-network   # All services share the same bridge network
+      - app-network
 
   # ---------------------------
   # Service: PgBouncer
   # ---------------------------
   pgbouncer:
-    image: edoburu/pgbouncer:latest     # pulling in a prebuilt Docker image from Docker Hub for the software of PgBouncer: Lightweight connection pooler; edoburu = the maintainer’s username
+    image: edoburu/pgbouncer:1.24.1     # Pin to a known tag to avoid surprises
     container_name: layered-pgbouncer
     restart: unless-stopped
 
     ports:
-      - "127.0.0.1:6432:6432"           # Expose PgBouncer on localhost:6432 of the host (my PC)
-                                        # Inside Compose network, use `pgbouncer:6432` (The port inside PgBouncer Container)
+      - "127.0.0.1:6432:6432"           # Expose PgBouncer only on localhost
+                                        # Inside the Compose network, use `pgbouncer:6432`
 
     environment:
       # How PgBouncer connects to Postgres inside the Compose network
@@ -67,24 +67,20 @@ services:
       - DB_NAME=${POSTGRES_DB:-myapp}
 
       # Pooling settings
-      - POOL_MODE=${PGBOUNCER_POOL_MODE:-transaction}   # each client gets a Postgres connection only for the duration of a transaction, then the connection goes back to the pool.
-      - MAX_CLIENT_CONN=${PGBOUNCER_MAX_CLIENT_CONN:-100} # limits how much memory PgBouncer uses and prevents overload
-      - DEFAULT_POOL_SIZE=${PGBOUNCER_DEFAULT_POOL_SIZE:-25} # Even if 100 clients are connected, PgBouncer only opens 25 real Postgres connections and reuses them.
+      - POOL_MODE=${PGBOUNCER_POOL_MODE:-transaction}
+      - MAX_CLIENT_CONN=${PGBOUNCER_MAX_CLIENT_CONN:-100}
+      - DEFAULT_POOL_SIZE=${PGBOUNCER_DEFAULT_POOL_SIZE:-25}
 
 # CORE OF THE SERVICE:
-      # The heavy memory cost comes from real Postgres connections, not from PgBouncer.
-      # Postgres is “expensive” because each connection = full backend process, memory buffers, session state, etc.
-      # So PgBouncer’s logic is:
-      #👉 “I don’t care if I could hold more clients in memory — the real bottleneck is the number of Postgres backends I’d have to create if I let everyone through.”
-### --> That’s why it enforces a fixed max number of accepted client sockets, instead of **guessing** based on free RAM.
-### --> Postgres does not scale linear
-        # 10 connections → smooth, everything runs fast.
-        # 100 connections → Postgres is doing a lot more process scheduling.
-        # 1000 connections → system spends most of its time context-switching between idle/waiting clients instead of running queries.
+# The heavy memory cost comes from real Postgres connections, not from PgBouncer.
+# Postgres is “expensive” because each connection = full backend process, memory, session state, etc.
+# PgBouncer’s logic:
+# 👉 “The bottleneck is Postgres backends, so cap real connections and reuse them efficiently.”
+# Postgres does not scale linearly with connection count.
 
       # Where PgBouncer itself listens
       - LISTEN_ADDR=0.0.0.0
-      - LISTEN_PORT=6432 # now PgBouncer listens to in between to both: Application and RDS
+      - LISTEN_PORT=6432
 
       # Authentication mode
       - AUTH_TYPE=trust
@@ -95,11 +91,10 @@ services:
 
     depends_on:
       postgres:
-        condition: service_healthy      # Wait until Postgres passes healthcheck
+        condition: service_healthy
 
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER:-myuser} || exit 1"]
-      # Verify PgBouncer responds to connections on port 6432
       interval: 10s
       timeout: 5s
       retries: 5
@@ -118,7 +113,7 @@ services:
   app:
     build:
       context: ./app                  # Build context = app folder
-      dockerfile: Dockerfile.simple   # Use the simplified Dockerfile for now
+      dockerfile: Dockerfile          # Use project Dockerfile
     container_name: layered-app
     restart: unless-stopped
 
@@ -141,7 +136,7 @@ services:
 
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3000}${HEALTH_PATH:-/health}"]
-      # App must expose GET /health that returns HTTP 200 when DB works
+      # App must expose GET /health that returns 200 when DB works
       interval: 10s
       timeout: 5s
       retries: 5

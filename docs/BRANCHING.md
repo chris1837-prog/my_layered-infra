@@ -1,5 +1,3 @@
-### 📄 `docs/BRANCHING.md`
-
 # Branching & PR Workflow
 
 ## Branch naming
@@ -11,10 +9,10 @@
 ## Workflow
 1. Branch off `main`.
 2. Implement changes.
-3. Open PR into your **team branch**, not directly into `main`.
+3. Open a PR into your **team branch**, not directly into `main`.
 4. Team branch → reviewed + merged into `main`.
 
-## Commit style
+## Commit style (Conventional Commits)
 - `feat: add /health endpoint`
 - `fix: correct PgBouncer healthcheck`
 - `docs: add workflow guide`
