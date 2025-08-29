@@ -1,7 +1,3 @@
-Absolutely. Here’s a complete, paste-ready docs/WORKFLOW_COMPOSE.md you can drop into the repo.
-
-⸻
-
 WORKFLOW_COMPOSE.md
 
 Single-host Docker Compose workflow for the MVP stack: App → PgBouncer → Postgres.
@@ -151,31 +147,21 @@ postgresql://<user>:<pass>@127.0.0.1:6432/<db>
 Current default for fast local dev:
 
 # pgbouncer environment
-AUTH_TYPE=trust
+AUTH_TYPE=md5
 
-For a secured setup (recommended beyond smoke tests):
-	1.	Generate userlist.txt (macOS):
+PgBouncer requires a userlist.txt file for MD5 authentication.
 
-USER="${POSTGRES_USER}"; PASS="${POSTGRES_PASSWORD}"
-HASH=$(printf '%s' "${PASS}${USER}" | md5 -q)
-printf '"%s" "md5%s"\n' "$USER" "$HASH" > pgbouncer/userlist.txt
+Postgres passwords are forced to MD5 encryption at initialization via the script `02-force-md5-password.sh` located in init-db/.
 
-	2.	Update PgBouncer service:
+If PgBouncer logs show "wrong password type", you can recover by re-running the ALTER ROLE command inside Postgres and restarting PgBouncer:
 
-environment:
-  - AUTH_TYPE=md5
-  - AUTH_FILE=/etc/pgbouncer/userlist.txt
-volumes:
-  - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+```bash
+docker compose exec postgres \
+  psql -U <your_user> -d <your_db> -c "SET password_encryption='md5'; ALTER ROLE <your_user> PASSWORD '<your_password>';"
+docker compose restart pgbouncer
+```
 
-	3.	Ensure Postgres stores md5 hashes (already configured):
-
-command: ["postgres", "-c", "password_encryption=md5"]
-
-Restart:
-
-docker compose up -d
-
+This ensures PgBouncer and Postgres are aligned on password encryption.
 
 ⸻
 
@@ -223,7 +209,6 @@ PgBouncer healthcheck failing
 docker compose logs -f pgbouncer
 
 
-
 Postgres stuck “starting”
 	•	Inspect logs:
 
@@ -234,6 +219,17 @@ docker compose logs -f postgres
 
 Ports already in use
 	•	Something else is using 3000 or 6432 on your host. Change the host port mapping in docker-compose.yml or stop the conflicting process.
+
+PgBouncer login failed: wrong password type
+	•	Cause: Postgres user stored as SCRAM.
+	•	Fix:  
+	  ```bash
+	  docker compose exec postgres \
+	    psql -U myuser -d myapp -c "SET password_encryption='md5'; ALTER ROLE myuser PASSWORD 'mypassword';"
+	  docker compose restart pgbouncer
+	  ```
+	•	Note that this is handled automatically on first init by `02-force-md5-password.sh`, but old volumes may need manual fix.
+
 
 ⸻
 

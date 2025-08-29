@@ -7,6 +7,57 @@ echo "🚀 Compose MVP smoke test"
 echo "▶️  Starting (or rebuilding) containers..."
 docker compose up -d --build
 
+# --- Quick SMOKE target (opt-in) -----------------------------------------
+# Usage: ./test-stack.sh smoke
+# Does a minimal check:
+#   1) wait for PgBouncer to become healthy,
+#   2) run SELECT 1 via PgBouncer,
+#   3) ensure /health returns 200.
+if [[ "${1:-}" == "smoke" ]]; then
+  echo "🧪 Running lightweight smoke test..."
+
+  # 1) Wait until PgBouncer container health is 'healthy'
+  echo "⏳ Waiting for PgBouncer (container: layered-pgbouncer) to be healthy..."
+  for i in {1..30}; do
+    status="$(docker inspect -f '{{.State.Health.Status}}' layered-pgbouncer 2>/dev/null || echo 'starting')"
+    if [[ "$status" == "healthy" ]]; then
+      echo "✅ PgBouncer is healthy"
+      break
+    fi
+    sleep 2
+    if [[ "$i" -eq 30 ]]; then
+      echo "❌ PgBouncer did not become healthy in time"
+      exit 1
+    fi
+  done
+
+  # 2) Run SELECT 1 via PgBouncer using a one-off postgres client container
+  PG_URL="postgresql://${POSTGRES_USER:-myuser}:${POSTGRES_PASSWORD:-mypassword}@pgbouncer:6432/${POSTGRES_DB:-myapp}"
+  echo "🔍 Checking DB via PgBouncer (SELECT 1)..."
+  docker compose run --rm -T postgres psql "$PG_URL" -c "SELECT 1;" 1>/dev/null
+  echo "✅ PgBouncer responded to SQL"
+
+  # 3) Ensure app /health returns 200
+  APP_URL="http://localhost:${PORT:-3000}${HEALTH_PATH:-/health}"
+  echo "🩺 Checking app health at ${APP_URL} ..."
+  for i in {1..30}; do
+    code="$(curl -s -o /dev/null -w '%{http_code}' "$APP_URL" || true)"
+    if [[ "$code" == "200" ]]; then
+      echo "✅ App /health is 200"
+      break
+    fi
+    sleep 2
+    if [[ "$i" -eq 30 ]]; then
+      echo "❌ App /health did not return 200 in time"
+      exit 1
+    fi
+  done
+
+  echo "🎉 Smoke test passed."
+  exit 0
+fi
+# -------------------------------------------------------------------------
+
 # 1) Wait/poll until the app reports healthy (200 on /health)
 APP_URL="http://localhost:3000/health"
 echo "⏳ Waiting for app health at ${APP_URL} ..."

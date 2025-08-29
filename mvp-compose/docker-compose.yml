@@ -34,32 +34,29 @@ services:
     container_name: layered-pgbouncer
     restart: unless-stopped
     ports:
-      - "127.0.0.1:6432:6432"         # host 6432 -> container 6432
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=${POSTGRES_USER:-myuser}
-      - DB_PASSWORD=${POSTGRES_PASSWORD:-mypassword}
-      - DB_NAME=${POSTGRES_DB:-myapp}
-      - POOL_MODE=${PGBOUNCER_POOL_MODE:-transaction}
-      - MAX_CLIENT_CONN=${PGBOUNCER_MAX_CLIENT_CONN:-100}
-      - DEFAULT_POOL_SIZE=${PGBOUNCER_DEFAULT_POOL_SIZE:-25}
-      - LISTEN_ADDR=0.0.0.0
-      - LISTEN_PORT=6432
-      - AUTH_TYPE=trust                 # switch to md5 + userlist.txt when you harden
-      # - AUTH_TYPE=md5
-      # - AUTH_FILE=/etc/pgbouncer/userlist.txt
+      - "127.0.0.1:6432:6432"
     depends_on:
       postgres:
         condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-myapp}
+      DB_USER: ${POSTGRES_USER:-myuser}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+      AUTH_TYPE: md5
+      AUTH_FILE: /etc/pgbouncer/userlist.txt
+      POOL_MODE: transaction
+      LISTEN_ADDR: 0.0.0.0
+      LISTEN_PORT: "6432"
+    volumes:
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER:-myuser} || exit 1"]
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 20s
-    mem_limit: "256m"
-    cpus: "0.2"
     networks:
       - app-network
 
