@@ -1,12 +1,11 @@
 # =============================================================================
 # examples/basic_usage/main.tf
-# Test configuration for the network module
+# Minimal test configuration for the network module (for terraform validate/plan)
 # =============================================================================
 
-
+# Provider config without a specific profile to use default auth chain
 provider "aws" {
-  region  = "eu-central-1"
-  profile = "layered-qa-694816839566"
+  region = "eu-central-1"
 }
 
 # Get available AZs in the region
@@ -21,7 +20,7 @@ module "network" {
   common_tags = {
     Project     = "layered-infra"
     ManagedBy   = "Terraform"
-    Environment = "Development"
+    Environment = "Testing"
     Team        = "A"
     Module      = "Network"
   }
@@ -32,12 +31,10 @@ module "network" {
 
   # Single AZ configuration matching the architecture diagram
   #az_configurations = {
-  # Use the first available AZ
-  #(data.aws_availability_zones.available.names[0]) = {
-  #public_subnet_cidr  = "10.0.1.0/24"  # For Edge VM (10.0.1.10)
-  #private_subnet_cidr = "10.0.2.0/24"  # For App VM (10.0.2.10)
+    # Use the first available AZ
+    #(data.aws_availability_zones.available.names[0]) = {
+      #public_subnet_cidr  = "10.0.1.0/24"  # For Edge VM (10.0.1.10)
+      #private_subnet_cidr = "10.0.2.0/24"  # For App VM (10.0.2.10)
+    #}
   #}
-  #}
-
-  # Security configuration (override defaults for testing)
 }
