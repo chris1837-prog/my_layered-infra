@@ -4,19 +4,17 @@ package_upgrade: all
 packages:
   - ufw
 
-runcmd:
-  # Default deny all incoming traffic
-  - ufw default deny incoming
-  # Default allow all outgoing traffic
-  - ufw default allow outgoing
+write_files:
+  - path: /etc/default/ufw
+    append: true
+    content: |
+      DEFAULT_FORWARD_POLICY="ACCEPT"
 
-  # Allow incoming web traffic for Caddy
+runcmd:
+  - ufw default deny incoming
+  - ufw default allow outgoing
   - ufw allow 80/tcp
   - ufw allow 443/tcp
-
-  # Restrict SSH and WireGuard access to admin CIDRs only
   - ufw allow from 203.0.113.0/24 to any port 22 proto tcp
   - ufw allow from 203.0.113.0/24 to any port 51820 proto udp
-
-  # Enable the firewall
   - ufw --force enable

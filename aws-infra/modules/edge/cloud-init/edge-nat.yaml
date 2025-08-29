@@ -1,16 +1,24 @@
 #cloud-config
 packages:
+  - ufw
   - iptables-persistent
 
 runcmd:
+  # Detect the default network interface
+  - IFACE=$(ip route | awk '/^default/ {print $5; exit}')
+
   # Enable IPv4 forwarding immediately
   - sysctl -w net.ipv4.ip_forward=1
 
   # Persist IPv4 forwarding across reboots
-  - sed -i 's/^#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+  - grep -q '^net.ipv4.ip_forward=1' /etc/sysctl.conf || echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
 
-  # Add MASQUERADE rule
-  - iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+  # Append MASQUERADE rule to UFW before.rules if not already present
+  - grep -q "POSTROUTING -o $IFACE -j MASQUERADE" /etc/ufw/before.rules || \
+    sed -i "/^COMMIT$/i -A POSTROUTING -o $IFACE -j MASQUERADE" /etc/ufw/before.rules
 
-  # Save rules for persistence
-  - sh -c "iptables-save > /etc/iptables/rules.v4"
+  # Reload UFW to apply NAT changes
+  - ufw reload
+
+  # Ensure persistence service is enabled
+  - systemctl enable netfilter-persistent
