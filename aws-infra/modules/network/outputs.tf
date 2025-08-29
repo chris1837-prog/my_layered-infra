@@ -30,3 +30,12 @@ output "private_route_table_id" {
   description = "The ID of the private route table."
   value = aws_route_table.private.id
 }
+output "sg_edge_id" {
+  description = "The ID of the Edge security group."
+  value       = aws_security_group.edge.id
+}
+
+output "sg_app_id" {
+  description = "The ID of the App security group."
+  value       = aws_security_group.app.id
+}
