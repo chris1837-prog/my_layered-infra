@@ -10,6 +10,12 @@ variable "common_tags" {
   type        = map(string)
 }
 
+variable "open_internet_cidr" {
+  description = "The CIDR block representing the open internet. Typically 0.0.0.0/0. Made into a variable for rare cases where it might need to be restricted (e.g., in more complex networking scenarios)."
+  type        = string
+  default     = "0.0.0.0/0"
+}
+
 # VPC variables
 variable "vpc_id" {
   description = "The ID of the VPC where subnets will be created."
@@ -63,10 +69,4 @@ variable "public_subnets" {
 variable "private_subnets" {
   description = "A map of private subnets."
   type        = map(object({ id = string }))
-}
-
-variable "open_internet_cidr" {
-  description = "The CIDR block representing the open internet. Typically 0.0.0.0/0. Made into a variable for rare cases where it might need to be restricted (e.g., in more complex networking scenarios)."
-  type        = string
-  default     = "0.0.0.0/0"
 }
