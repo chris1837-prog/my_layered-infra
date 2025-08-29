@@ -69,7 +69,7 @@ services:
   app:
     build:
       context: ./app
-      dockerfile: Dockerfile.simple
+      dockerfile: Dockerfile
     container_name: layered-app
     restart: unless-stopped
     ports:
@@ -80,6 +80,7 @@ services:
       - DB_NAME=${POSTGRES_DB:-myapp}
       - DB_USER=${POSTGRES_USER:-myuser}
       - DB_PASSWORD=${POSTGRES_PASSWORD:-mypassword}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-myuser}:${POSTGRES_PASSWORD:-mypassword}@pgbouncer:6432/${POSTGRES_DB:-myapp}
       - PORT=${PORT:-3000}
       - HEALTH_PATH=${HEALTH_PATH:-/health}
     depends_on:

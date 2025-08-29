@@ -61,7 +61,20 @@ You should see the three services. Postgres and PgBouncer may show as “startin
 App health endpoint
 
 curl -i http://localhost:3000/health
-# Expect: HTTP/1.1 200 ... {"status":"ok"}
+Expect output similar to:
+```
+HTTP/1.1 200 OK
+X-Powered-By: Express
+Content-Type: application/json; charset=utf-8
+Content-Length: 15
+ETag: W/"f-VaSQ4oDUiZblZNAEkkN+sX+q3Sg"
+Date: Fri, 29 Aug 2025 08:39:12 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"status":"ok"}
+```
+This is the expected result when DB connectivity is healthy.
 
 PgBouncer reachable (Postgres protocol, not HTTP)
 
