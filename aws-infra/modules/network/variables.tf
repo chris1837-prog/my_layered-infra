@@ -10,6 +10,7 @@ variable "common_tags" {
   type        = map(string)
 }
 
+# Subnet variables
 variable "az_configurations" {
   description = "A map of objects defining the configuration for each Availability Zone."
   type = map(object({
@@ -18,18 +19,20 @@ variable "az_configurations" {
   }))
 }
 
+variable "allow_map_public_ip_on_launch" {
+  description = "Whether to assign public IPs to instances launched in public subnets."
+  type        = bool
+  default     = true
+}
+
+# VPC variables
 variable "vpc_id" {
   description = "The ID of the VPC where subnets will be created."
   type        = string
 }
 
+# IGW variables
 variable "igw_id" {
   description = "The ID of the Internet Gateway to attach to the VPC."
   type        = string
-}
-
-variable "allow_map_public_ip_on_launch" {
-  description = "Whether to assign public IPs to instances launched in public subnets."
-  type        = bool
-  default     = true
 }
