@@ -1,26 +1,8 @@
 # variables.tf (Network Module)
 
-variable "project_name" {
-  description = "The name of the project, used for resource naming and tagging."
-  type        = string
-  default     = ""
-}
-
-variable "common_tags" {
-  description = "Common tags to be applied to all resources."
-  type        = map(string)
-  default     = {}
-}
-
 # =============================================================================
 # Security Group Configuration Variables
 # =============================================================================
-
-variable "allowed_admin_cidr" {
-  description = "The CIDR block from which administrative access (SSH, WireGuard) is allowed. Should be restricted to trusted IPs (e.g., your office/home IP)."
-  type        = string
-  # Sensitive: No default value is best practice, forcing user to set it explicitly.
-}
 
 variable "application_port" {
   description = "The port number on which the internal application listens for traffic (e.g., 3000 for a Node.js app)."
@@ -34,7 +16,7 @@ variable "open_internet_cidr" {
   default     = "0.0.0.0/0"
 }
 
-# --- Protocol Variables (Optional but highly recommended for clarity) ---
+# --- Protocol Variables ---
 variable "tcp_protocol" {
   description = "The IP protocol name for TCP."
   type        = string
@@ -53,7 +35,7 @@ variable "all_protocols" {
   default     = "-1"
 }
 
-# --- Common Port Variables (Optional but good practice) ---
+# --- Common Port Variables ---
 variable "https_port" {
   description = "The standard port for HTTPS traffic."
   type        = number
