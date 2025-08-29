@@ -1,0 +1,13 @@
+[databases]
+# The name of the database as seen by your application (appdb)
+# The connection details for the actual Postgres container (host=postgres)
+appdb = host=postgres dbname=appdb
+
+[pgbouncer]
+listen_addr = 0.0.0.0
+listen_port = 6432
+auth_type = md5
+auth_file = /etc/pgbouncer/userlist.txt
+pool_mode = session
+default_pool_size = 20
+server_idle_timeout = 60
