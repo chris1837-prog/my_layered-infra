@@ -73,24 +73,6 @@ terraform validate
 terraform plan
 ```
 
-This will provision the VPC, subnets, route tables, security groups, and internet gateway as defined in the module.
-
-### Accessing Outputs
-
-You can access outputs from the module in your parent configuration:
-
-```hcl
-output "vpc_id" {
-	value = module.network.vpc_id
-}
-```
-
-This allows you to pass network resource IDs to other modules (e.g., EC2, RDS, etc.).
-
-### Customization
-
-Edit `variables.tf` to add or change input variables. Update `outputs.tf` to expose additional resource attributes as needed. You can also modify resource definitions in the respective `.tf` files to fit your requirements.
-
 ### Example Directory
 
 **Note:** The `examples/basic_usage/` directory is used only for internal module testing and is not intended as a reference or template.
