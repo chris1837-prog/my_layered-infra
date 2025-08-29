@@ -1,16 +1,7 @@
--- Create a database user named 'appuser' with a password from the .env file
--- (The actual user is created by the postgres image's entrypoint, but this shows how to set up)
+# PgBouncer user authentication file
+# Format: "username" "md5<md5hash(username+password)>"
+# Example hash can be generated with:
+#   printf "mypasswordappuser" | md5
+# Note: replace with the actual md5 result.
 
--- This script will run automatically when the postgres container starts for the first time.
--- Here you can create tables, indexes, and other database objects.
-
-CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
-);
-
--- You can add more tables or data here
--- CREATE TABLE IF NOT EXISTS products (...);
--- INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+"appuser" "54fdba1dac1d18ce9c2d57a03502a8ff"
