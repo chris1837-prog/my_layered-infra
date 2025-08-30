@@ -6,18 +6,33 @@ packages:
   - curl
 
 write_files:
+  # Our custom index file
   - path: /var/www/html/index.html
     permissions: '0644'
     content: |
-      edge alive
+      edge alive with internal TLS!
+
+  # Custom Caddyfile with internal CA
+  - path: /etc/caddy/Caddyfile
+    permissions: '0644'
+    content: |
+      myinternal.lan {
+          root * /var/www/html
+          file_server
+          tls internal
+      }
 
 runcmd:
-  # Add Caddy repo + install
+  # Install Caddy from official repo
   - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | apt-key add -
   - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
   - apt-get update
   - apt-get install -y caddy
 
-  # Enable and start service
+  # Open firewall for HTTPS
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+  # Enable + restart Caddy
   - systemctl enable caddy
   - systemctl restart caddy
