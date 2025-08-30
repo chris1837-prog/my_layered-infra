@@ -18,7 +18,7 @@ aws-infra/modules/network/
 ├── variables.tf
 ├── versions.tf
 ├── vpc.tf
-└── examples/           # Internal module test only, not usage examples
+└── examples/           # Usage examples and module testing
 	└── basic_usage/
 		├── main.tf
 		├── outputs.tf
@@ -33,7 +33,7 @@ aws-infra/modules/network/
 - `variables.tf`: Declares all input variables required by the module, such as CIDR blocks, subnet counts, and tags. Customize these to fit your environment.
 - `outputs.tf`: Exposes key resource attributes (e.g., VPC ID, subnet IDs, security group IDs) for use by parent modules or other resources.
 - `versions.tf`: Specifies the required Terraform and provider versions to ensure compatibility and reproducibility.
-- `examples/basic_usage/`: Internal test configuration for validating the module. Not intended as user documentation or usage example.
+- `examples/basic_usage`: Provides a working example of how to consume this module. You can use it as both a reference for usage and as a way to validate the module with terraform plan/apply.
 
 
 ## Usage
@@ -64,15 +64,24 @@ module "network" {
 }
 ```
 
-To validate and test, run:
+## Examples Directory
+
+The `examples/` folder contains runnable configurations that demonstrate how to use this module.
+
+### `basic_usage/`
+
+- A **minimal working example** of the module.  
+- Provisions a VPC, subnets, route tables, an internet gateway, and security groups.  
+- Serves both as:
+  - A **validation test** (`terraform init/validate/plan`)  
+  - **Documentation**, showing expected inputs and outputs.  
+- You can copy and adapt this configuration as a starting point for your own infrastructure.
+
+#### Manual Testing
 
 ```sh
 cd examples/basic_usage/
 terraform init
-terraform validate 
+terraform validate
 terraform plan
-```
 
-### Example Directory
-
-**Note:** The `examples/basic_usage/` directory is used only for internal module testing and is not intended as a reference or template.
