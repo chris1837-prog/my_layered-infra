@@ -18,11 +18,13 @@ aws-infra/modules/network/
 ├── variables.tf
 ├── versions.tf
 ├── vpc.tf
-└── examples/           # Internal module test only, not usage examples
-	└── basic_usage/
-		├── main.tf
-		├── outputs.tf
-		└── versions.tf
+├── test/                   # Terratest skeleton for automated testing
+│   └──  network_test.go
+└── examples/               # Usage examples and module testing
+    └── basic_usage/
+        ├── main.tf
+        ├── outputs.tf
+        └── versions.tf
 ```
 
 - `vpc.tf`: Defines the main Virtual Private Cloud (VPC) resource, including its CIDR block and tags. This is the foundational network component for all other resources.
@@ -33,7 +35,8 @@ aws-infra/modules/network/
 - `variables.tf`: Declares all input variables required by the module, such as CIDR blocks, subnet counts, and tags. Customize these to fit your environment.
 - `outputs.tf`: Exposes key resource attributes (e.g., VPC ID, subnet IDs, security group IDs) for use by parent modules or other resources.
 - `versions.tf`: Specifies the required Terraform and provider versions to ensure compatibility and reproducibility.
-- `examples/basic_usage/`: Internal test configuration for validating the module. Not intended as user documentation or usage example.
+- `test/`: Contains a Terratest skeleton for automated testing of the module.
+- `examples/basic_usage`: Provides a working example of how to consume this module. You can use it as both a reference for usage and as a way to validate the module with terraform plan/apply.
 
 
 ## Usage
@@ -64,15 +67,49 @@ module "network" {
 }
 ```
 
-To validate and test, run:
+## Examples Directory
 
-```sh
+The `examples/` folder contains runnable configurations that demonstrate how to use this module.
+
+### `basic_usage/`
+
+- A **minimal working example** of the module.  
+- Provisions a VPC, subnets, route tables, an internet gateway, and security groups.  
+- Serves both as:
+  - A **validation test** (`terraform init/validate/plan`)  
+  - **Documentation**, showing expected inputs and outputs.  
+- You can copy and adapt this configuration as a starting point for your own infrastructure.
+
+## Testing
+
+### Manual Testing with Examples
+
+The `examples/basic_usage/` directory serves as the primary test harness:
+
+```bash
 cd examples/basic_usage/
 terraform init
-terraform validate 
-terraform plan
+terraform validate  # Should pass with zero errors
+terraform plan      # Should show only network resources
 ```
 
-### Example Directory
+### Terratest Skeleton
 
-**Note:** The `examples/basic_usage/` directory is used only for internal module testing and is not intended as a reference or template.
+A basic Terratest skeleton is provided in the `test/` directory for automated testing:
+
+```bash
+cd test/
+go mod init network-test
+go mod tidy
+go test -v -timeout 30m .
+```
+
+The Terratest skeleton currently validates:
+- VPC creation
+- Correct subnet count (1 public, 1 private)
+- Security group existence
+- Basic structure for future tag validation
+
+**Note**: This is currently a skeleton focused on Terraform output validation. Future enhancements could include AWS API calls for comprehensive resource validation.
+
+ You can copy and adapt this configuration as a starting point for your own infrastructure.

@@ -28,8 +28,6 @@ module "network" {
   vpc_cidr           = "10.0.0.0/16"
   allowed_admin_cidr = "10.0.0.0/8" # Example: wider range for testing
 
-
-
   # Single AZ configuration matching the architecture diagram
   az_configurations = {
     # Use the first available AZ
@@ -38,4 +36,17 @@ module "network" {
       private_subnet_cidr = "10.0.2.0/24" # For App VM (10.0.2.10)
     }
   }
+  # Optional: Set other variables with their defaults for clarity
+  enable_dns_support               = true
+  enable_dns_hostnames             = true
+  allow_map_public_ip_on_launch    = true
+  application_port                 = 3000
+  open_internet_cidr               = "0.0.0.0/0"
+  tcp_protocol                     = "tcp"
+  udp_protocol                     = "udp"
+  all_protocols                    = "-1"
+  https_port                       = 443
+  http_port                        = 80
+  ssh_port                         = 22
+  wireguard_port                   = 51820
 }
