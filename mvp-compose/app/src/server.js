@@ -29,6 +29,7 @@ if (DATABASE_URL) {
     connectionString: DATABASE_URL,
     max: 5,
     idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
   });
 } else {
   console.warn('[app] No DB config (DATABASE_URL nor DB_*). /health and /readyz will return 503.');
@@ -112,15 +113,6 @@ app.get('/health', async (_req, res) => {
   }
 });
 
-// Graceful shutdown: close DB pool when the container receives a stop signal
-process.on('SIGTERM', async () => {
-  try { await pool?.end(); }
-  finally { process.exit(0); }
-});
-process.on('SIGINT', async () => {
-  try { await pool?.end(); }
-  finally { process.exit(0); }
-});
 
 // Start server
 app.listen(PORT, () => {

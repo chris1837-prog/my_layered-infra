@@ -13,3 +13,23 @@
 - `init-db/` — SQL scripts and other files for initializing the database.
 
 Note: The `.env` file is untracked and intended for local environment-specific settings only.
+
+## Backup & Restore (local)
+
+The `mvp-compose/backup-restore.sh` script provides snapshot and restore functionality for the local development database. It uses Postgres tools inside the container to perform backups and restores.
+
+- Backups are stored in the `backups/` folder.
+- Backups use the custom dump format (`pg_dump -Fc`), which supports selective restores.
+- You can list dump contents with `pg_restore -l`.
+
+Commands:
+
+- `snapshot`: Takes a snapshot of the current database state.
+- `smoke-restore`: Restores from the latest snapshot and performs basic smoke tests.
+- `full`: Performs a full restore from a specified dump file.
+
+Notes:
+
+- The restore process retries `/health` endpoint before proceeding to ensure the database is ready.
+- To start fresh, use `docker compose down -v` to remove volumes.
+- Keep dumps out of git to avoid committing large binary files.

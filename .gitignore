@@ -36,6 +36,8 @@ override.tf.json
 .terraformrc
 terraform.rc
 
+mvp-compose/backups/
+
 # Environment files which may contain sensitive secrets
 .env
 *.env

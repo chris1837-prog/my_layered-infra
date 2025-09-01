@@ -5,7 +5,7 @@ This guide shows how to run, verify health, simulate failures, and recover.
 
 ⸻
 
-0) Prerequisites
+1. Prerequisites
 	•	Docker Desktop (Compose v2 enabled).
 	•	macOS (M-series OK).
 	•	Git (to pull the repo).
@@ -15,7 +15,7 @@ Compose file uses version: “2.4” so that local CPU/memory limits are enforce
 
 ⸻
 
-1) Branch & folders
+2. Branch & folders
 
 Work on the Compose MVP under:
 
@@ -31,7 +31,7 @@ layered-infra/
 
 ⸻
 
-2) First-time setup
+3. First-time setup
 
 From repo root:
 
@@ -43,16 +43,16 @@ Do not commit .env. It’s ignored via .gitignore.
 
 ⸻
 
-3) Bring the stack up
+4. Bring the stack up
 
 docker compose up -d --build
 docker compose ps
 
-You should see the three services. Postgres and PgBouncer may show as “starting” briefly while healthchecks pass.
+You should see the three services. Postgres and PgBouncer may show as “starting” briefly while health checks pass.
 
 ⸻
 
-4) Verify health (happy path)
+5. Verify health (happy path)
 
 App health endpoint
 
@@ -85,7 +85,7 @@ If that returns 1, PgBouncer is forwarding to Postgres correctly.
 
 ⸻
 
-5) Simulate DB failure → verify backoff & recovery
+6. Simulate DB failure → verify backoff & recovery
 
 Stop Postgres:
 
@@ -109,7 +109,7 @@ This satisfies the acceptance criteria that app health reflects DB availability 
 
 ⸻
 
-6) Resource limits (local enforcement)
+7. Resource limits (local enforcement)
 
 We use Compose v2.4 keys:
 
@@ -130,7 +130,7 @@ On macOS, 100% in docker stats ≈ one full CPU core.
 
 ⸻
 
-7) Port bindings & connectivity
+8. Port bindings & connectivity
 	•	App: host localhost:3000 → container :3000
 	•	PgBouncer: host 127.0.0.1:6432 → container :6432
 	•	Only accessible from your machine (not the LAN) because we bind to 127.0.0.1.
@@ -142,7 +142,7 @@ postgresql://<user>:<pass>@127.0.0.1:6432/<db>
 
 ⸻
 
-8) Auth modes (dev vs prod)
+9. Auth modes (dev vs prod)
 
 Current default for fast local dev:
 
@@ -165,7 +165,7 @@ This ensures PgBouncer and Postgres are aligned on password encryption.
 
 ⸻
 
-9) Database initialization
+10. Database initialization
 
 Anything placed under init-db/ is executed once on the very first Postgres boot (empty data volume):
 	•	*.sql files → executed in alphabetical order.
@@ -179,7 +179,7 @@ docker compose up -d
 
 ⸻
 
-10) Test script (automates the above)
+11. Test script (automates the above)
 
 We provide test-stack.sh which:
 	•	brings the stack up,
@@ -195,7 +195,96 @@ Run:
 
 ⸻
 
-11) Troubleshooting
+12. Backup & Restore Runbook (local)
+
+We provide `mvp-compose/backup-restore.sh` to **snapshot** the DB and **restore** it safely. It uses the Postgres tools inside the `postgres:16.10` container — no local psql needed — and waits for the app `/health` where appropriate.
+
+**Folder & format**
+- Dumps are written to `mvp-compose/backups/` (git-ignored).
+- Format: **custom** (`pg_dump -Fc`). You can list contents with:
+  ```bash
+  docker compose exec -T postgres pg_restore -l < /path/to/your.dump | head -40
+  ```
+
+**Commands**
+
+1) Snapshot the current DB (verifies dump)
+```bash
+./mvp-compose/backup-restore.sh snapshot
+```
+What it does:
+- Ensures `postgres`, `pgbouncer`, `app` are up and `/health` = 200.
+- Creates a timestamped dump under `mvp-compose/backups/`.
+- Prints the dump TOC (table of contents) so you can see what’s included.
+
+2) Smoke-restore into a side database (non-destructive)
+```bash
+./mvp-compose/backup-restore.sh smoke-restore
+```
+What it does:
+- Restores the latest dump into a new DB named like `myapp_restore_<timestamp>`.
+- Verifies tables exist and row counts look sane.
+
+3) Full swap-restore (replace the live DB safely)
+```bash
+./mvp-compose/backup-restore.sh full
+```
+What it does:
+- (Re)seeds tiny demo data (idempotent) for testing, snapshots, smoke-restores.
+- Restores into a temporary DB, **terminates sessions** on `myapp`, **drops** old `myapp`,
+  **renames** the restored DB to `myapp`, then re-checks the app `/health` via PgBouncer.
+
+**Notes**
+- If `/health` is slow on your machine, the script retries for up to ~1 minute.
+- To start fresh and re-run init scripts, use:
+  ```bash
+  docker compose down -v
+  docker compose up -d
+  ```
+- Keep real dumps out of git — `mvp-compose/backups/` is already in `.gitignore`.
+
+⸻
+
+13. Volume persistence verification
+
+By default, Postgres data is persisted to a dedicated Docker volume named `mvp-compose_postgres_data`.
+
+You can confirm this with:
+
+```bash
+docker volume ls | grep postgres_data
+# expect: local     mvp-compose_postgres_data
+
+docker compose exec postgres ls -lh /var/lib/postgresql/data
+# expect to see cluster files: base/, pg_wal/, postgresql.conf, etc.
+```
+
+This ensures that database state survives container restarts and aligns with the acceptance criteria for a dedicated data volume.
+
+✅ Acceptance Criteria #3 (part A): DB data on dedicated volume is confirmed.
+
+```bash
+docker compose exec postgres \
+  psql -U myuser -d myapp -c "CREATE TABLE foo(id serial primary key, val text); INSERT INTO foo(val) VALUES('bar');"
+CREATE TABLE
+INSERT 0 1
+
+docker compose down
+docker compose up -d
+
+docker compose exec postgres \
+  psql -U myuser -d myapp -c "SELECT * FROM foo;"
+ id | val 
+----+-----
+  1 | bar
+(1 row)
+```
+
+If you run docker compose down -v, the volume is destroyed and data will not persist.
+
+⸻
+
+14. Troubleshooting
 
 App health stays unhealthy
 	•	Ensure the app actually exposes GET /health on port 3000.
@@ -233,21 +322,25 @@ PgBouncer login failed: wrong password type
 
 ⸻
 
-12) Acceptance criteria checklist (copy into PRs)
+15. Acceptance criteria checklist (copy into PRs)
 	•	docker compose up -d brings up app, postgres:16.10, pgbouncer.
+	•	DB data on dedicated volume confirmed (persistence across restarts).
+	•	Snapshot/restore runbook proven via backup-restore.sh (snapshot, smoke-restore, full).
 	•	Resource limits set and effective (mem_limit, cpus), restart: unless-stopped.
-	•	Healthchecks present:
-	•	Postgres: pg_isready on DB.
-	•	PgBouncer: pg_isready on 127.0.0.1:6432.
+	•	Health checks present:
+	•	Postgres: `pg_isready` on DB.
+	•	PgBouncer: `pg_isready` on 127.0.0.1:6432.
 	•	App: HTTP GET /health returns 200 when DB ok, 503 when down.
 	•	.env used (no secrets hardcoded in Compose).
 	•	App connects to PgBouncer (not directly to Postgres).
 	•	Failure drill passes: stop DB → /health=503 → start DB → /health=200.
 	•	PgBouncer bound to 127.0.0.1:6432 (or agreed WG IP).
 
+✅ Acceptance Criteria #4: PgBouncer transaction pooling enabled and node-postgres driver reviewed (compatible).
+
 ⸻
 
-13) Upgrade notes
+16. Upgrade notes
 	•	Postgres version is controlled by POSTGRES_VERSION in .env.
 	•	We standardize on 16.10. To start fresh after changing major versions:
 
@@ -258,7 +351,7 @@ docker compose up -d
 
 ⸻
 
-14) Clean up
+17. Clean up
 
 # stop and remove containers (keep data)
 docker compose down
@@ -269,7 +362,7 @@ docker compose down -v
 
 ⸻
 
-15) FAQ
+18. FAQ
 
 Q: Why version: "2.4" in Compose?
 A: So mem_limit and cpus are enforced locally. v3’s deploy.resources only works in Swarm.
@@ -280,6 +373,3 @@ A: It pools connections so Postgres handles a small, stable number of backends e
 Q: Can I connect from my host tools (DBeaver/psql)?
 A: Yes: 127.0.0.1:6432 goes to PgBouncer, localhost:3000 goes to the app.
 
-⸻
-
-That’s it. If the steps above pass, the MVP meets the Compose acceptance criteria.
