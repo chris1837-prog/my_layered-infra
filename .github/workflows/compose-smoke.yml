@@ -10,7 +10,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16.10
+        image: postgres:17.6
         env:
           POSTGRES_DB: myapp
           POSTGRES_USER: myuser
@@ -54,7 +54,7 @@ jobs:
       # Always: verify SQL goes through PgBouncer
       - name: psql via PgBouncer
         run: |
-          docker run --rm --network host postgres:16.10 \
+          docker run --rm --network host postgres:17.6 \
             psql "postgresql://myuser:mypassword@127.0.0.1:6432/myapp" -c "select 1;"
 
       # --- Conditional app steps (only if app exists) ---
