@@ -1,10 +1,10 @@
 # Branching & PR Workflow
 
 ## Branch naming
-- **Team branches**: `feat/<team-scope>`  
-  e.g. `feat/app_and_db`
-- **Local sub-branches**: `_feat/<owner>-<desc>`  
-  e.g. `_feat/app_and_branch_hao`
+- **Team branches**: `feat/<scope>`  
+  e.g. `feat/database`
+- **Local sub-branches**: `_feat/<desc>`  
+  e.g. `_feat/add-auth`
 
 ## Workflow
 1. Branch off `main`.
@@ -18,6 +18,6 @@
 - `docs: add workflow guide`
 
 ## Ownership
-- Daniel: Compose + Docs + CI  
-- Hao: App container  
-- Felix: PgBouncer + DB init
+- Compose + Docs + CI  
+- App container  
+- PgBouncer + DB init

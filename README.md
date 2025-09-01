@@ -1,45 +1,24 @@
 # Layered Infrastructure
 
-## Our goal for our MVP
-- Keep costs as low as possible
-- Use open source
-- Avoid vendor lock-in
-- Not use managed resources
-- Be able to deploy anywhere
+Monorepo for the MVP platform. This repo hosts:
+- **mvp-compose/** – local single-host Docker Compose stack (App → PgBouncer → Postgres)
+- **infra/** (future) – Terraform / cloud infra
+- **docs/** – contribution guides and workflows
+- **.github/** – CI workflows
 
----
+## Getting started
+- Local Compose stack: see **mvp-compose/** and **docs/WORKFLOW_COMPOSE.md**
+- Contribution & PR flow: see **docs/BRANCHING.md**
 
-## Overview
-This repository contains the MVP stack for **App → PgBouncer → Postgres** (via Docker Compose) and AWS Terraform infrastructure.
+## Contributing
+- Keep PRs **small and focused** (one concern per PR).
+- Pin external images/dependencies to **stable versions**.
+- Add/keep **smoke tests** for critical flows.
 
-## Structure
-- **mvp-compose/** — local single-host stack
-- **aws-infra/** — Terraform IaC for AWS
-- **docs/** — runbooks & workflows
-- **.github/** — CI/CD workflows + PR template
-
-## Quickstart (local MVP)
-```bash
-cd mvp-compose
-cp .env.example .env
-docker compose up -d --build
-curl -i http://localhost:3000/health
+## Repository structure
 ```
-
-## Branching
-
-See [docs/BRANCHING.md](docs/BRANCHING.md) for feature branch rules.
-
-Example:
-- Team branch: `feat/app_and_db`
-- Sub-branch: `_feat/app_and_branch_hao`
-
-## Ownership
-- **Daniel** — Compose, Docs, CI, Terraform glue
-- **Hao** — App container + health logic
-- **Felix** — PgBouncer config + DB init
-
-## Docs
-- [WORKFLOW_COMPOSE](docs/WORKFLOW_COMPOSE.md)
-- [WORKFLOW_TERRAFORM](docs/WORKFLOW_TERRAFORM.md)
-- [BRANCHING](docs/BRANCHING.md)
+layered-infra/
+├─ mvp-compose/
+├─ docs/
+└─ .github/
+```
