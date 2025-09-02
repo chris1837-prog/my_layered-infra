@@ -3,3 +3,9 @@
 .terraform.lock.hcl
 terraform.tfvars
 crash.log
+
+**/test/.terraform/
+**/test/*.tfstate
+**/test/*.tfstate.backup
+**/test/go.mod
+**/test/go.sum

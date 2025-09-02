@@ -36,27 +36,5 @@ override.tf.json
 .terraformrc
 terraform.rc
 
-mvp-compose/backups/
-
-# Environment files which may contain sensitive secrets
-.env
-*.env
-
-# Node modules and JavaScript/Node log files
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Python cache files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# IDE and editor config files
-.vscode/
-.idea/
-
-# OS generated files
-.DS_Store
-Thumbs.db
+# Ignore IDE idea files
+.idea/*
