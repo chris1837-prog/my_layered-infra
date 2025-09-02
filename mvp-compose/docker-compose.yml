@@ -1,0 +1,106 @@
+services:
+  # ===========================
+  # PostgreSQL (the database)
+  # ===========================
+  postgres:
+    image: postgres:${POSTGRES_VERSION:-16.10}
+    container_name: layered-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-myapp}
+      POSTGRES_USER: ${POSTGRES_USER:-myuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+    command: ["postgres", "-c", "password_encryption=md5"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myuser} -d ${POSTGRES_DB:-myapp}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # v2 limits: enforced on single-host Compose
+    mem_limit: "1g"
+    cpus: "1.0"
+    networks:
+      - app-network
+
+  # ===========================
+  # PgBouncer (connection pooler)
+  # ===========================
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: layered-pgbouncer
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6432:6432"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-myapp}
+      DB_USER: ${POSTGRES_USER:-myuser}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+      AUTH_TYPE: md5
+      AUTH_FILE: /etc/pgbouncer/userlist.txt
+      POOL_MODE: transaction
+      LISTEN_ADDR: 0.0.0.0
+      LISTEN_PORT: "6432"
+    volumes:
+      - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - app-network
+
+  # ===========================
+  # App (Node.js)
+  # ===========================
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: layered-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=pgbouncer
+      - DB_PORT=6432
+      - DB_NAME=${POSTGRES_DB:-myapp}
+      - DB_USER=${POSTGRES_USER:-myuser}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-mypassword}
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-myuser}:${POSTGRES_PASSWORD:-mypassword}@pgbouncer:6432/${POSTGRES_DB:-myapp}
+      - PORT=${PORT:-3000}
+      - HEALTH_PATH=${HEALTH_PATH:-/health}
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3000}${HEALTH_PATH:-/health}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    mem_limit: "512m"
+    cpus: "0.5"
+    networks:
+      - app-network
+
+# ===========================
+# Volumes & Networks
+# ===========================
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge
