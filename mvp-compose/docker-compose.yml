@@ -30,7 +30,7 @@ services:
   # PgBouncer (connection pooler)
   # ===========================
   pgbouncer:
-    image: edoburu/pgbouncer:latest
+    image: edoburu/pgbouncer:v1.24.1-p1
     container_name: layered-pgbouncer
     restart: unless-stopped
     ports:
@@ -50,6 +50,7 @@ services:
       LISTEN_ADDR: 0.0.0.0
       LISTEN_PORT: "6432"
     volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro   # mounting
       - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 || exit 1" ]
