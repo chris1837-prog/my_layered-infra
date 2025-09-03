@@ -123,7 +123,7 @@ resource "aws_instance" "test_edge_instance" {
     # Install required packages
     export DEBIAN_FRONTEND=noninteractive
     apt-get update -y
-    apt-get install -y iptables-persistent curl
+    apt-get install -y iptables-persistent netfilter-persistent curl
 
     # Detect primary interface
     PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
@@ -143,6 +143,10 @@ EOF
 
   # Load rules immediately
   iptables-restore < /etc/iptables/rules.v4
+
+  # Save and reload persistent rules
+    netfilter-persistent save
+    netfilter-persistent reload
 
   echo "[edge-init] Final NAT table:" | tee -a /var/log/edge-init.log
   iptables -t nat -S | tee -a /var/log/edge-init.log
