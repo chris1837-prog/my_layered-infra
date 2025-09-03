@@ -47,7 +47,7 @@ resource "aws_key_pair" "this" {
 # Save private key locally for Terratest
 resource "local_file" "ssh_private_key" {
   content        = tls_private_key.test_key.private_key_pem
-  filename       = "${path.module}/network_test_key.pem"
+  filename       = abspath("${path.module}/network_test_key.pem")
   file_permission = "0600"
 }
 
