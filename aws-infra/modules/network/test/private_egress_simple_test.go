@@ -1,7 +1,6 @@
 package test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -16,25 +15,27 @@ func TestPrivateEgressSimple(t *testing.T) {
 
 	tfOpts := &terraform.Options{
 		TerraformDir: terraformDir,
-		// vars like admin_ssh_public_key already passed in main.tf via Terraform local_file
+		// variables already handled in Terraform main.tf
 	}
 
+	// Provision infrastructure
 	terraform.InitAndApply(t, tfOpts)
 	defer terraform.Destroy(t, tfOpts)
 
+	// Get outputs
 	edgeIP := terraform.Output(t, tfOpts, "edge_public_ip")
 	privateIP := terraform.Output(t, tfOpts, "private_test_private_ip")
-	keyFile := terraform.Output(t, tfOpts, "ssh_private_key_file")
+	keyFile := ResolveKeyPath(t, terraform.Output(t, tfOpts, "ssh_private_key_file"))
 
-	// Simple curl test from private instance via edge
-	nestedScript := fmt.Sprintf(`
-ssh -o StrictHostKeyChecking=no -i %s ubuntu@%s "sudo apt-get update -y && sudo apt-get install -y curl && curl -sI https://api.github.com | head -n 1"
-`, keyFile, privateIP)
+	// Command to run on private instance
+	cmd := "curl -sI https://api.github.com | head -n 1"
 
-	out, err := RetrySSHCommand(t, edgeIP, "ubuntu", keyFile, nestedScript)
+	// Execute via edge instance
+	out, err := RetrySSHViaEdge(t, edgeIP, privateIP, "ubuntu", keyFile, cmd)
 	require.NoError(t, err)
 	require.Contains(t, out, "200", "expected HTTP 200 from https://api.github.com")
 
 	t.Logf("Success: private instance (%s) can reach internet via edge (%s)", privateIP, edgeIP)
 }
+
 
