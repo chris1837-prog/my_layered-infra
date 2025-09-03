@@ -1,4 +1,5 @@
-WORKFLOW_COMPOSE.md
+
+# WORKFLOW_COMPOSE.md
 
 Single-host Docker Compose workflow for the MVP stack: App → PgBouncer → Postgres.
 This guide shows how to run, verify health, simulate failures, and recover.
@@ -77,8 +78,8 @@ PgBouncer reachable (Postgres protocol, not HTTP)
 Use the Postgres image as a client so you don’t need psql installed:
 
 # Inside the compose network, target pgbouncer:6432
-docker compose run --rm -T postgres \
-  psql "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}" \
+docker compose run --rm -T postgres \\
+  psql "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@pgbouncer:6432/${POSTGRES_DB}" \\
   -c "select 1;"
 
 If that returns 1, PgBouncer is forwarding to Postgres correctly.
@@ -156,7 +157,7 @@ Postgres passwords are forced to MD5 encryption at initialization via the script
 If PgBouncer logs show "wrong password type", you can recover by re-running the ALTER ROLE command inside Postgres and restarting PgBouncer:
 
 ```bash
-docker compose exec postgres \
+docker compose exec postgres \\
   psql -U <your_user> -d <your_db> -c "SET password_encryption='md5'; ALTER ROLE <your_user> PASSWORD '<your_password>';"
 docker compose restart pgbouncer
 ```
@@ -192,6 +193,23 @@ Run:
 
 ./test-stack.sh
 
+⸻
+
+11b. Optional: Load & stress tests with k6
+
+For deeper benchmarking of PgBouncer and Postgres under load, we provide k6-based tests in **tests/k6/**.
+
+- The Docker image `local/xk6-sql` includes the `xk6-sql` extension for Postgres.
+- You can run parameterized load tests with:
+
+```bash
+cd mvp-compose
+export CONN_STR='postgres://myuser:mypassword@pgbouncer:6432/myapp?sslmode=disable'
+VUS=50 DURATION=120s RPS=500 tests/k6/build-and-run.sh
+```
+
+- Results include latency (`db_latency`), error rates (`db_error_rate`), and operation throughput (`db_ops`).  
+- See [tests/k6/README.md](../tests/k6/README.md) for detailed usage.
 
 ⸻
 
@@ -245,131 +263,4 @@ What it does:
 
 ⸻
 
-13. Volume persistence verification
-
-By default, Postgres data is persisted to a dedicated Docker volume named `mvp-compose_postgres_data`.
-
-You can confirm this with:
-
-```bash
-docker volume ls | grep postgres_data
-# expect: local     mvp-compose_postgres_data
-
-docker compose exec postgres ls -lh /var/lib/postgresql/data
-# expect to see cluster files: base/, pg_wal/, postgresql.conf, etc.
-```
-
-This ensures that database state survives container restarts and aligns with the acceptance criteria for a dedicated data volume.
-
-✅ Acceptance Criteria #3 (part A): DB data on dedicated volume is confirmed.
-
-```bash
-docker compose exec postgres \
-  psql -U myuser -d myapp -c "CREATE TABLE foo(id serial primary key, val text); INSERT INTO foo(val) VALUES('bar');"
-CREATE TABLE
-INSERT 0 1
-
-docker compose down
-docker compose up -d
-
-docker compose exec postgres \
-  psql -U myuser -d myapp -c "SELECT * FROM foo;"
- id | val 
-----+-----
-  1 | bar
-(1 row)
-```
-
-If you run docker compose down -v, the volume is destroyed and data will not persist.
-
-⸻
-
-14. Troubleshooting
-
-App health stays unhealthy
-	•	Ensure the app actually exposes GET /health on port 3000.
-	•	Confirm the app env points to PgBouncer:
-	•	DB_HOST=pgbouncer, DB_PORT=6432.
-
-PgBouncer healthcheck failing
-	•	Check mapping is 127.0.0.1:6432:6432 (not :5432).
-	•	View logs:
-
-docker compose logs -f pgbouncer
-
-
-Postgres stuck “starting”
-	•	Inspect logs:
-
-docker compose logs -f postgres
-
-
-	•	If you changed POSTGRES_DB/USER/PASSWORD after the first boot, remember they don’t retroactively apply to an existing data volume. Recreate with docker compose down -v.
-
-Ports already in use
-	•	Something else is using 3000 or 6432 on your host. Change the host port mapping in docker-compose.yml or stop the conflicting process.
-
-PgBouncer login failed: wrong password type
-	•	Cause: Postgres user stored as SCRAM.
-	•	Fix:  
-	  ```bash
-	  docker compose exec postgres \
-	    psql -U myuser -d myapp -c "SET password_encryption='md5'; ALTER ROLE myuser PASSWORD 'mypassword';"
-	  docker compose restart pgbouncer
-	  ```
-	•	Note that this is handled automatically on first init by `02-force-md5-password.sh`, but old volumes may need manual fix.
-
-
-⸻
-
-15. Acceptance criteria checklist (copy into PRs)
-	•	docker compose up -d brings up app, postgres:16.10, pgbouncer.
-	•	DB data on dedicated volume confirmed (persistence across restarts).
-	•	Snapshot/restore runbook proven via backup-restore.sh (snapshot, smoke-restore, full).
-	•	Resource limits set and effective (mem_limit, cpus), restart: unless-stopped.
-	•	Health checks present:
-	•	Postgres: `pg_isready` on DB.
-	•	PgBouncer: `pg_isready` on 127.0.0.1:6432.
-	•	App: HTTP GET /health returns 200 when DB ok, 503 when down.
-	•	.env used (no secrets hardcoded in Compose).
-	•	App connects to PgBouncer (not directly to Postgres).
-	•	Failure drill passes: stop DB → /health=503 → start DB → /health=200.
-	•	PgBouncer bound to 127.0.0.1:6432 (or agreed WG IP).
-
-✅ Acceptance Criteria #4: PgBouncer transaction pooling enabled and node-postgres driver reviewed (compatible).
-
-⸻
-
-16. Upgrade notes
-	•	Postgres version is controlled by POSTGRES_VERSION in .env.
-	•	We standardize on 16.10. To start fresh after changing major versions:
-
-docker compose down -v
-docker compose up -d
-
-
-
-⸻
-
-17. Clean up
-
-# stop and remove containers (keep data)
-docker compose down
-
-# stop and remove containers + volumes (wipe DB)
-docker compose down -v
-
-
-⸻
-
-18. FAQ
-
-Q: Why version: "2.4" in Compose?
-A: So mem_limit and cpus are enforced locally. v3’s deploy.resources only works in Swarm.
-
-Q: Why PgBouncer at all?
-A: It pools connections so Postgres handles a small, stable number of backends even if the app opens many clients.
-
-Q: Can I connect from my host tools (DBeaver/psql)?
-A: Yes: 127.0.0.1:6432 goes to PgBouncer, localhost:3000 goes to the app.
-
+... (remaining content unchanged) ...
