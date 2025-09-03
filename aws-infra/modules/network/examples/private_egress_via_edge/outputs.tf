@@ -33,7 +33,7 @@ output "vpc_cidr" {
 }
 
 output "ssh_private_key_file" {
-  value       = "${path.module}/network_test_key.pem"
+  value       = abspath("${path.module}/network_test_key.pem")
   description = "Path to the generated private key for SSH access to test instances"
 }
 
