@@ -53,7 +53,11 @@ services:
       - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro   # mounting
       - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 || exit 1" ]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER:-myuser} -d ${POSTGRES_DB:-myapp} || exit 1"
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

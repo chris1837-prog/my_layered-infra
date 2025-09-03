@@ -1,2 +1,31 @@
+# -------------------------
+# Environment / Secrets
+# -------------------------
 .env
+.env.*          # Any other env variants
+!.env.example   # Keep the example env for reference
+
+# -------------------------
+# Database backups & dumps
+# -------------------------
 backups/
+*.sql
+*.dump
+*.bak
+
+# -------------------------
+# Test artifacts (k6, coverage, etc.)
+# -------------------------
+tests/k6/out.json
+tests/k6/*.json
+tests/k6/*.csv
+tests/k6/*.html
+coverage/
+
+# -------------------------
+# Docker / Compose local state
+# -------------------------
+*.pid
+*.log
+docker-data/
+.docker/
