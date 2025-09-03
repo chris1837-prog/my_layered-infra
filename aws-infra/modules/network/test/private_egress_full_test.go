@@ -31,7 +31,7 @@ func TestPrivateEgressFull(t *testing.T) {
 	privateID := terraform.Output(t, tfOpts, "private_test_instance_id")
 	privateRT := terraform.Output(t, tfOpts, "private_route_table_id")
 	vpcCIDR := terraform.Output(t, tfOpts, "vpc_cidr")
-	keyFile := terraform.Output(t, tfOpts, "ssh_private_key")
+	keyFile := terraform.Output(t, tfOpts, "ssh_private_key_file")
 
 	region := os.Getenv("AWS_REGION")
 	if region == "" {

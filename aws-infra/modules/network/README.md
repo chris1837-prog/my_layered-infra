@@ -67,6 +67,7 @@ module "network" {
 }
 ```
 
+
 ## Examples Directory
 
 The `examples/` folder contains runnable configurations that demonstrate how to use this module.
@@ -80,12 +81,25 @@ The `examples/` folder contains runnable configurations that demonstrate how to 
   - **Documentation**, showing expected inputs and outputs.  
 - You can copy and adapt this configuration as a starting point for your own infrastructure.
 
+### `private_egress_via_edge/`
+
+- An **advanced example** demonstrating cost-effective private subnet internet egress.
+- Replaces NAT Gateway with a NAT instance (Edge VM) for significant cost savings.
+- Implements the complete architecture:
+  - Edge instance with `source_dest_check = false`
+  - iptables MASQUERADE rules for the entire VPC CIDR
+  - Private route table with default route (0.0.0.0/0) pointing to Edge instance
+  - Automated SSH key generation for testing
+- Includes comprehensive Terratest that validates:
+  - Route table configuration
+  - Instance connectivity
+  - Actual internet access from private instances
+
 ## Testing
 
 ### Manual Testing with Examples
 
-The `examples/basic_usage/` directory serves as the primary test harness:
-
+#### Basic Validation
 ```bash
 cd examples/basic_usage/
 terraform init
@@ -93,23 +107,39 @@ terraform validate  # Should pass with zero errors
 terraform plan      # Should show only network resources
 ```
 
-### Terratest Skeleton
+#### NAT Instance Validation
+```bash
+cd examples/private_egress_via_edge/
+terraform init
+terraform validate  # Should pass with zero errors
+terraform plan      # Should show network resources + NAT instances
+```
 
-A basic Terratest skeleton is provided in the `test/` directory for automated testing:
+### Automated Testing with Terratest
 
+#### Basic Infrastructure Tests
 ```bash
 cd test/
 go mod init network-test
 go mod tidy
-go test -v -timeout 30m .
+go test -v -timeout 30m -run TestNetworkModule .
 ```
 
-The Terratest skeleton currently validates:
-- VPC creation
-- Correct subnet count (1 public, 1 private)
-- Security group existence
-- Basic structure for future tag validation
+#### NAT Functionality Tests
+```bash
+cd test/
+go test -v -timeout 30m -run TestPrivateEgressViaEdge .
+```
 
-**Note**: This is currently a skeleton focused on Terraform output validation. Future enhancements could include AWS API calls for comprehensive resource validation.
+The Terratest suite validates:
+- **Basic Structure**: VPC creation, subnet counts, security groups existence
+- **NAT Functionality**: 
+  - Edge instance source/dest check configuration
+  - Private route table default route to Edge instance
+  - Actual internet access from private instances via SSH testing
+  - Comprehensive AWS API validation
+
+**Note**: The NAT test requires SSH connectivity and validates real network traffic flow from private instances to the internet.
+```
 
  You can copy and adapt this configuration as a starting point for your own infrastructure.
