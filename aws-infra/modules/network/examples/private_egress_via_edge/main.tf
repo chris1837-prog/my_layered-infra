@@ -110,7 +110,7 @@ resource "aws_instance" "test_edge_instance" {
   # SSH key for access
   key_name = aws_key_pair.this.key_name
 
-  # Cloud-init script embedded directly
+  #Cloud-init script embedded directly
   user_data = <<-EOT
 #!/bin/bash
 set -euxo pipefail
@@ -123,10 +123,10 @@ echo "[edge-init] Start user_data script"
 sysctl -w net.ipv4.ip_forward=1
 echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
 
-# Install required packages
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -y
-apt-get install -y iptables-persistent netfilter-persistent curl
+    # Install required packages
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update -y
+    apt-get install -y iptables-persistent curl
 
 # Detect primary interface
 PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
@@ -146,14 +146,10 @@ EOF
 # Load rules immediately
 iptables-restore < /etc/iptables/rules.v4
 
-# Save and reload persistent rules
-netfilter-persistent save
-netfilter-persistent reload
+  echo "[edge-init] Final NAT table:" | tee -a /var/log/edge-init.log
+  iptables -t nat -S | tee -a /var/log/edge-init.log
 
-echo "[edge-init] Final NAT table:"
-iptables -t nat -S
-
-echo "[edge-init] Completed successfully"
+  echo "[edge-init] Completed successfully" | tee -a /var/log/edge-init.log
 EOT
 
   tags = merge(local.common_tags, {

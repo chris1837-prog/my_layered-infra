@@ -102,7 +102,5 @@ resource "aws_vpc_security_group_egress_rule" "app_egress_all" {
   security_group_id = aws_security_group.app.id
   description       = "Allow all outbound traffic"
   ip_protocol       = var.all_protocols
-  from_port         = 0 # These could also be variables, but 0/0 for "all ports" is very standard.
-  to_port           = 0
   cidr_ipv4         = var.open_internet_cidr
 }
