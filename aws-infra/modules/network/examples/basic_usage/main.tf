@@ -37,16 +37,16 @@ module "network" {
     }
   }
   # Optional: Set other variables with their defaults for clarity
-  enable_dns_support               = true
-  enable_dns_hostnames             = true
-  allow_map_public_ip_on_launch    = true
-  application_port                 = 3000
-  open_internet_cidr               = "0.0.0.0/0"
-  tcp_protocol                     = "tcp"
-  udp_protocol                     = "udp"
-  all_protocols                    = "-1"
-  https_port                       = 443
-  http_port                        = 80
-  ssh_port                         = 22
-  wireguard_port                   = 51820
+  enable_dns_support            = true
+  enable_dns_hostnames          = true
+  allow_map_public_ip_on_launch = true
+  application_port              = 3000
+  open_internet_cidr            = "0.0.0.0/0"
+  tcp_protocol                  = "tcp"
+  udp_protocol                  = "udp"
+  all_protocols                 = "-1"
+  https_port                    = 443
+  http_port                     = 80
+  ssh_port                      = 22
+  wireguard_port                = 51820
 }
