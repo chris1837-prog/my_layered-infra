@@ -1,1 +1,7 @@
-"myuser" "md554fdba1dac1d18ce9c2d57a03502a8ff"
+# PgBouncer user authentication file
+# Format: "username" "md5<md5hash(username+password)>"
+# Example hash can be generated with:
+#   printf "mypasswordappuser" | md5
+# Note: replace with the actual md5 result.
+
+"appuser" "54fdba1dac1d18ce9c2d57a03502a8ff"
