@@ -6,6 +6,7 @@
 # Provider config without a specific profile to use default auth chain
 provider "aws" {
   region = "eu-central-1"
+  profile = "694816839566_AdministratorAccess"
 }
 
 # Get available AZs in the region
@@ -110,44 +111,49 @@ resource "aws_instance" "test_edge_instance" {
   key_name = aws_key_pair.this.key_name
 
   # Cloud-init script embedded directly
-    user_data = <<-EOT
-    #!/bin/bash
-    set -eux
+  user_data = <<-EOT
+#!/bin/bash
+set -euxo pipefail
 
-    echo "[edge-init] Start user_data script" | tee /var/log/edge-init.log
+exec > >(tee /var/log/edge-init.log|logger -t user-data ) 2>&1
 
-    # Enable IP forwarding
-    sysctl -w net.ipv4.ip_forward=1
-    echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+echo "[edge-init] Start user_data script"
 
-    # Install required packages
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update -y
-    apt-get install -y iptables-persistent curl
+# Enable IP forwarding
+sysctl -w net.ipv4.ip_forward=1
+echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
 
-    # Detect primary interface
-    PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
+# Install required packages
+export DEBIAN_FRONTEND=noninteractive
+apt-get update -y
+apt-get install -y iptables-persistent netfilter-persistent curl
 
-    echo "[edge-init] Primary interface: $PRIMARY_IFACE" | tee -a /var/log/edge-init.log
+# Detect primary interface
+PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
+echo "[edge-init] Primary interface: $PRIMARY_IFACE"
 
-    # Create persistent NAT rules file
-    cat > /etc/iptables/rules.v4 <<EOF
-  *nat
-  :PREROUTING ACCEPT [0:0]
-  :INPUT ACCEPT [0:0]
-  :OUTPUT ACCEPT [0:0]
-  :POSTROUTING ACCEPT [0:0]
-  -A POSTROUTING -s ${local.vpc_cidr} -o $PRIMARY_IFACE -j MASQUERADE
-  COMMIT
+# Create persistent NAT rules file
+cat > /etc/iptables/rules.v4 <<EOF
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s ${local.vpc_cidr} -o $PRIMARY_IFACE -j MASQUERADE
+COMMIT
 EOF
 
-  # Load rules immediately
-  iptables-restore < /etc/iptables/rules.v4
+# Load rules immediately
+iptables-restore < /etc/iptables/rules.v4
 
-  echo "[edge-init] Final NAT table:" | tee -a /var/log/edge-init.log
-  iptables -t nat -S | tee -a /var/log/edge-init.log
+# Save and reload persistent rules
+netfilter-persistent save
+netfilter-persistent reload
 
-  echo "[edge-init] Completed successfully" | tee -a /var/log/edge-init.log
+echo "[edge-init] Final NAT table:"
+iptables -t nat -S
+
+echo "[edge-init] Completed successfully"
 EOT
 
   tags = merge(local.common_tags, {
