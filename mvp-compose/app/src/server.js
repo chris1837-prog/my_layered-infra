@@ -25,14 +25,33 @@ const DATABASE_URL =
 // IMPORTANT: create a pool ONLY if DB config exists
 let pool = null;
 if (DATABASE_URL) {
+// -------------------------FELIX TASK---------
+// Pool config is now tunable via env (no functional breakage)
   pool = new Pool({
-    connectionString: DATABASE_URL,
-    max: 5,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionString: DATABASE_URL,                         // must point to PgBouncer
+    max: Number(process.env.PGPOOL_MAX || 5),               // small cap behind PgBouncer
+    idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT || 30000),
+    connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT || 5000),
   });
+// -------------------------FELIX TASK---------
 } else {
   console.warn('[app] No DB config (DATABASE_URL nor DB_*). /health and /readyz will return 503.');
+}
+// -------------------------FELIX TASK---------
+// Optional helper: use a dedicated client (multi-step work) + per-session statement timeout
+async function withClient(fn) {
+  if (!pool) throw new Error('DB pool not initialized');
+  const client = await pool.connect();
+  try {
+    const st = Number(process.env.PG_STATEMENT_TIMEOUT || 0);
+    if (st > 0) {
+      await client.query(`SET statement_timeout = ${st}`);
+    }
+    return await fn(client);
+  } finally {
+    client.release();
+  }
+// -------------------------FELIX TASK---------
 }
 
 let dbReady = false;

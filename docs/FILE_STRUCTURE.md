@@ -24,18 +24,47 @@
 > Note: The `.env` file is untracked and intended for local environment-specific settings only.
 
 ## Backup & Restore (local)
-The `mvp-compose/backup-restore.sh` script provides snapshot and restore functionality for the local development database. It uses Postgres tools inside the container to perform backups and restores.
 
-- Backups are stored in the `backups/` folder.
-- Backups use the custom dump format (`pg_dump -Fc`), which supports selective restores.
-- You can list dump contents with `pg_restore -l`.
+This repo ships a helper script that performs consistent backups and safe restores **via PgBouncer**. It also validates app health before/after.
+
+> **Run all commands from the repo root** (where `backup-restore.sh` lives).
+>
+> Make sure the stack is up: `cd mvp-compose && docker compose up -d && cd ..`
 
 ### Commands
-- `snapshot`: Takes a snapshot of the current database state.
-- `smoke-restore`: Restores from the latest snapshot and performs basic smoke tests.
-- `full`: Performs a full restore from a specified dump file.
+
+- **Snapshot (backup)**
+  ```bash
+  ./backup-restore.sh snapshot
+  ```
+  Creates a versioned dump under `backups/` (format: `YYYY-MM-DD_HHMMSS-myapp.dump`).
+
+- **Smoke restore (side DB)**
+  ```bash
+  ./backup-restore.sh smoke-restore
+  ```
+  Restores the last snapshot into a temporary database (e.g., `myapp_restore_<timestamp>`), then verifies tables and counts. Does **not** touch the live DB.
+
+- **Full restore (seed → snapshot → verify → swap)**
+  ```bash
+  ./backup-restore.sh full
+  ```
+  End-to-end flow used locally: ensures stack is up, (re)seeds demo data idempotently, takes a snapshot, verifies via smoke-restore, then performs a **swap-restore** (restore into temp DB, terminate sessions, atomically rename to `myapp`) and re-checks app `/health` through PgBouncer.
+
+### Important notes on PgBouncer and queries
+
+Because PgBouncer runs in **transaction pooling mode**, **prepared statements** (using `PREPARE`/`EXECUTE` or named prepared statements in node-postgres) **must not be used**, as they are incompatible with this mode. However, **plain parameterized queries are safe** and recommended to use.
+
+### Where files go
+- Backups are written to `backups/` and are **.gitignored**.
+- The script uses the Compose services defined in `mvp-compose/docker-compose.yml` and relies on environment from `.env` / `.env.example`.
+
+### Troubleshooting
+- `zsh: no such file or directory: ./mvp-compose/backup-restore.sh` → Run from repo root: `./backup-restore.sh ...` (the script is **not** inside `mvp-compose/`).
+- `permission denied` → `chmod +x ./backup-restore.sh`.
+- App not healthy initially → the script waits for `http://localhost:3000/health` to return 200; if it keeps failing, check `docker compose logs app`.
 
 ### Notes
-- The restore process retries `/health` endpoint before proceeding to ensure the database is ready.
-- To start fresh, use `docker compose down -v` to remove volumes.
-- Keep dumps out of git to avoid committing large binary files.
+- All pg operations go **through PgBouncer** to mirror production access patterns.
+- Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
+- Restores are validated by checking both database objects (tables and counts) and app health to ensure consistency and correctness.
