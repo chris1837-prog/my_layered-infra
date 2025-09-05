@@ -52,22 +52,24 @@ resource "aws_vpc_security_group_ingress_rule" "edge_http" {
 
 # Allow WireGuard VPN traffic from admin devices
 resource "aws_vpc_security_group_ingress_rule" "edge_wireguard" {
+  for_each          = toset(var.allowed_admin_cidrs)
   security_group_id = aws_security_group.edge.id
-  description       = "Allow WireGuard UDP traffic from admin devices"
+  description       = "Allow WireGuard UDP traffic from ${each.value} admin devices"
   ip_protocol       = var.udp_protocol
   from_port         = var.wireguard_port
   to_port           = var.wireguard_port
-  cidr_ipv4         = var.allowed_admin_cidr
+  cidr_ipv4         = each.value
 }
 
 # Allow SSH access for management
 resource "aws_vpc_security_group_ingress_rule" "edge_ssh" {
+  for_each          = toset(var.allowed_admin_cidrs)
   security_group_id = aws_security_group.edge.id
-  description       = "Allow SSH for management"
+  description       = "Allow SSH from ${each.value} for management"
   ip_protocol       = var.tcp_protocol
   from_port         = var.ssh_port
   to_port           = var.ssh_port
-  cidr_ipv4         = var.allowed_admin_cidr
+  cidr_ipv4         = each.value
 }
 
 # =============================================================================

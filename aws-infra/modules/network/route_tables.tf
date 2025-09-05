@@ -17,7 +17,7 @@ resource "aws_route_table_association" "public" {
 # Private Route Table
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.this.id
-  tags = merge({ Name = "${var.project_name}-private-rt" }, var.common_tags)
+  tags   = merge({ Name = "${var.project_name}-private-rt" }, var.common_tags)
 }
 
 resource "aws_route_table_association" "private" {

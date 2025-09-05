@@ -1,7 +1,8 @@
 # variables.tf (Network Module)
 
-# General variables
-
+# =============================================================================
+# Common Variables
+# =============================================================================
 variable "project_name" {
   description = "Project name to tag resources"
   type        = string
@@ -20,8 +21,9 @@ variable "open_internet_cidr" {
   default     = "0.0.0.0/0"
 }
 
-# VPC variables
-
+# =============================================================================
+# VPC Variables
+# =============================================================================
 variable "vpc_cidr" {
   description = "CIDR block for the VPC"
   type        = string
@@ -39,7 +41,9 @@ variable "enable_dns_hostnames" {
   default     = true
 }
 
-# Subnet variables
+# =============================================================================
+# Subnet Variables
+# =============================================================================
 variable "az_configurations" {
   description = "A map of objects defining the configuration for each Availability Zone."
   type = map(object({
@@ -57,9 +61,9 @@ variable "allow_map_public_ip_on_launch" {
 # =============================================================================
 # Security Group Configuration Variables
 # =============================================================================
-variable "allowed_admin_cidr" {
-  type        = string
-  description = "The CIDR block from which administrative access (SSH, WireGuard) is allowed."
+variable "allowed_admin_cidrs" {
+  description = "CIDR blocks from which administrative access (SSH, WireGuard) is allowed."
+  type        = list(string)
 }
 
 variable "application_port" {
