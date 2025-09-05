@@ -6,7 +6,6 @@
 # Provider config without a specific profile to use default auth chain
 provider "aws" {
   region = "eu-central-1"
-  profile = "694816839566_AdministratorAccess"
 }
 
 # Get available AZs in the region
@@ -16,9 +15,10 @@ data "aws_availability_zones" "available" {
 
 # Locals for consistent values and dynamic AMI selection
 locals {
-  instance_type = "t3.micro"
-  vpc_cidr      = "10.0.0.0/16" # Define once, use everywhere
-  project_name  = "layered-infra"
+  instance_type       = "t3.micro"
+  vpc_cidr            = "10.0.0.0/16"
+  allowed_admin_cidrs = ["0.0.0.0/0"]
+  project_name        = "layered-infra"
   # Define common_tags in one place
   common_tags = {
     Project     = "layered-infra"
@@ -47,15 +47,9 @@ resource "aws_key_pair" "this" {
 
 # Save private key locally for Terratest
 resource "local_file" "ssh_private_key" {
-  content        = tls_private_key.test_key.private_key_pem
-  filename       = abspath("${path.module}/network_test_key.pem")
+  content         = tls_private_key.test_key.private_key_pem
+  filename        = abspath("${path.module}/network_test_key.pem")
   file_permission = "0600"
-}
-
-variable "allowed_admin_cidr" {
-  description = "Admin CIDR allowed for SSH / WG (used by the network module)."
-  type        = string
-  default     = "0.0.0.0/0" # safe default for quick tests - change for production
 }
 
 module "network" {
@@ -65,8 +59,8 @@ module "network" {
   common_tags  = local.common_tags
 
 
-  vpc_cidr           = local.vpc_cidr
-  allowed_admin_cidr = var.allowed_admin_cidr
+  vpc_cidr            = local.vpc_cidr
+  allowed_admin_cidrs = local.allowed_admin_cidrs
 
   # Single AZ configuration
   az_configurations = {
