@@ -3,7 +3,7 @@
 # GitHub Actions role ARN (created inside bootstrapper)
 output "github_actions_role_arn" {
   description = "The ARN of the GitHub Actions OIDC role created for Terraform CI/CD"
-  value       = aws_iam_role.github_actions_role.arn
+  value       = aws_iam_role.github_actions.arn
 }
 
 # Remote backend S3 bucket name (from remote_backend module)
