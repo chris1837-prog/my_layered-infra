@@ -1,0 +1,28 @@
+# bootstrap/dev/terraform.tfvars.example
+
+# AWS region where backend and CI/CD role will be created
+aws_region = "eu-central-1"
+
+# Project name for resource naming
+project_name = "layered-infra"
+
+# Environment name, e.g., dev, prod
+environment = "dev"
+
+# Common tags applied to all resources (default: {})
+common_tags = {
+  Project     = "layered-infra"
+  Environment = "dev"
+}
+
+# GitHub organization for OIDC trust
+github_org = "webeet-io"
+
+# GitHub repository for OIDC trust
+github_repo = "layered-infra"
+
+# GitHub branch allowed to assume the CI/CD role (default: development)
+github_branch = "development"
+
+# Restrict Terraform permissions by Project/Environment tags (default: false)
+restrict_by_tags = false
