@@ -19,27 +19,44 @@ As a platform engineer, I want a documented, locked remote state so that concurr
      * DynamoDB table for state locking
 
    * Outputs:
-     * `bucket_name`
-     * `dynamodb_table_name`
+     * `tf_state_bucket_name`
+     * `tf_state_lock_table`
 
 2. **Bootstrapper (`bootstrap/dev/`)**
+   * Structure:
+   ```hcl
+   bootstrap/dev/
+    ├── main.tf                  # Calls remote_backend module, creates GitHub Actions role, generates backend.tf + bootstrap_outputs.json
+    ├── variables.tf             # Defines project_name, environment, aws_region, common_tags, github_org/repo/branch, restrict_by_tags
+    ├── outputs.tf               # Optional: outputs if needed, e.g., GitHub Actions role ARN
+    ├── versions.tf              # Defines required Terraform and provider versions
+    ├── terraform.tfvars.example # Example variables file
+    ```
 
-   * Runs **with local backend**.
-   * Calls the `remote_backend` module with inputs: `project_name`, `environment`, `common_tags`.
-   * Creates only two things:
-     1. Remote backend infra (bucket + lock table).
-     2. GitHub Actions role for OIDC (so we can run Terraform in CI/CD).
-   * Creates **two artifacts inside the target environment directory (`environments/dev/`)**:
-     1. **`backend.tf`** → Configures remote backend with correct S3 + DynamoDB.
-     2. **`bootstrap_outputs.json`** → JSON file containing bucket and table names, and GitHub Actions role arn
+* Runs **with local backend**.
+* Calls the `remote_backend` module with inputs: `project_name`, `environment`, `common_tags`.
+* Creates only two things:
 
-        ```json
-        {
-          "bucket_name": "layered-infra-test-dev-tfstate",
-          "dynamodb_table": "layered-infra-test-dev-locks",
-          "github_actions_role_arn": "arn:aws:iam::123456789012:role/layered-infra-test-dev-ci"
-        }
-        ```
+  1. Remote backend infra (bucket + lock table).
+  2. **GitHub Actions role for Terraform CI/CD**:
+
+     * OIDC trust restricted to a **specific GitHub organization, repository, and branch**.
+     * Permissions initially **full Terraform access** (`Action="*"`, `Resource="*"`), optionally restricted by `Project` and `Environment` tags.
+     * Role name: `${project_name}-${environment}-terraform-github-actions-role`
+     * Policy name: `${project_name}-${environment}-terraform-github-actions-policy`
+     
+* Creates **two artifacts inside the target environment directory (`environments/dev/`)**:
+
+  1. **`backend.tf`** → Configures remote backend with correct S3 + DynamoDB.
+  2. **`bootstrap_outputs.json`** → JSON file containing bucket and table names, and GitHub Actions role arn
+
+     ```json
+     {
+       "tf_state_bucket_name": "layered-infra-test-dev-tfstate-1234",
+       "tf_state_lock_table": "layered-infra-test-dev-locks",
+       "github_actions_role_arn": "arn:aws:iam::123456789012:role/layered-infra-test-dev-terraform-github-actions-role"
+     }
+     ```
 
 3. **Environment (`environments/dev/`)**
 
@@ -55,8 +72,8 @@ As a platform engineer, I want a documented, locked remote state so that concurr
      module "iam" {
        source = "../../modules/iam"
 
-       state_bucket = local.bootstrap.bucket_name
-       lock_table   = local.bootstrap.dynamodb_table
+       tf_state_bucket_name = local.bootstrap.tf_state_bucket_name
+       tf_state_lock_table  = local.bootstrap.tf_state_lock_table
      }
      ```
 
@@ -73,16 +90,16 @@ As a platform engineer, I want a documented, locked remote state so that concurr
 ```
 
 * Creates backend infra (S3 + DynamoDB).
-* Creates GitHub Actions OIDC role.
+* Creates GitHub Actions OIDC role with optional tag-based restriction.
 * Generates `backend.tf` + `bootstrap_outputs.json` in `environments/dev/`.
 
 2. **Environment Infra**
 
-   ```bash
+```bash
    cd environments/dev/
    terraform init   # now uses remote backend
    terraform apply  # provisions environment resources
-   ```
+```
 
 ---
 
@@ -92,16 +109,15 @@ As a platform engineer, I want a documented, locked remote state so that concurr
 
   * Bootstrapper: remote backend + CI/CD role.
   * IAM module (later): policies for developers/engineers.
-  
 * **Safety**
 
   * `backend.tf` ensures every environment is hardwired to the right backend.
   * JSON file provides wiring without duplicating names or hardcoding.
-  
 * **CI/CD ready**
 
   * GitHub Actions role exists after bootstrap, enabling pipeline-driven deployments.
-  
+  * OIDC trust restricted to specific GitHub repo/branch.
+  * Optional tag-based restrictions enforce least privilege.
 * **Future-proof**
 
   * IAM and other modules can consume backend info from JSON.
@@ -114,7 +130,7 @@ As a platform engineer, I want a documented, locked remote state so that concurr
 * Versioning + encryption on state bucket.
 * Documented workflow.
 * Clear wiring for IAM best practices later.
-
+* GitHub Actions role for Terraform CI/CD with OIDC trust and optional tag-based permissions.
 
 
 
