@@ -12,7 +12,9 @@ environment = "dev"
 # Common tags applied to all resources (default: {})
 common_tags = {
   Project     = "layered-infra"
-  Environment = "dev"
+  Environment = "testing"
+  Module      = "bootstrap"
+  Team        = "A"
 }
 
 # GitHub organization for OIDC trust
