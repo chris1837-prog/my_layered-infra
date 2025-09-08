@@ -21,7 +21,8 @@
   - `open_smoke.js` — Lightweight smoke test with k6.
   - `README.md` — Guide for running load tests.
 
-> Note: The `.env` file is untracked and intended for local environment-specific settings only.
+> For environment variable handling (`.env`) and day-to-day run instructions, see **docs/WORKFLOW_COMPOSE.md**.
+> This keeps operational guidance in one place and avoids duplication with other docs.
 
 ## Backup & Restore (local)
 

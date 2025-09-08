@@ -33,25 +33,33 @@ if (DATABASE_URL) {
     idleTimeoutMillis: Number(process.env.PG_IDLE_TIMEOUT || 30000),
     connectionTimeoutMillis: Number(process.env.PG_CONNECT_TIMEOUT || 5000),
   });
+  // Set per-session GUCs once per *physical* connection (PgBouncer-safe)
+  pool.on('connect', async (client) => {
+    const st = Number(process.env.PG_STATEMENT_TIMEOUT || 0);
+    if (st > 0) {
+      try {
+        // SET done once per backend; avoids per-request overhead
+        await client.query(`SET statement_timeout = ${st}`);
+      } catch (e) {
+        console.warn('[app] Failed to SET statement_timeout on connect:', e.message);
+      }
+    }
+  });
 // -------------------------FELIX TASK---------
 } else {
   console.warn('[app] No DB config (DATABASE_URL nor DB_*). /health and /readyz will return 503.');
 }
 // -------------------------FELIX TASK---------
-// Optional helper: use a dedicated client (multi-step work) + per-session statement timeout
+// Optional helper: get a dedicated client for multi-step work
+// Note: per-session timeouts are now set in pool.on('connect')
 async function withClient(fn) {
   if (!pool) throw new Error('DB pool not initialized');
   const client = await pool.connect();
   try {
-    const st = Number(process.env.PG_STATEMENT_TIMEOUT || 0);
-    if (st > 0) {
-      await client.query(`SET statement_timeout = ${st}`);
-    }
     return await fn(client);
   } finally {
     client.release();
   }
-// -------------------------FELIX TASK---------
 }
 
 let dbReady = false;
