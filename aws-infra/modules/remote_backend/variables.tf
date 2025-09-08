@@ -14,12 +14,3 @@ variable "common_tags" {
   default     = {}
 }
 
-variable "admin_role_arn" {
-  description = "ARN of the IAM role for admin access"
-  type        = string
-}
-
-variable "developer_role_arn" {
-  description = "ARN of the IAM role for developer access"
-  type        = string
-}
