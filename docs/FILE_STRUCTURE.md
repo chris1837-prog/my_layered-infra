@@ -2,6 +2,9 @@
 
 ## Root
 - `layered-infra/` — Infrastructure code organized by layers and projects.
+- `README.md` — Project overview and top-level guidance.
+- `BRANCHING.md` — Branching and PR workflow.
+- `FILE_STRUCTURE.md` — Repository structure (this file).
 
 ## layered-infra/mvp-compose/
 - `docker-compose.yml` — Main Docker Compose stack configuration for production and development.
@@ -11,25 +14,58 @@
 - `app/` — Source code for the Node.js application.
 - `pgbouncer/` — Configuration files for PgBouncer connection pooler, including `userlist.txt`.
 - `init-db/` — SQL scripts and other files for initializing the database.
+- `tests/k6/` — Load and smoke testing stack:
+  - `Dockerfile` — Builds a k6 image with xk6-sql extension.
+  - `build-and-run.sh` — Helper script to build and run load tests.
+  - `pgbouncer_pooling.js` — k6 test targeting PgBouncer (transaction pooling).
+  - `open_smoke.js` — Lightweight smoke test with k6.
+  - `README.md` — Guide for running load tests.
 
-Note: The `.env` file is untracked and intended for local environment-specific settings only.
+> For environment variable handling (`.env`) and day-to-day run instructions, see **docs/WORKFLOW_COMPOSE.md**.
+> This keeps operational guidance in one place and avoids duplication with other docs.
 
 ## Backup & Restore (local)
 
-The `mvp-compose/backup-restore.sh` script provides snapshot and restore functionality for the local development database. It uses Postgres tools inside the container to perform backups and restores.
+This repo ships a helper script that performs consistent backups and safe restores **via PgBouncer**. It also validates app health before/after.
 
-- Backups are stored in the `backups/` folder.
-- Backups use the custom dump format (`pg_dump -Fc`), which supports selective restores.
-- You can list dump contents with `pg_restore -l`.
+> **Run all commands from the repo root** (where `backup-restore.sh` lives).
+>
+> Make sure the stack is up: `cd mvp-compose && docker compose up -d && cd ..`
 
-Commands:
+### Commands
 
-- `snapshot`: Takes a snapshot of the current database state.
-- `smoke-restore`: Restores from the latest snapshot and performs basic smoke tests.
-- `full`: Performs a full restore from a specified dump file.
+- **Snapshot (backup)**
+  ```bash
+  ./backup-restore.sh snapshot
+  ```
+  Creates a versioned dump under `backups/` (format: `YYYY-MM-DD_HHMMSS-myapp.dump`).
 
-Notes:
+- **Smoke restore (side DB)**
+  ```bash
+  ./backup-restore.sh smoke-restore
+  ```
+  Restores the last snapshot into a temporary database (e.g., `myapp_restore_<timestamp>`), then verifies tables and counts. Does **not** touch the live DB.
 
-- The restore process retries `/health` endpoint before proceeding to ensure the database is ready.
-- To start fresh, use `docker compose down -v` to remove volumes.
-- Keep dumps out of git to avoid committing large binary files.
+- **Full restore (seed → snapshot → verify → swap)**
+  ```bash
+  ./backup-restore.sh full
+  ```
+  End-to-end flow used locally: ensures stack is up, (re)seeds demo data idempotently, takes a snapshot, verifies via smoke-restore, then performs a **swap-restore** (restore into temp DB, terminate sessions, atomically rename to `myapp`) and re-checks app `/health` through PgBouncer.
+
+### Important notes on PgBouncer and queries
+
+Because PgBouncer runs in **transaction pooling mode**, **prepared statements** (using `PREPARE`/`EXECUTE` or named prepared statements in node-postgres) **must not be used**, as they are incompatible with this mode. However, **plain parameterized queries are safe** and recommended to use.
+
+### Where files go
+- Backups are written to `backups/` and are **.gitignored**.
+- The script uses the Compose services defined in `mvp-compose/docker-compose.yml` and relies on environment from `.env` / `.env.example`.
+
+### Troubleshooting
+- `zsh: no such file or directory: ./mvp-compose/backup-restore.sh` → Run from repo root: `./backup-restore.sh ...` (the script is **not** inside `mvp-compose/`).
+- `permission denied` → `chmod +x ./backup-restore.sh`.
+- App not healthy initially → the script waits for `http://localhost:3000/health` to return 200; if it keeps failing, check `docker compose logs app`.
+
+### Notes
+- All pg operations go **through PgBouncer** to mirror production access patterns.
+- Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
+- Restores are validated by checking both database objects (tables and counts) and app health to ensure consistency and correctness.
