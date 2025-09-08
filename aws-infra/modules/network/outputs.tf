@@ -12,23 +12,23 @@ output "igw_id" {
 output "public_subnet_ids" {
   description = "A list of the public subnet IDs."
   # Correct: Convert map to a list with values() before getting the IDs
-  value       = values(aws_subnet.public)[*].id
+  value = values(aws_subnet.public)[*].id
 }
 
 output "private_subnet_ids" {
   description = "A list of the private subnet IDs."
   # Correct: Convert map to a list with values() before getting the IDs
-  value       = values(aws_subnet.private)[*].id
+  value = values(aws_subnet.private)[*].id
 }
 
 output "public_route_table_id" {
-    description = "The ID of the public route table."
-  value = aws_route_table.public.id
+  description = "The ID of the public route table."
+  value       = aws_route_table.public.id
 }
 
 output "private_route_table_id" {
   description = "The ID of the private route table."
-  value = aws_route_table.private.id
+  value       = aws_route_table.private.id
 }
 output "sg_edge_id" {
   description = "The ID of the Edge security group."
