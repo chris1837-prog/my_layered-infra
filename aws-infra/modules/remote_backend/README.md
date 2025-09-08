@@ -20,7 +20,7 @@ aws-infra/modules/remote_backend/
 ├── versions.tf
 ├── test/                   # Terratest skeleton for automated testing
 │   └── remote_backend_test.go
-└── examples/               # Usage examples and module testing
+└──examples/               # Usage examples and module testing
     └── basic_usage/
         ├── main.tf
         ├── variables.tf
@@ -51,7 +51,7 @@ aws-infra/bootstrap/dev/
 ├── variables.tf
 ├── terraform.tfvars
 ├── outputs.tf
-```
+ ```
 
 **Workflow:**
 
