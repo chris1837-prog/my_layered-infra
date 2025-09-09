@@ -1,0 +1,64 @@
+name: Compose Smoke Test
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: myapp
+          POSTGRES_USER: myuser
+          POSTGRES_PASSWORD: mypassword
+        options: >-
+          --health-cmd="pg_isready -U myuser -d myapp"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+        ports:
+          - 5432:5432
+      pgbouncer:
+        image: edoburu/pgbouncer:1.24.1
+        env:
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: myuser
+          DB_PASSWORD: mypassword
+          DB_NAME: myapp
+          POOL_MODE: transaction
+          MAX_CLIENT_CONN: 100
+          DEFAULT_POOL_SIZE: 25
+          LISTEN_PORT: 6432
+          AUTH_TYPE: trust
+        options: >-
+          --health-cmd="pg_isready -h localhost -p 5432 -U myuser -d myapp"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+        ports:
+          - 6432:6432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Always: wait until PgBouncer is usable
+      - name: Wait for PgBouncer
+        run: |
+          for i in {1..20}; do
+            pg_isready -h 127.0.0.1 -p 6432 -U myuser -d myapp && exit 0
+            sleep 5
+          done
+          exit 1
+
+      # Always: verify SQL goes through PgBouncer
+      - name: psql via PgBouncer
+        run: |
+          docker run --rm --network host postgres:17.6 \
+            psql "postgresql://myuser:mypassword@127.0.0.1:6432/myapp" -c "select 1;"
+
+      # --- Conditional app steps (only if app exists) ---
+      - name: Detect app presence
+        id: detect_app
+        run: |
+          if [ -f mvp-compose/app/server.js ]; then echo "present=true" >> $GITHUB_OUTPUT
