@@ -1,0 +1,61 @@
+#cloud-config
+# Multi-part cloud-init configuration for Hardened Edge Server
+
+merge_configs: true
+
+parts:
+  # Part 1: Base system configuration
+  - type: "text/cloud-config"
+    content: |
+%{ for line in split("\n", edge_base) ~}
+      ${line}
+%{ endfor ~}
+      users:
+        - name: ${admin_user}
+          groups: [sudo]
+          shell: /bin/bash
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          ssh_authorized_keys:
+%{ for key in admin_ssh_keys ~}
+            - ${key}
+%{ endfor ~}
+
+      runcmd:
+%{ for cidr in admin_cidrs ~}
+        - ufw allow from ${cidr} to any port 22 proto tcp
+%{ endfor ~}
+
+  # Part 2: NAT configuration
+  - type: "text/cloud-config"
+    content: |
+%{ for line in split("\n", edge_nat) ~}
+      ${line}
+%{ endfor ~}
+
+  # Part 3: Caddy reverse proxy
+  - type: "text/cloud-config"
+    content: |
+%{ for line in split("\n", edge_caddy) ~}
+      ${line}
+%{ endfor ~}
+
+  # Part 4: WireGuard VPN server
+  - type: "text/cloud-config"
+    content: |
+%{ for line in split("\n", edge_wg) ~}
+      ${line}
+%{ endfor ~}
+
+      runcmd:
+        # Fetch the public IP dynamically and update WireGuard endpoint
+        - PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+        - sed -i "s/SERVER_ENDPOINT_PLACEHOLDER/$${PUBLIC_IP}:${wireguard_port}/" /opt/hardened-edge/scripts/wg-peer-manager.sh
+        - bash /opt/hardened-edge/scripts/wg-peer-manager.sh init
+        - ufw allow from any to any port ${wireguard_port} proto udp
+
+  # Part 5: WireGuard peer manager script
+  - type: "text/x-shellscript"
+    content: |
+%{ for line in split("\n", wg_peer_script) ~}
+      ${line}
+%{ endfor ~}

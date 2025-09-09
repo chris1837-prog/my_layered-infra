@@ -1,0 +1,77 @@
+#cloud-config
+
+apt:
+  debconf_selections:
+    iptables-persistent: iptables-persistent/autosave_v4 boolean true
+    iptables-persistent: iptables-persistent/autosave_v6 boolean true
+
+# Part 1: Package Management
+package_update: true
+package_upgrade: true
+packages:
+  - ufw
+  - iptables-persistent
+  - netfilter-persistent
+  - curl
+  - debian-keyring
+  - debian-archive-keyring
+  - apt-transport-https
+  - openssl
+  - wireguard
+  - qrencode
+
+# Part 2: User Creation
+users:
+  - name: ${admin_user}
+    primary_group: sudo
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+%{ for key in admin_ssh_keys ~}
+      - '${key}'
+%{ endfor ~}
+
+# Part 3: File Creation (Caddy, NAT, etc.)
+write_files:
+  - path: /var/www/html/index.html
+    permissions: "0644"
+    owner: root:root
+    content: |
+      edge alive!
+  - path: /etc/caddy/Caddyfile
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${domain_name} {
+        reverse_proxy ${join(" ", backend_servers)}
+      }
+  # You can add more complex Caddy config here later
+
+# Part 4: Commands to run
+runcmd:
+  # --- System & NAT Configuration ---
+  - [ sysctl, -w, net.ipv4.ip_forward=1 ]
+  - [ sed, -i, 's/^#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/', /etc/sysctl.conf ]
+  - [ iptables, -t, nat, -A, POSTROUTING, -o, ens5, -j, MASQUERADE ]
+  - [ sh, -c, "iptables-save > /etc/iptables/rules.v4" ]
+
+  # --- Caddy Installation (Corrected Method) ---
+  - [ apt-get, install, -y, debian-keyring, debian-archive-keyring, apt-transport-https ]
+  - [ curl, -1sLf, 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key', --output, /usr/share/keyrings/caddy-stable-archive-keyring.gpg ]
+  - [ sh, -c, 'echo "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" > /etc/apt/sources.list.d/caddy-stable.list' ]
+  - [ apt-get, update ]
+  - [ apt-get, install, -y, caddy ]
+  - [ systemctl, enable, caddy ]
+  - [ systemctl, restart, caddy ]
+
+  # --- Firewall Configuration ---
+  - [ ufw, default, deny, incoming ]
+  - [ ufw, default, allow, outgoing ]
+  - [ ufw, allow, 80/tcp ]
+  - [ ufw, allow, 443/tcp ]
+%{ for cidr in admin_cidrs ~}
+  - [ ufw, allow, from, "${cidr}", to, any, port, "22", proto, tcp ]
+  - [ ufw, allow, from, "${cidr}", to, any, port, "${wireguard_port}", proto, udp ]
+%{ endfor ~}
+  - [ ufw, --force, enable ]
