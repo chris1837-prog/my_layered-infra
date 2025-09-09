@@ -10,9 +10,14 @@
 - `docker-compose.yml` — Main Docker Compose stack configuration for production and development.
 - `docker-compose.annotated.yml` — Annotated Docker Compose file for learning and reference.
 - `.env.example` — Template file for environment variables; copy to `.env` and customize.
-- `test-stack.sh` — Script to build, test, and perform smoke checks on the stack.
+- `test-stack.sh` — Script to build, test, and verify the stack.  
+  - Supports **smoke** mode (fast connectivity checks).  
+  - Supports **graceful** mode (verifies app shutdown closes HTTP + DB pool cleanly).
 - `app/` — Source code for the Node.js application.
-- `pgbouncer/` — Configuration files for PgBouncer connection pooler, including `userlist.txt`.
+  - Includes graceful shutdown handling and PgBouncer-safe queries.
+- `pgbouncer/` — Configuration files for PgBouncer connection pooler.  
+  - `pgbouncer.ini` — corrected `log_disconnections` key.  
+  - `userlist.txt` — mounted writable to allow non-interactive auth updates.
 - `init-db/` — SQL scripts and other files for initializing the database.
 - `tests/k6/` — Load and smoke testing stack:
   - `Dockerfile` — Builds a k6 image with xk6-sql extension.
