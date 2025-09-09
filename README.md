@@ -2,41 +2,68 @@
 
 Monorepo for the MVP platform. This repo hosts:
 - **mvp-compose/** – local single-host Docker Compose stack (App → PgBouncer → Postgres)
+- **tests/k6/** – load testing setup (k6 + xk6-sql against PgBouncer/Postgres)
 - **infra/** (future) – Terraform / cloud infra
 - **docs/** – contribution guides and workflows
 - **.github/** – CI workflows
 
+---
+
 ## Getting started
 - Local Compose stack: see **mvp-compose/** and **docs/WORKFLOW_COMPOSE.md**
 - Contribution & PR flow: see **docs/BRANCHING.md**
+- Load testing: see **tests/k6/README.md**
+
+---
 
 ## Backup & Restore (local)
 
-### Backup
+This repo ships a helper script that performs consistent backups and safe restores **via PgBouncer**. It also validates app health before/after.
 
-To create a backup of the local Postgres database:
+> **Run all commands from the repo root** (where `backup-restore.sh` lives).
+>
+> Make sure the stack is up: `cd mvp-compose && docker compose up -d && cd ..`
 
-1. Run the backup command in the `mvp-compose` directory:
+### Commands
 
-   ```
-   docker-compose exec postgres pg_dumpall -U postgres > backup.sql
-   ```
+- **Snapshot (backup)**
+  ```bash
+  ./backup-restore.sh snapshot
+  ```
+  Creates a versioned dump under `backups/` (format: `YYYY-MM-DD_HHMMSS-myapp.dump`).
 
-2. Save the `backup.sql` file to a safe location outside the container.
+- **Smoke restore (side DB)**
+  ```bash
+  ./backup-restore.sh smoke-restore
+  ```
+  Restores the last snapshot into a temporary database (e.g., `myapp_restore_<timestamp>`), then verifies tables and counts. Does **not** touch the live DB.
 
-### Restore
+- **Full restore (seed → snapshot → verify → swap)**
+  ```bash
+  ./backup-restore.sh full
+  ```
+  End-to-end flow used locally: ensures stack is up, (re)seeds demo data idempotently, takes a snapshot, verifies via smoke-restore, then performs a **swap-restore** (restore into temp DB, terminate sessions, atomically rename to `myapp`) and re-checks app `/health` through PgBouncer.
 
-To restore the backup to the local Postgres database:
+### Important notes on PgBouncer and queries
 
-1. Copy the backup file into the `mvp-compose` directory if it is not already there.
+PgBouncer runs in **transaction pooling mode**, which means **prepared statements** (`PREPARE`/`EXECUTE` or `name:` parameter in node-postgres) **must not be used**, as they are incompatible with this mode. However, plain **parameterized queries without prepared statements are safe** and recommended.
 
-2. Run the restore command:
+### Where files go
+- Backups are written to `backups/` and are **.gitignored**.
+- The script uses the Compose services defined in `mvp-compose/docker-compose.yml` and relies on environment from `.env` / `.env.example`.
 
-   ```
-   cat backup.sql | docker-compose exec -T postgres psql -U postgres
-   ```
+### Troubleshooting
+- `zsh: no such file or directory: ./mvp-compose/backup-restore.sh` → Run from repo root: `./backup-restore.sh ...` (the script is **not** inside `mvp-compose/`).
+- `permission denied` → `chmod +x ./backup-restore.sh`.
+- App not healthy initially → the script waits for `http://localhost:3000/health` to return 200; if it keeps failing, check `docker compose logs app`.
 
-3. Verify the database has been restored correctly by connecting to Postgres and checking the data.
+### Validation of restores
+
+Restores are validated by checking both the presence and correctness of database objects and by confirming the application health endpoint responds successfully.
+
+### Notes
+- All pg operations go **through PgBouncer** to mirror production access patterns.
+- Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
 
 ---
 
@@ -44,11 +71,15 @@ To restore the backup to the local Postgres database:
 - Keep PRs **small and focused** (one concern per PR).
 - Pin external images/dependencies to **stable versions**.
 - Add/keep **smoke tests** for critical flows.
+- For database performance testing, use the **load tests** in `tests/k6/`.
+
+---
 
 ## Repository structure
 ```
 layered-infra/
-├─ mvp-compose/
-├─ docs/
-└─ .github/
+├─ mvp-compose/          # Local Compose stack (App, PgBouncer, Postgres)
+├─ tests/k6/             # Load testing with k6 + xk6-sql
+├─ docs/                 # Workflows and contribution guides
+└─ .github/              # CI workflows
 ```
