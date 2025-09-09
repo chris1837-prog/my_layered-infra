@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Resolve paths so the script works from anywhere
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+COMPOSE_DIR="${SCRIPT_DIR}/mvp-compose"
+
+if [[ ! -d "$COMPOSE_DIR" ]]; then
+  echo "❌ Can't find mvp-compose directory at: $COMPOSE_DIR"
+  exit 1
+fi
+
+cd "$COMPOSE_DIR"
+
 echo "🚀 Compose MVP smoke test"
 
 # 0) Bring up (or refresh) the stack
@@ -59,16 +70,16 @@ fi
 # -------------------------------------------------------------------------
 
 # 1) Wait/poll until the app reports healthy (200 on /health)
-APP_URL="http://localhost:3000/health"
+APP_URL="http://localhost:${PORT:-3000}${HEALTH_PATH:-/health}"
 echo "⏳ Waiting for app health at ${APP_URL} ..."
 for i in {1..30}; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL" || true)
-  if [ "$code" = "200" ]; then
+  if [[ "$code" == "200" ]]; then
     echo "✅ App is healthy (HTTP 200)"
     break
   fi
   sleep 2
-  if [ "$i" -eq 30 ]; then
+  if [[ "$i" -eq 30 ]]; then
     echo "❌ App did not become healthy in time"
     exit 1
   fi
@@ -90,14 +101,14 @@ echo "🔁 Poll /health for 503 while DB is down..."
 got_503="no"
 for i in {1..15}; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL" || true)
-  if [ "$code" = "503" ]; then
+  if [[ "$code" == "503" ]]; then
     got_503="yes"
     echo "✅ App reports 503 while DB is down (as expected)"
     break
   fi
   sleep 2
 done
-if [ "$got_503" != "yes" ]; then
+if [[ "$got_503" != "yes" ]]; then
   echo "❌ Expected /health to return 503 when DB is down"
   exit 1
 fi
@@ -109,12 +120,12 @@ docker compose start postgres
 echo "⏳ Waiting for app to recover to 200..."
 for i in {1..30}; do
   code=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL" || true)
-  if [ "$code" = "200" ]; then
+  if [[ "$code" == "200" ]]; then
     echo "✅ App recovered to 200 after DB came back"
     break
   fi
   sleep 2
-  if [ "$i" -eq 30 ]; then
+  if [[ "$i" -eq 30 ]]; then
     echo "❌ App did not recover to 200"
     exit 1
   fi

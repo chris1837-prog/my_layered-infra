@@ -30,7 +30,7 @@ services:
   # PgBouncer (connection pooler)
   # ===========================
   pgbouncer:
-    image: edoburu/pgbouncer:latest
+    image: edoburu/pgbouncer:v1.24.1-p1
     container_name: layered-pgbouncer
     restart: unless-stopped
     ports:
@@ -50,11 +50,12 @@ services:
       LISTEN_ADDR: 0.0.0.0
       LISTEN_PORT: "6432"
     volumes:
+      - ./pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:ro   # mounting
       - ./pgbouncer/userlist.txt:/etc/pgbouncer/userlist.txt:ro
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 || exit 1" ]
-      interval: 10s
-      timeout: 5s
+      test: [ "CMD-SHELL", "pg_isready -h 127.0.0.1 -p 6432 -U ${POSTGRES_USER:-myuser} -d ${POSTGRES_DB:-myapp} || exit 1" ]
+      interval: 30s
+      timeout: 3s
       retries: 5
       start_period: 20s
     networks:
@@ -80,6 +81,12 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-myuser}:${POSTGRES_PASSWORD:-mypassword}@pgbouncer:6432/${POSTGRES_DB:-myapp}
       - PORT=${PORT:-3000}
       - HEALTH_PATH=${HEALTH_PATH:-/health}
+      # Pool tuning for node-postgres behind PgBouncer
+      - PGPOOL_MAX=5
+      - PG_IDLE_TIMEOUT=30000
+      - PG_CONNECT_TIMEOUT=5000
+      # Optional: per-session statement timeout in ms (0 disables)
+      - PG_STATEMENT_TIMEOUT=0
     depends_on:
       pgbouncer:
         condition: service_healthy
