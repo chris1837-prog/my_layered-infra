@@ -75,11 +75,16 @@ Restores are validated by checking both the presence and correctness of database
 
 ---
 
-## Repository structure
-```
-layered-infra/
-├─ mvp-compose/          # Local Compose stack (App, PgBouncer, Postgres)
-├─ tests/k6/             # Load testing with k6 + xk6-sql
-├─ docs/                 # Workflows and contribution guides
-└─ .github/              # CI workflows
-```
+
+## layered-infra/mvp-compose/
+- `app/` — Node.js application source code.  
+  - Includes graceful shutdown handling and PgBouncer-safe queries.
+- `docker-compose.yml` — Compose file defining services and volumes.
+- `init-db/` — SQL scripts to initialize the Postgres database.
+- `pgbouncer/` — Configuration files for PgBouncer connection pooler.  
+  - `pgbouncer.ini` — corrected `log_disconnections` key.  
+  - `userlist.txt` — mounted writable to allow non-interactive auth updates.
+- `test-stack.sh` — Script to build, test, and verify the stack.  
+  - Supports **smoke** mode (fast connectivity checks).  
+  - Supports **graceful** mode (verifies app shutdown closes HTTP + DB pool cleanly).
+
