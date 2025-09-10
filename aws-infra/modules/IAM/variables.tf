@@ -11,5 +11,5 @@ variable "lock_table" {
 variable "engineer_role_name" {
 	description = "Name for the engineer IAM role."
 	type        = string
-	default     = "engineer-terraform-remote-state"
+	default     = "engineer-role"
 }
