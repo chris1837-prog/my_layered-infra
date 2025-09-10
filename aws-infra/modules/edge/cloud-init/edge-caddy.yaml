@@ -1,79 +1,46 @@
 #cloud-config
-packages:
-  - curl
-  - debian-keyring
-  - debian-archive-keyring
-  - apt-transport-https
-  - openssl
+apt:
+  packages:
+    - curl
+    - gnupg
+    - debian-keyring
+    - debian-archive-keyring
+    - apt-transport-https
+    - openssl
 
 write_files:
   - path: /var/www/html/index.html
-    permissions: "0644"
     owner: root:root
-    content: |
-      edge alive with internal TLS!
+    permissions: '0644'
+    content: "edge alive with internal TLS!"
 
   - path: /etc/caddy/Caddyfile
     owner: root:root
-    permissions: "0644"
+    permissions: '0644'
     content: |
-      # Health check endpoint (internal)
       :8080 {
         bind 127.0.0.1
-
         handle /health {
           respond "edge alive" 200
         }
-
         handle {
           respond "Not Found" 404
         }
       }
 
-      # Team's internal TLS site with CA
-      myinternal.lan {
-        root * /var/www/html
-        file_server
-        tls internal
-
-        # Access logging for internal domain
-        log {
-          output file /var/log/caddy/internal.log {
-            roll_size 100MiB
-            roll_keep 5
-            roll_keep_for 240h
-          }
-          format console
-          level INFO
-        }
-      }
-
       %{ if domain_name != "" ~}
-      # HTTP to HTTPS redirect for external domain
       http://${domain_name} {
         redir https://{host}{uri} permanent
       }
 
-      # Main HTTPS site with Let's Encrypt
       https://${domain_name} {
         tls {
           protocols tls1.2 tls1.3
         }
 
-        # Security headers
-        header {
-          Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-          X-Frame-Options "DENY"
-          X-Content-Type-Options "nosniff"
-          Referrer-Policy "strict-origin-when-cross-origin"
-          -Server
-        }
-
         %{ if length(backend_servers) > 0 ~}
-        # Reverse proxy to backend servers
         reverse_proxy {
           to ${join(" ", backend_servers)}
-
           header_up Host {upstream_hostport}
           header_up X-Real-IP {remote_host}
           header_up X-Forwarded-For {remote_host}
@@ -81,44 +48,18 @@ write_files:
           header_up X-Forwarded-Port {server_port}
         }
         %{ else ~}
-        # Fallback to internal site when no backends
         root * /var/www/html
         file_server
         %{ endif ~}
-
-        # Status endpoint for monitoring
-        handle /caddy/status {
-          respond "OK" 200 {
-            header Content-Type "text/plain"
-          }
-        }
-
-        # Access logging for external domain
-        log {
-          output file /var/log/caddy/access.log {
-            roll_size 100MiB
-            roll_keep 10
-            roll_keep_for 720h
-          }
-          format console
-          level INFO
-        }
       }
       %{ endif ~}
 
 runcmd:
-  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | apt-key add -
-  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  - sh -c 'echo "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" > /etc/apt/sources.list.d/caddy-stable.list'
   - apt-get update
   - apt-get install -y caddy
-  - mkdir -p /var/www/html
-  - mkdir -p /var/log/caddy
-  - chown -R caddy:caddy /var/log/caddy
-  - chown -R caddy:caddy /var/www/html
-  - ufw allow 443/tcp
-  - caddy validate --config /etc/caddy/Caddyfile || true
+  - mkdir -p /var/www/html /var/log/caddy
+  - chown -R caddy:caddy /var/log/caddy /var/www/html
   - systemctl enable caddy
-  - systemctl restart caddy || true
-  - sleep 5
-  - curl -f http://localhost:8080/health || echo "Health check failed"
-  - curl -k -f https://myinternal.lan/ || echo "Internal TLS site test"
+  - systemctl restart caddy
