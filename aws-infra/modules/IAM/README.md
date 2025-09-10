@@ -72,7 +72,34 @@ The policy attached to the engineer role grants only the following permissions:
 
 Variables `<tf_state_bucket>`, `<lock_table>`, `<region>`, and `<account_id>` will be passed with the actual values.
 
+## Trust Policy Generation
+
+This module automatically generates the trust policy JSON file for the engineer role using Terraform's `local_file` resource. The file is created at:
+
+```
+${path.module}/policies/engineer_assume_role_policy.json
+```
+
+The default trust policy allows any AWS principal to assume the role (for testing):
+
+```
+{
+	"Version": "2012-10-17",
+	"Statement": [
+		{
+			"Effect": "Allow",
+			"Principal": {
+				"AWS": "*"
+			},
+			"Action": "sts:AssumeRole"
+		}
+	]
+}
+```
+
+**Important:** For production, you must restrict the trust policy to only trusted AWS principals (replace `"*"` with specific account/user/role ARNs).
+
 ## Notes
-- The engineer role trust policy must be provided in `engineer_assume_role_policy.json`.
+- The engineer role trust policy is generated automatically; you do not need to provide it manually.
 - This module does **not** create the GitHub Actions role; that is handled in bootstrap.
 - For production, hardening permissions further is a must. Will be done in further steps of the project.
