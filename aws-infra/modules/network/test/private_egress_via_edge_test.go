@@ -31,8 +31,8 @@ func TestPrivateEgressHTTPS(t *testing.T) {
 	t.Log("📦 Collecting Terraform outputs...")
 	edgeIP := terraform.Output(t, tfOpts, "edge_public_ip")
 	privateIP := terraform.Output(t, tfOpts, "private_test_private_ip")
-	keyFile := ResolveKeyPath(t, terraform.Output(t, tfOpts, "ssh_private_key_file"))
-	t.Logf("🌐 Edge public IP: %s | 🔒 Private IP: %s | 🔑 Key: %s", edgeIP, privateIP, keyFile)
+	keyContent := terraform.Output(t, tfOpts, "ssh_private_key_content")
+	t.Logf("🌐 Edge public IP: %s | 🔒 Private IP: %s | 🔑 Private key loaded in memory", edgeIP, privateIP)
 
 	// Command to run on private instance
 	cmd := "curl -sI https://api.github.com | head -n 1"
@@ -40,7 +40,7 @@ func TestPrivateEgressHTTPS(t *testing.T) {
 
 	// Use helpers.go with retry + edge tunnel
 	t.Log("🔁 Executing curl from private instance via Edge tunnel...")
-	out, err := RetrySSHViaEdge(t, edgeIP, privateIP, "ubuntu", keyFile, cmd)
+	out, err := RetrySSHViaEdgeWithKeyContent(t, edgeIP, privateIP, "ubuntu", keyContent, cmd)
 
 	require.NoError(t, err, "SSH command via edge host failed")
 	require.Contains(t, out, "200", "expected HTTP 200 from https://api.github.com")
