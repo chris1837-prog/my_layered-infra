@@ -2,7 +2,7 @@
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
 
-# IAM policy document for Terraform remote state access (S3 + DynamoDB)
+# IAM policy document for Terraform remote state access (S3 + DynamoDB) in memory creation
 data "aws_iam_policy_document" "remote_state_access" {
 	statement {                   # S3
 		actions = [
@@ -29,7 +29,7 @@ data "aws_iam_policy_document" "remote_state_access" {
 	}
 }
 
-# IAM policy for Terraform remote state access (S3 + DynamoDB)
+# IAM policy for Terraform remote state access (S3 + DynamoDB) in aws directly
 resource "aws_iam_policy" "remote_state_access" {
 	name        = "terraform-remote-state-access"
 	description = "IAM policy for Terraform remote state access (S3 + DynamoDB)"
@@ -37,7 +37,7 @@ resource "aws_iam_policy" "remote_state_access" {
 }
 
 
-# Generates the trust policy JSON file for the engineer role
+# Generates the trust policy JSON file for the engineer role in the policies directory as local file
 resource "local_file" "engineer_assume_role_policy" {
 	filename = "${path.module}/policies/engineer_assume_role_policy.json"
 	content  = jsonencode({
