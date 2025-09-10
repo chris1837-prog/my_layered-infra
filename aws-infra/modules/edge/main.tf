@@ -107,6 +107,7 @@ resource "aws_instance" "edge" {
   iam_instance_profile   = aws_iam_instance_profile.edge_profile.name
   monitoring             = true
   ebs_optimized          = true
+  
 
   # This is the new, direct way to render the script
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
