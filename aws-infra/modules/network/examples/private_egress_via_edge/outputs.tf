@@ -41,3 +41,8 @@ output "ssh_key_name" {
   value       = aws_key_pair.this.key_name
   description = "Name of the generated AWS Key Pair"
 }
+
+output "ssh_private_key_content" {
+  value     = local_file.ssh_private_key.content
+  sensitive = true
+}

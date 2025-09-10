@@ -106,49 +106,16 @@ resource "aws_instance" "test_edge_instance" {
 
   #Cloud-init script embedded directly
   user_data = <<-EOT
-#!/bin/bash
-set -euxo pipefail
+    ${templatefile("${path.module}/templates/edge_init.sh.tftpl", {
+  vpc_cidr = local.vpc_cidr
+})}
+  EOT
 
-exec > >(tee /var/log/edge-init.log|logger -t user-data ) 2>&1
 
-echo "[edge-init] Start user_data script"
 
-# Enable IP forwarding
-sysctl -w net.ipv4.ip_forward=1
-echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
-
-    # Install required packages
-    export DEBIAN_FRONTEND=noninteractive
-    apt-get update -y
-    apt-get install -y iptables-persistent curl
-
-# Detect primary interface
-PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
-echo "[edge-init] Primary interface: $PRIMARY_IFACE"
-
-# Create persistent NAT rules file
-cat > /etc/iptables/rules.v4 <<EOF
-*nat
-:PREROUTING ACCEPT [0:0]
-:INPUT ACCEPT [0:0]
-:OUTPUT ACCEPT [0:0]
-:POSTROUTING ACCEPT [0:0]
--A POSTROUTING -s ${local.vpc_cidr} -o $PRIMARY_IFACE -j MASQUERADE
-COMMIT
-EOF
-
-# Load rules immediately
-iptables-restore < /etc/iptables/rules.v4
-
-  echo "[edge-init] Final NAT table:" | tee -a /var/log/edge-init.log
-  iptables -t nat -S | tee -a /var/log/edge-init.log
-
-  echo "[edge-init] Completed successfully" | tee -a /var/log/edge-init.log
-EOT
-
-  tags = merge(local.common_tags, {
-    Name = "${local.project_name}-test-edge-instance"
-  })
+tags = merge(local.common_tags, {
+  Name = "${local.project_name}-test-edge-instance"
+})
 
 }
 
