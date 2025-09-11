@@ -103,3 +103,61 @@ The default trust policy allows any AWS principal to assume the role (for testin
 - The engineer role trust policy is generated automatically; you do not need to provide it manually.
 - This module does **not** create the GitHub Actions role; that is handled in bootstrap.
 - For production, hardening permissions further is a must. Will be done in further steps of the project.
+
+
+## Examples Directory
+
+The `examples/` folder contains runnable configurations that demonstrate how to use this module.
+
+### `basic_usage/`
+
+- A **minimal working example** of the IAM module.
+- Provisions an engineer IAM role and policy for Terraform remote state access.
+- Serves both as:
+	- A **validation test** (`terraform init/validate/plan`)
+	- **Documentation**, showing expected inputs and outputs.
+- You can copy and adapt this configuration as a starting point for your own infrastructure.
+
+#### Manual Testing with Examples
+
+```bash
+cd examples/basic_usage/
+terraform init
+terraform validate  # Should pass with zero errors
+terraform plan      # Should show only IAM resources
+```
+
+## Automated Testing with Terratest
+
+Terratest is used to validate the module by building resources, checking outputs, and destroying them after the test.
+
+### Prerequisites
+- Go installed (v1.20+ recommended)
+- go mod initialized in test/ folder
+
+### Running the Terratest
+
+```bash
+cd test/
+go mod init iam_module_test
+go mod tidy
+go test -v -timeout 30m -run TestIAMModule .
+```
+
+### Terratest Logic
+- Applies the example configuration in `examples/basic_usage/`
+- Checks that the `engineer_role_arn` output is present and not empty
+- Destroys all resources after the test
+
+**Sample Terratest Output:**
+```
+=== RUN   TestIAMModule
+		basic_usage_test.go:20: Applying IAM test resources...
+		basic_usage_test.go:24: IAM test resources applied.
+		basic_usage_test.go:28: Destroying IAM test resources...
+		basic_usage_test.go:30: IAM test resources destroyed.
+--- PASS: TestIAMModule (N.NNs)
+		--- PASS: TestIAMModule/Engineer_role_ARN_output_exists (N.NNs)
+PASS
+ok      iam_module_test   N.NNs
+```
