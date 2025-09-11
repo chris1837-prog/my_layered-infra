@@ -4,7 +4,7 @@
 # =============================================================================
 
 provider "aws" {
-  region = "eu-central-1"
+  region  = "eu-central-1"
   profile = "AdministratorAccess-694816839566"
 }
 
