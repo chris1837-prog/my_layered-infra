@@ -80,7 +80,7 @@ This module automatically generates the trust policy JSON file for the engineer 
 ${path.module}/policies/engineer_assume_role_policy.json
 ```
 
-The default trust policy allows any AWS principal to assume the role (for testing):
+The default trust policy allows a specific AWS principal to assume the role (for testing):
 
 ```
 {
@@ -89,7 +89,7 @@ The default trust policy allows any AWS principal to assume the role (for testin
 		{
 			"Effect": "Allow",
 			"Principal": {
-				"AWS": "*"
+				AWS = "arn:aws:iam::694816839566:root"
 			},
 			"Action": "sts:AssumeRole"
 		}
@@ -97,7 +97,7 @@ The default trust policy allows any AWS principal to assume the role (for testin
 }
 ```
 
-**Important:** For production, you must restrict the trust policy to only trusted AWS principals (replace `"*"` with specific account/user/role ARNs).
+**Important:** For production, you must restrict the trust policy to only trusted AWS principals (replace `694816839566:root` with specific account/user/role ARNs).
 
 ## Notes
 - The engineer role trust policy is generated automatically; you do not need to provide it manually.
