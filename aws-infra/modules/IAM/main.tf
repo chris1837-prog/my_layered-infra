@@ -46,7 +46,7 @@ resource "local_file" "engineer_assume_role_policy" {
       {
         Effect = "Allow"
         Principal = {
-          AWS = "arn:aws:iam::694816839566:role/AdministratorAccess" # Needs to be highly tightened in future Tasks.
+          AWS = "arn:aws:iam::694816839566:root" # Needs to be highly tightened in future Tasks.
         }
         Action = "sts:AssumeRole"
       }
