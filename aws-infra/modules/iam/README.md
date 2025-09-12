@@ -136,7 +136,7 @@ Terratest is used to validate the module by building resources, checking outputs
 
 ```bash
 cd test/
-go mod init iam_module_test
+go mod init basic_usage_test
 go mod tidy
 go test -v -timeout 30m -run TestIAMModule .
 ```
