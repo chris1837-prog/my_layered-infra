@@ -37,27 +37,23 @@ resource "aws_iam_policy" "remote_state_access" {
 }
 
 
-# Generates the trust policy JSON file for the engineer role in the policies directory as local file
-resource "local_file" "engineer_assume_role_policy" {
-  filename = "${path.module}/policies/engineer_assume_role_policy.json"
-  content = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::694816839566:root" # Needs to be highly tightened in future Tasks.
-        }
-        Action = "sts:AssumeRole"
-      }
-    ]
-  })
+
+# IAM trust policy document for the engineer role
+data "aws_iam_policy_document" "engineer_trust_policy" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::694816839566:root"] # Needs to be highly tightened in future Tasks.
+    }
+  }
 }
 
 # Engineer IAM role for Terraform remote state access
 resource "aws_iam_role" "engineer" {
   name               = var.engineer_role_name
-  assume_role_policy = local_file.engineer_assume_role_policy.content
+  assume_role_policy = data.aws_iam_policy_document.engineer_trust_policy.json
 }
 
 # Attaches the remote state access policy to the engineer role
