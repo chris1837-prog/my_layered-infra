@@ -1,65 +1,22 @@
+# cloud-init/edge-caddy.yaml
 #cloud-config
-apt:
-  packages:
-    - curl
-    - gnupg
-    - debian-keyring
-    - debian-archive-keyring
-    - apt-transport-https
-    - openssl
+packages:
+  - debian-keyring
+  - debian-archive-keyring
+  - apt-transport-https
+  - curl
 
+#cloud-config
 write_files:
-  - path: /var/www/html/index.html
-    owner: root:root
-    permissions: '0644'
-    content: "edge alive with internal TLS!"
-
   - path: /etc/caddy/Caddyfile
-    owner: root:root
-    permissions: '0644'
     content: |
-      :8080 {
-        bind 127.0.0.1
-        handle /health {
-          respond "edge alive" 200
-        }
-        handle {
-          respond "Not Found" 404
-        }
+      YOUR_DOMAIN {
+          reverse_proxy 10.0.1.10:8080
+          log {
+              output file /var/log/caddy/access.log
+          }
       }
-
-      %{ if domain_name != "" ~}
-      http://${domain_name} {
-        redir https://{host}{uri} permanent
-      }
-
-      https://${domain_name} {
-        tls {
-          protocols tls1.2 tls1.3
-        }
-
-        %{ if length(backend_servers) > 0 ~}
-        reverse_proxy {
-          to ${join(" ", backend_servers)}
-          header_up Host {upstream_hostport}
-          header_up X-Real-IP {remote_host}
-          header_up X-Forwarded-For {remote_host}
-          header_up X-Forwarded-Proto {scheme}
-          header_up X-Forwarded-Port {server_port}
-        }
-        %{ else ~}
-        root * /var/www/html
-        file_server
-        %{ endif ~}
-      }
-      %{ endif ~}
-
 runcmd:
-  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
-  - sh -c 'echo "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" > /etc/apt/sources.list.d/caddy-stable.list'
-  - apt-get update
-  - apt-get install -y caddy
-  - mkdir -p /var/www/html /var/log/caddy
-  - chown -R caddy:caddy /var/log/caddy /var/www/html
   - systemctl enable caddy
-  - systemctl restart caddy
+  - systemctl start caddy
+

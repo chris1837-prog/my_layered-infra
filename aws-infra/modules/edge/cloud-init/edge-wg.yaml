@@ -1,124 +1,17 @@
+# cloud-init/edge-wg.yaml
 #cloud-config
-packages:
-  - curl
-  - debian-keyring
-  - debian-archive-keyring
-  - apt-transport-https
-  - openssl
-
 write_files:
-  - path: /var/www/html/index.html
-    permissions: "0644"
+  - path: /etc/wireguard/wg0.conf
     owner: root:root
+    permissions: '600'
     content: |
-      edge alive with internal TLS!
-
-  - path: /etc/caddy/Caddyfile
-    owner: root:root
-    permissions: "0644"
-    content: |
-      # Health check endpoint (internal)
-      :8080 {
-        bind 127.0.0.1
-
-        handle /health {
-          respond "edge alive" 200
-        }
-
-        handle {
-          respond "Not Found" 404
-        }
-      }
-
-      # Team's internal TLS site with CA
-      myinternal.lan {
-        root * /var/www/html
-        file_server
-        tls internal
-
-        # Access logging for internal domain
-        log {
-          output file /var/log/caddy/internal.log {
-            roll_size 100MiB
-            roll_keep 5
-            roll_keep_for 240h
-          }
-          format console
-          level INFO
-        }
-      }
-
-      %{ if domain_name != "" ~}
-      # HTTP to HTTPS redirect for external domain
-      http://${domain_name} {
-        redir https://{host}{uri} permanent
-      }
-
-      # Main HTTPS site with Let's Encrypt
-      https://${domain_name} {
-        tls {
-          protocols tls1.2 tls1.3
-        }
-
-        # Security headers
-        header {
-          Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
-          X-Frame-Options "DENY"
-          X-Content-Type-Options "nosniff"
-          Referrer-Policy "strict-origin-when-cross-origin"
-          -Server
-        }
-
-        %{ if length(backend_servers) > 0 ~}
-        # Reverse proxy to backend servers
-        reverse_proxy {
-          to ${join(" ", backend_servers)}
-
-          header_up Host {upstream_hostport}
-          header_up X-Real-IP {remote_host}
-          header_up X-Forwarded-For {remote_host}
-          header_up X-Forwarded-Proto {scheme}
-          header_up X-Forwarded-Port {server_port}
-        }
-        %{ else ~}
-        # Fallback to internal site when no backends
-        root * /var/www/html
-        file_server
-        %{ endif ~}
-
-        # Status endpoint for monitoring
-        handle /caddy/status {
-          respond "OK" 200 {
-            header Content-Type "text/plain"
-          }
-        }
-
-        # Access logging for external domain
-        log {
-          output file /var/log/caddy/access.log {
-            roll_size 100MiB
-            roll_keep 10
-            roll_keep_for 720h
-          }
-          format console
-          level INFO
-        }
-      }
-      %{ endif ~}
+      [Interface]
+      Address = 10.200.0.1/24
+      ListenPort = 51820
+      PrivateKey = REPLACE_WITH_EDGE_PRIVATE_KEY
+      PostUp = iptables -t nat -A POSTROUTING -s 10.200.0.0/24 -o eth0 -j MASQUERADE
+      PostDown = iptables -t nat -D POSTROUTING -s 10.200.0.0/24 -o eth0 -j MASQUERADE
 
 runcmd:
-  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | apt-key add -
-  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
-  - apt-get update
-  - apt-get install -y caddy
-  - mkdir -p /var/www/html
-  - mkdir -p /var/log/caddy
-  - chown -R caddy:caddy /var/log/caddy
-  - chown -R caddy:caddy /var/www/html
-  - ufw allow 443/tcp
-  - caddy validate --config /etc/caddy/Caddyfile || true
-  - systemctl enable caddy
-  - systemctl restart caddy || true
-  - sleep 5
-  - curl -f http://localhost:8080/health || echo "Health check failed"
-  - curl -k -f https://myinternal.lan/ || echo "Internal TLS site test (may require DNS/hosts entry)"
+  - wg-quick up wg0
+  - systemctl enable wg-quick@wg0
