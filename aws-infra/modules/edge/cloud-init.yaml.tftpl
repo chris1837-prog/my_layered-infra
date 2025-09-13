@@ -1,0 +1,113 @@
+#cloud-config
+# This script runs once on the first boot of the EC2 instance.
+
+apt:
+  debconf_selections:
+    iptables-persistent: iptables-persistent/autosave_v4 boolean true
+    iptables-persistent: iptables-persistent/autosave_v6 boolean true
+
+package_update: true
+package_upgrade: true
+packages:
+  - ufw
+  - iptables-persistent
+  - netfilter-persistent
+  - curl
+  - debian-keyring
+  - debian-archive-keyring
+  - apt-transport-https
+  - openssl
+  - wireguard
+  - caddy
+  - qrencode
+
+early_commands:
+  - apt-get install -y wireguard  # Ensure WireGuard is available early
+
+users:
+  - name: ${admin_user}
+    primary_group: sudo
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+%{ for key in admin_ssh_keys ~}
+      - '${key}'
+%{ endfor ~}
+
+write_files:
+  - path: /etc/caddy/Caddyfile
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${domain_name} {
+        reverse_proxy ${join(" ", backend_servers)}
+        tls internal
+      }
+  # WHY: We write all commands into a single shell script to avoid YAML parsing issues with shell substitutions.
+  - path: /opt/startup.sh
+    owner: root:root
+    permissions: "0755"
+    content: |
+      #!/bin/bash
+      set -euxo pipefail
+
+      echo "[INIT] Enabling IP forwarding for NAT..."
+      sysctl -w net.ipv4.ip_forward=1
+      sed -i 's/^#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
+      PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
+      iptables -t nat -A POSTROUTING -o "$PRIMARY_IFACE" -j MASQUERADE
+      iptables-save > /etc/iptables/rules.v4
+
+      # WHY: We install Caddy *before* creating our custom Caddyfile to avoid the interactive prompt.
+      echo "[INIT] Adding Caddy repository..."
+      apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
+      curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+      echo "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" > /etc/apt/sources.list.d/caddy-stable.list
+      apt-get update
+      # --- END OF FIX ---
+
+      # WHY: We install Caddy *after* adding its repository.
+      echo "[INIT] Installing Caddy..."
+      export DEBIAN_FRONTEND=noninteractive
+      apt-get install -y -o Dpkg::Options::="--force-confnew" caddy
+      echo "[INIT] Caddy has been installed."
+
+      echo "[INIT] Configuring firewall with UFW..."
+      ufw default deny incoming
+      ufw default allow outgoing
+      ufw allow 80/tcp
+      ufw allow 443/tcp
+%{ for cidr in admin_cidrs ~}
+      ufw allow from ${cidr} to any port 22 proto tcp
+      ufw allow from ${cidr} to any port ${wireguard_port} proto udp
+%{ endfor ~}
+      ufw --force enable
+
+      echo "[INIT] Setting up WireGuard server..."
+      mkdir -p /etc/wireguard
+      # Generate keys safely
+      if [ ! -f /etc/wireguard/server_private.key ]; then
+        wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
+      fi
+      # Write config using shell substitution (now safe in bash)
+      cat > /etc/wireguard/wg0.conf <<EOF
+      [Interface]
+      PrivateKey = $(cat /etc/wireguard/server_private.key)
+      Address = 10.200.0.1/24
+      ListenPort = ${wireguard_port}
+      SaveConfig = true
+      EOF
+      systemctl enable --now wg-quick@wg0
+
+      echo "[INIT] Writing Caddyfile and restarting service..."
+      # Use printf again for the Caddyfile
+      printf "%s {\n  reverse_proxy %s\n  tls internal\n}\n" \
+      "${domain_name}" "${join(" ", backend_servers)}" > /etc/caddy/Caddyfile
+
+      systemctl restart caddy
+      echo "[INIT] Script finished successfully."
+
+# WHY: Now, runcmd is very simple. It just executes the script we wrote above.
+runcmd:
+  - [ "bash", "/opt/startup.sh" ]
