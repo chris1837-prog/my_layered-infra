@@ -1,0 +1,19 @@
+provider "aws" {
+  region = var.aws_region
+  profile = "AdministratorAccess-694816839566"
+}
+
+
+module "edge" {
+  source = "../../"
+
+  project_name      = "mvp"
+  environment       = "dev"
+  vpc_id            = var.vpc_id
+  instance_type     = var.instance_type
+  public_subnet_id  = var.public_subnet_id
+  admin_cidrs       = var.admin_cidrs
+  admin_ssh_keys    = var.admin_ssh_keys
+  domain_name       = var.domain_name
+  backend_servers   = var.backend_servers
+}
