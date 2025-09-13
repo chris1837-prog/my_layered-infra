@@ -1,6 +1,6 @@
 provider "aws" {
   region = var.aws_region
-  profile = "AdministratorAccess-694816839566"
+  profile = var.aws_profile
 }
 
 
@@ -8,7 +8,7 @@ module "edge" {
   source = "../../"
 
   project_name      = "mvp"
-  environment       = "dev"
+  environment       = "qa"
   vpc_id            = var.vpc_id
   instance_type     = var.instance_type
   public_subnet_id  = var.public_subnet_id

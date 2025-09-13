@@ -1,5 +1,3 @@
-# outputs.tf - Defines the outputs of the Edge module
-
 output "edge_instance_id" {
   description = "The ID of the created Edge VM instance."
   value       = aws_instance.edge.id

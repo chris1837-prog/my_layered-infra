@@ -1,5 +1,3 @@
-# variables.tf - Defines the inputs for the Edge module
-
 variable "project_name" {
   description = "The name of the project."
   type        = string

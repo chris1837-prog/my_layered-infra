@@ -1,8 +1,6 @@
-# main.tf - Provisions the Edge VM and its related resources
-
 data "aws_ami" "ubuntu" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["099720109477"]
 
   filter {
     name   = "name"
@@ -88,7 +86,6 @@ data "cloudinit_config" "edge" {
 
 resource "aws_iam_role" "edge" {
   name               = "${var.project_name}-${var.environment}-edge-role"
-  # WHY: This trust policy allows the EC2 service to assume this role.
   assume_role_policy = jsonencode({
     Version   = "2012-10-17",
     Statement = [{
@@ -99,13 +96,11 @@ resource "aws_iam_role" "edge" {
   })
 }
 
-# WHY: This attaches the AWS-managed policy that contains all the necessary permissions for SSM.
 resource "aws_iam_role_policy_attachment" "ssm" {
   role       = aws_iam_role.edge.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-# WHY: This creates the instance profile, which is the container for the role that gets attached to the EC2 instance.
 resource "aws_iam_instance_profile" "edge" {
   name = "${var.project_name}-${var.environment}-edge-profile"
   role = aws_iam_role.edge.name
