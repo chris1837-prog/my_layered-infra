@@ -1,5 +1,0 @@
-# cloud-init/edge-nat.yaml
-#cloud-config
-runcmd:
-  - iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
-  - sh -c "iptables-save > /etc/iptables/rules.v4"
