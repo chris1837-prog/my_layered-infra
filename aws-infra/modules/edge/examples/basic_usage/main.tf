@@ -1,19 +1,19 @@
 provider "aws" {
-  region  = "eu-central-1"
-  profile = "edge"
-}
-resource "aws_key_pair" "edge_admin" {
-  key_name   = "edge-admin"
-  public_key = file("~/.ssh/edge-key.pub")
+  region = var.aws_region
+  profile = var.aws_profile
 }
 
+
 module "edge" {
-  source        = "../../"
-  ami           = "ami-0a116fa7c861dd5f9"  # x86_64 Ubuntu 24.04 LTS
-  instance_type = "t3.micro"
-  admin_cidrs   = ["95.91.249.11/32"]
-  domain        = "example.com"
-  app_private_ip = "10.0.1.10"
-  app_port      = 8080
-  key_pair_name = aws_key_pair.edge_admin.key_name
+  source = "../../"
+
+  project_name      = "mvp"
+  environment       = "qa"
+  vpc_id            = var.vpc_id
+  instance_type     = var.instance_type
+  public_subnet_id  = var.public_subnet_id
+  admin_cidrs       = var.admin_cidrs
+  admin_ssh_keys    = var.admin_ssh_keys
+  domain_name       = var.domain_name
+  backend_servers   = var.backend_servers
 }

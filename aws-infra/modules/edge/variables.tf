@@ -1,36 +1,57 @@
-variable "ami" {
-  description = "AMI ID for the Ubuntu instance"
+variable "project_name" {
+  description = "The name of the project."
+  type        = string
+}
+
+variable "environment" {
+  description = "The environment name (e.g., 'dev')."
+  type        = string
+}
+
+variable "vpc_id" {
+  description = "The ID of the VPC to deploy the Edge VM into."
+  type        = string
+}
+
+variable "public_subnet_id" {
+  description = "The ID of the public subnet for the Edge VM."
   type        = string
 }
 
 variable "instance_type" {
-  description = "Instance type for the edge node"
+  description = "The EC2 instance type for the Edge VM."
   type        = string
   default     = "t3.micro"
 }
 
-variable "admin_cidrs" {
-  description = "List of CIDRs allowed to access the admin services"
+variable "admin_user" {
+  description = "The username to create on the EC2 instance for admin access."
+  type        = string
+  default     = "ubuntu"
+}
+
+variable "admin_ssh_keys" {
+  description = "A list of public SSH keys for the admin user."
   type        = list(string)
-  default     = ["95.91.249.11/32"] #my ip
 }
 
-variable "domain" {
-  description = "Public domain for Caddy reverse proxy"
-  type        = string
+variable "admin_cidrs" {
+  description = "A list of IP ranges (CIDR blocks) allowed for SSH and WireGuard access."
+  type        = list(string)
 }
 
-variable "app_private_ip" {
-  description = "Private IP address of the app behind edge"
-  type        = string
-}
-
-variable "app_port" {
-  description = "Port the app is listening on"
+variable "wireguard_port" {
+  description = "The UDP port for the WireGuard VPN server."
   type        = number
-  default     = 8080
+  default     = 51820
 }
-variable "key_pair_name" {
-  description = "Name of the SSH key pair to use for the EC2 instance"
+
+variable "domain_name" {
+  description = "The public domain name Caddy will use for HTTPS."
   type        = string
+}
+
+variable "backend_servers" {
+  description = "A list of private IP:port addresses for the backend application servers."
+  type        = list(string)
 }
