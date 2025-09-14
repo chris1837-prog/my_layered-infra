@@ -25,7 +25,6 @@ const DATABASE_URL =
 // IMPORTANT: create a pool ONLY if DB config exists
 let pool = null;
 if (DATABASE_URL) {
-// -------------------------FELIX TASK---------
 // Pool config is now tunable via env (no functional breakage)
   pool = new Pool({
     connectionString: DATABASE_URL,                         // must point to PgBouncer
@@ -39,17 +38,15 @@ if (DATABASE_URL) {
     if (st > 0) {
       try {
         // SET done once per backend; avoids per-request overhead
-        await client.query(`SET statement_timeout = ${st}`);
+        await client.query('SET statement_timeout TO $1', [st]);
       } catch (e) {
         console.warn('[app] Failed to SET statement_timeout on connect:', e.message);
       }
     }
   });
-// -------------------------FELIX TASK---------
 } else {
   console.warn('[app] No DB config (DATABASE_URL nor DB_*). /health and /readyz will return 503.');
 }
-// -------------------------FELIX TASK---------
 // Optional helper: get a dedicated client for multi-step work
 // Note: per-session timeouts are now set in pool.on('connect')
 async function withClient(fn) {
@@ -141,7 +138,32 @@ app.get('/health', async (_req, res) => {
 });
 
 
-// Start server
-app.listen(PORT, () => {
+// Start server (capture instance) and implement graceful shutdown
+const server = app.listen(PORT, () => {
   console.log(`[app] Listening on ${PORT}`);
 });
+
+function gracefulShutdown() {
+  console.log('[app] Received shutdown signal, closing server gracefully.');
+  server.close(async () => {
+    console.log('[app] HTTP server closed.');
+    if (pool) {
+      try {
+        await pool.end();
+        console.log('[app] Database pool closed.');
+      } catch (e) {
+        console.error('[app] Error closing database pool:', e.message);
+      }
+    }
+    process.exit(0);
+  });
+
+  // Force shutdown if not closed within 10s
+  setTimeout(() => {
+    console.error('[app] Could not close connections in time, forcing shutdown.');
+    process.exit(1);
+  }, 10000);
+}
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);

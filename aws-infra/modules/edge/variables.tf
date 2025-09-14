@@ -1,75 +1,57 @@
-variable "aws_region" {
-  description = "AWS region for resources"
+variable "project_name" {
+  description = "The name of the project."
   type        = string
-  default     = "eu-central-1"
+}
+
+variable "environment" {
+  description = "The environment name (e.g., 'dev')."
+  type        = string
 }
 
 variable "vpc_id" {
-  description = "VPC ID where the edge instance will be deployed"
+  description = "The ID of the VPC to deploy the Edge VM into."
   type        = string
 }
 
-variable "subnet_id" {
-  description = "Subnet ID where the edge instance will be deployed"
+variable "public_subnet_id" {
+  description = "The ID of the public subnet for the Edge VM."
   type        = string
 }
-
 
 variable "instance_type" {
-  description = "EC2 instance type"
+  description = "The EC2 instance type for the Edge VM."
   type        = string
-  default     = "t3.medium"
+  default     = "t3.micro"
 }
 
-variable "key_pair_name" {
-  description = "EC2 Key Pair name for SSH access"
+variable "admin_user" {
+  description = "The username to create on the EC2 instance for admin access."
   type        = string
+  default     = "ubuntu"
+}
+
+variable "admin_ssh_keys" {
+  description = "A list of public SSH keys for the admin user."
+  type        = list(string)
 }
 
 variable "admin_cidrs" {
-  description = "CIDR blocks allowed for SSH and WireGuard access"
+  description = "A list of IP ranges (CIDR blocks) allowed for SSH and WireGuard access."
   type        = list(string)
-  default     = ["10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"]
 }
 
 variable "wireguard_port" {
-  description = "UDP port for WireGuard VPN"
+  description = "The UDP port for the WireGuard VPN server."
   type        = number
   default     = 51820
 }
 
-variable "wireguard_network" {
-  description = "WireGuard VPN network CIDR"
-  type        = string
-  default     = "10.200.0.0/24"
-}
-
 variable "domain_name" {
-  description = "Domain name for Caddy reverse proxy"
+  description = "The public domain name Caddy will use for HTTPS."
   type        = string
-  default     = "example.com"
 }
 
 variable "backend_servers" {
-  description = "Backend servers for reverse proxy"
+  description = "A list of private IP:port addresses for the backend application servers."
   type        = list(string)
-  default     = ["127.0.0.1:8080"]
-}
-
-
-variable "admin_user" {
-  description = "Admin username for SSH access"
-  type        = string
-
-}
-
-variable "admin_ssh_keys" {
-  description = "List of SSH public keys for admin access"
-  type        = list(string)
-  default     = []
-
-  validation {
-    condition     = length(var.admin_ssh_keys) > 0
-    error_message = "At least one SSH public key must be provided."
-  }
 }

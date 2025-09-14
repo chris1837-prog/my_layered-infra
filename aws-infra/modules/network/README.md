@@ -20,14 +20,16 @@ aws-infra/modules/network/
 ├── vpc.tf
 ├── test/                   # Terratest automated tests
 │   ├── helpers.go
-│   ├── network_test.go
-│   └── private_egress_test.go
+│   ├── basic_usage_test.go
+│   └── private_egress_via_edge_test.go
 └── examples/               # Usage examples and module testing
     ├── basic_usage/
     │   ├── main.tf
     │   ├── outputs.tf
     │   └── versions.tf
     └── private_egress_via_edge/
+        ├── templates
+        │   └── edge_init.sh.tftpl
         ├── main.tf
         ├── outputs.tf
         └── versions.tf
@@ -51,26 +53,50 @@ aws-infra/modules/network/
 ### Basic Usage
 
 ```hcl
+# Provider config without a specific profile to use default auth chain
+provider "aws" {
+  region = "eu-central-1"
+}
+
+# Get available AZs in the region
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 module "network" {
   source = "./modules/network"
 
-  project_name = "myapp-production"
-  cidr_block   = "10.0.0.0/16"
+  project_name = "layered-infra-test"
+  common_tags = {
+    Project     = "layered-infra"
+    ManagedBy   = "Terraform"
+    Environment = "Testing"
+    Team        = "A"
+    Module      = "Network"
+  }
+
+  vpc_cidr           = "10.0.0.0/16"
+  allowed_admin_cidrs = ["10.0.0.0/8"] 
   
   az_configurations = {
-    "us-east-1a" = {
-      public_subnet_cidr  = "10.0.1.0/24"
-      private_subnet_cidr = "10.0.2.0/24"
+    (data.aws_availability_zones.available.names[0]) = {
+      public_subnet_cidr  = "10.0.1.0/24" 
+      private_subnet_cidr = "10.0.2.0/24" 
     }
   }
-
-  common_tags = {
-    Environment = "production"
-    Project     = "myapp"
-  }
-
-  ssh_admin_cidr       = "192.168.1.0/24"
-  wireguard_admin_cidr = "10.0.0.0/16"
+  # Optional: Set other variables with their defaults for clarity
+  enable_dns_support            = true
+  enable_dns_hostnames          = true
+  allow_map_public_ip_on_launch = true
+  application_port              = 3000
+  open_internet_cidr            = "0.0.0.0/0"
+  tcp_protocol                  = "tcp"
+  udp_protocol                  = "udp"
+  all_protocols                 = "-1"
+  https_port                    = 443
+  http_port                     = 80
+  ssh_port                      = 22
+  wireguard_port                = 51820
 }
 ```
 
@@ -94,13 +120,18 @@ The `examples/` folder contains runnable configurations that demonstrate how to 
 - Replaces NAT Gateway with a NAT instance (Edge VM) for significant cost savings.
 - Implements the complete architecture:
   - Edge instance with `source_dest_check = false`
-  - iptables MASQUERADE rules for the entire VPC CIDR
+  - iptables MASQUERADE rules applied via a user data template 
+    (templates/edge_init.sh.tftpl)
   - Private route table with default route (0.0.0.0/0) pointing to Edge instance
   - Automated SSH key generation for testing
+  - Temporary security group ingress rule allowing SSH from Edge SG → App SG 
+    (for test purposes only)
+- Example is kept clean by rendering user_data with templatefile().
 - Includes comprehensive Terratest that validates:
   - Route table configuration
   - Instance connectivity
-  - Private instance internet access via Edge instance
+  - Private instance internet access via Edge instance 
+    (using real HTTPS request to GitHub API)
 
 ## Testing
 
@@ -133,7 +164,7 @@ terraform plan      # Should show network resources + NAT instances
 #### Basic Infrastructure Tests
 ```bash
 cd test/
-go mod init network_test
+go mod init basic_usage_test
 go mod tidy
 go test -v -timeout 30m -run TestNetworkModule .
 ```
@@ -141,7 +172,7 @@ go test -v -timeout 30m -run TestNetworkModule .
 #### NAT Functionality Tests
 ```bash
 cd test/
-go mod init private_egress_test
+go mod init private_egress_via_edge_test
 go mod tidy
 go test -v -timeout 30m -run TestPrivateEgressHTTPS .
 ```
@@ -149,11 +180,15 @@ go test -v -timeout 30m -run TestPrivateEgressHTTPS .
 The Terratest suite validates:
 - **Basic Structure**: VPC creation, subnet counts, security groups existence
 - **NAT Functionality**: 
-  - Edge instance source/dest check configuration
+  - Edge instance configured with **source_dest_check = false**
   - Private route table default route to Edge instance
-  - Actual internet access from private instances via SSH testing
+  - Private EC2 instance can reach the internet via Edge NAT 
+    (validated by curl https://api.github.com)
 
-**Note**: The NAT test requires SSH connectivity and validates real network traffic flow from private instances to the internet.
+**Note**: 
+- The NAT test requires SSH connectivity and validates real network traffic flow from private instances to the internet.
+- SSH access from Edge → Private is enabled only for test automation and should not be used in production.
+- In real setups, prefer SSM Session Manager instead of SSH chaining.
 ```
 
  You can copy and adapt this configuration as a starting point for your own infrastructure.
