@@ -49,13 +49,32 @@ resource "aws_security_group" "edge" {
   }
 }
 
+# --- Dynamic SSH Key Generation ---
+resource "tls_private_key" "edge" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "aws_key_pair" "edge" {
+  key_name   = "${var.project_name}-${var.environment}-edge-key"
+  public_key = tls_private_key.edge.public_key_openssh
+}
+
+# Save private key locally for admin use
+resource "local_file" "edge_private_key" {
+  content         = tls_private_key.edge.private_key_pem
+  filename        = abspath("${path.module}/edge_private_key.pem")
+  file_permission = "0600"
+}
+
+
 resource "aws_instance" "edge" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   subnet_id                   = var.public_subnet_id
   vpc_security_group_ids      = [aws_security_group.edge.id]
   source_dest_check           = false
-  iam_instance_profile        = aws_iam_instance_profile.edge.name
+  key_name                    = aws_key_pair.edge.key_name
 
   user_data_replace_on_change = true
   user_data_base64 = data.cloudinit_config.edge.rendered
@@ -66,7 +85,6 @@ resource "aws_eip" "edge" {
   domain   = "vpc"
 }
 
-
 data "cloudinit_config" "edge" {
   gzip          = true
   base64_encode = true
@@ -75,33 +93,11 @@ data "cloudinit_config" "edge" {
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
       admin_user      = var.admin_user
-      admin_ssh_keys  = var.admin_ssh_keys
+      admin_ssh_keys  = [tls_private_key.edge.public_key_openssh]
       domain_name     = var.domain_name
       backend_servers = var.backend_servers
       admin_cidrs     = var.admin_cidrs
       wireguard_port  = var.wireguard_port
     })
   }
-}
-
-resource "aws_iam_role" "edge" {
-  name               = "${var.project_name}-${var.environment}-edge-role"
-  assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
-    Statement = [{
-      Action    = "sts:AssumeRole",
-      Effect    = "Allow",
-      Principal = { Service = "ec2.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "ssm" {
-  role       = aws_iam_role.edge.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_instance_profile" "edge" {
-  name = "${var.project_name}-${var.environment}-edge-profile"
-  role = aws_iam_role.edge.name
 }

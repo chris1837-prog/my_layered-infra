@@ -1,31 +1,21 @@
-# -------------------------------------
-# AWS Infrastructure Variables
-# -------------------------------------
-# ⚠️ IMPORTANT: Replace these with the actual IDs from your AWS environment.
+
+# Example terraform.tfvars for the edge module
+# Fill in your actual VPC and subnet IDs
 vpc_id            = "vpc-xxxxxxxxxxxxxxxxx"
 public_subnet_id  = "subnet-xxxxxxxxxxxxxxxxx"
 
-# -------------------------------------
-# EC2 Access Configuration
-# -------------------------------------
-# ⚠️ IMPORTANT: This must be the name of an EC2 Key Pair that already exists in your AWS account.
-key_pair_name     = "your-key-pair-name"
+# AWS region and profile
+aws_region    = "eu-central-1"
+aws_profile   = "AdministratorAccess-694816839566"
 
-# ⚠️ IMPORTANT: Replace this with your actual public SSH key.
-admin_ssh_keys    = [
-  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB... your_email@example.com"
-]
+# Instance type
+instance_type = "t3.micro"
 
-# ⚠️ IMPORTANT: Replace this with your current public IP address.
-# You can find it by searching "what is my IP" in Google.
-admin_cidrs       = ["1.2.3.4/32"]
+# Admin CIDRs (allowed SSH/WireGuard sources)
+admin_cidrs   = ["0.0.0.0/0"]
 
-# -------------------------------------
-# Service Configuration
-# -------------------------------------
-# ⚠️ IMPORTANT: This must be a real domain name that you own,
-# and you must have an 'A' record pointing to the Elastic IP of the Edge VM.
-domain_name       = "edge.your-domain.com"
+# Domain name for Caddy
+domain_name   = "edge.example.com"
 
-# For this test, we will use a placeholder backend address.
-backend_servers   = ["http://10.0.2.10:3000"]
+# Backend servers for reverse proxy
+backend_servers = ["10.0.2.10:3000", "10.0.2.11:3000"]
