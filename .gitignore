@@ -17,6 +17,19 @@ override.tf.json
 terraform.rc
 
 # -------------------------
+# Terraform Plans / State backups
+# -------------------------
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars.backup
+**/*.backup
+**/*.bin
+**/*.tfplan
+**/tfplan.txt
+**/tfplan.*.txt
+
+# -------------------------
 # Docker / Compose
 # -------------------------
 .env
