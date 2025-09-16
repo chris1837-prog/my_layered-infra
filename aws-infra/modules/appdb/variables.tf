@@ -37,8 +37,8 @@ variable "sg_app_id" {
   type        = string
 }
 
-variable "instance_profile_name" {
-  description = "IAM instance profile to attach (optional)"
+variable "appdb_instance_profile_name" {
+  description = "IAM instance profile to attach"
   type        = string
   default     = null
 }
