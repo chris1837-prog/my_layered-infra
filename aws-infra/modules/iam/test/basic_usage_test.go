@@ -32,4 +32,10 @@ func TestIAMModule(t *testing.T) {
 		roleArn := terraform.Output(t, terraformOptions, "engineer_role_arn")
 		assert.NotEmpty(t, roleArn, "Engineer IAM role ARN should be output and not empty")
 	})
+
+    // Test 2: Assert AppDB instance profile name output exists
+	t.Run("AppDB instance profile output exists", func(t *testing.T) {
+		profileName := terraform.Output(t, terraformOptions, "appdb_instance_profile_name")
+		assert.NotEmpty(t, profileName, "AppDB IAM instance profile should be output and not empty")
+	})
 }
