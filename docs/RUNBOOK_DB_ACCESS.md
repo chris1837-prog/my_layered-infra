@@ -9,7 +9,8 @@ This document describes the procedures for accessing production databases.
 **Note:** PgBouncer is configured for loopback-only access (127.0.0.1:6432) for enhanced security.
 
 ### SSH Tunnel Access (Alicia section)
-For detailed instructions on establishing SSH tunnels for database administration, refer to the SSH Tunnel section below.
+For detailed instructions on establishing SSH tunnels for database administration:
 
-## SSH Tunnel Procedure
-[Detailed SSH tunnel instructions will be added here by Alicia]
+#### SSH Tunnel Command:
+```bash
+ssh -L 6432:127.0.0.1:6432 user@app-vm
