@@ -183,7 +183,7 @@ module "appdb" {
   private_subnet_id      = aws_subnet.private_subnet.id
   sg_app_id              = aws_security_group.sg_appdb.id
   instance_type          = local.instance_type
-  instance_profile_name  = null
+  iam_instance_profile   = null
   app_image              = "nginx:latest" # Placeholder for testing
 }
 
