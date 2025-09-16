@@ -61,3 +61,48 @@ resource "aws_iam_role_policy_attachment" "engineer_remote_state" {
   role       = aws_iam_role.engineer.name
   policy_arn = aws_iam_policy.remote_state_access.arn
 }
+
+# -------------------------
+# IAM Role for AppDB EC2
+# -------------------------
+resource "aws_iam_role" "appdb_role" {
+  name = "${var.project_name}-${var.environment}-appdb-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+        Action = "sts:AssumeRole"
+      }
+    ]
+  })
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-appdb-role"
+  })
+}
+
+# -------------------------
+# IAM Instance Profile for AppDB EC2
+# -------------------------
+resource "aws_iam_instance_profile" "appdb_instance_profile" {
+  name = "${var.project_name}-${var.environment}-appdb-instance-profile"
+  role = aws_iam_role.appdb_role.name
+
+  tags = merge(var.common_tags, {
+    Name = "${var.project_name}-${var.environment}-appdb-instance-profile"
+  })
+}
+
+# -------------------------
+# Attach SSM Policy
+# -------------------------
+resource "aws_iam_role_policy_attachment" "appdb_ssm_read" {
+  role       = aws_iam_role.appdb_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+}
+
