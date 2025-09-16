@@ -1,29 +1,29 @@
 ########################################
-# Variables (DEV)
+# Variables (QA)
 ########################################
 
 # --- AWS Provider Vars ---
 variable "aws_region" {
-  description = "AWS region for DEV"
+  description = "AWS region for QA"
   type        = string
   default     = "eu-central-1"
 }
 
 variable "aws_profile" {
-  description = "AWS CLI/SSO profile for DEV"
+  description = "AWS CLI/SSO profile for QA"
   type        = string
-  default     = "your-sso-profile" # anpassen!
+  default     = "qa-sso-profile" # anpassen!
 }
 
 # --- Budget Vars ---
-variable "dev_budget_amount_usd" {
-  description = "Monthly budget amount for DEV (USD)"
+variable "qa_budget_amount_usd" {
+  description = "Monthly budget amount for QA (USD)"
   type        = number
-  default     = 5
+  default     = 500
 }
 
-variable "dev_alert_emails" {
-  description = "Recipients for budget alerts (DEV)"
+variable "qa_alert_emails" {
+  description = "Recipients for budget alerts (QA)"
   type        = list(string)
   default     = ["siebert.acer@googlemail.com"]
 }

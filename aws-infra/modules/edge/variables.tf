@@ -30,14 +30,10 @@ variable "admin_user" {
   default     = "ubuntu"
 }
 
-variable "admin_ssh_keys" {
-  description = "A list of public SSH keys for the admin user."
-  type        = list(string)
-}
-
 variable "admin_cidrs" {
-  description = "A list of IP ranges (CIDR blocks) allowed for SSH and WireGuard access."
+  description = "A list of IP ranges (CIDR blocks) allowed for SSH and WireGuard access. Allow all for testing purposes."
   type        = list(string)
+  default     = ["0.0.0.0/0"] # Testing purposes only, restrict later!
 }
 
 variable "wireguard_port" {
