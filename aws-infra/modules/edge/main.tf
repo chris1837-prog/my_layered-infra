@@ -1,11 +1,5 @@
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"]
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
+data "aws_ssm_parameter" "ubuntu" {
+  name = local.ubuntu_ssm_path
 }
 
 # # --- Dynamic SSH Key Generation ---
@@ -31,12 +25,13 @@ resource "aws_instance" "edge" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   subnet_id                   = var.public_subnet_id
-  vpc_security_group_ids      = [var.sg_id]
+  vpc_security_group_ids      = [var.sg_edge_id]
   source_dest_check           = false
   key_name                    = var.key_name
+  iam_instance_profile        = try(var.iam_instance_profile_name, null)
 
   user_data_replace_on_change = true
-  user_data_base64 = data.cloudinit_config.edge.rendered
+  user_data_base64            = data.cloudinit_config.edge.rendered
 
   tags = merge(var.common_tags, {
   Name = "${var.project_name}-${var.environment}-edge-instance"
