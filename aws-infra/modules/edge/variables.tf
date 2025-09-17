@@ -18,6 +18,11 @@ variable "public_subnet_id" {
   type        = string
 }
 
+variable "sg_id" {
+  description = "The ID of the security group to associate with the Edge VM."
+  type        = string
+}
+
 variable "instance_type" {
   description = "The EC2 instance type for the Edge VM."
   type        = string
