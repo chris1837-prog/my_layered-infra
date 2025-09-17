@@ -14,6 +14,17 @@ variable "environment" {
   type        = string
 }
 
+variable "ubuntu_version" {
+  description = "The Ubuntu version to use for the Edge VM."
+  type        = string
+  default     = "22.04"
+}
+
+variable "iam_instance_profile_name" {
+  description = "The name of the IAM instance profile to attach to the Edge VM."
+  type        = string
+}
+
 variable "vpc_id" {
   description = "The ID of the VPC to deploy the Edge VM into."
   type        = string
@@ -24,7 +35,7 @@ variable "public_subnet_id" {
   type        = string
 }
 
-variable "sg_id" {
+variable "sg_edge_id" {
   description = "The ID of the security group to associate with the Edge VM."
   type        = string
 }
