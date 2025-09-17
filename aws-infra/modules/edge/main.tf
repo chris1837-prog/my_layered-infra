@@ -31,9 +31,9 @@ resource "aws_instance" "edge" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = var.instance_type
   subnet_id                   = var.public_subnet_id
-  vpc_security_group_ids      = [aws_security_group.edge.id]
+  vpc_security_group_ids      = [var.sg_id]
   source_dest_check           = false
-  key_name                    = aws_key_pair.edge.key_name
+  key_name                    = var.key_name
 
   user_data_replace_on_change = true
   user_data_base64 = data.cloudinit_config.edge.rendered
