@@ -41,7 +41,7 @@ resource "aws_vpc" "test_vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
   tags                 = merge(local.common_tags, { Name = "${local.project_name}-vpc" })
-} 
+}
 
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.test_vpc.id
@@ -219,12 +219,12 @@ resource "local_file" "edge_private_key" {
 module "edge" {
   source = "../../"
 
-  project_name            = "layered-infra"
-  environment             = "dev"
-  vpc_id                  = aws_vpc.test_vpc.id
-  instance_type           = local.instance_type
-  sg_edge_id              = aws_security_group.edge.id
-  ubuntu_version          = local.ubuntu_version
+  project_name              = "layered-infra"
+  environment               = "dev"
+  vpc_id                    = aws_vpc.test_vpc.id
+  instance_type             = local.instance_type
+  sg_edge_id                = aws_security_group.edge.id
+  ubuntu_version            = local.ubuntu_version
   key_name                  = aws_key_pair.edge.key_name
   admin_ssh_keys            = [tls_private_key.edge.public_key_openssh]
   iam_instance_profile_name = aws_iam_instance_profile.ec2_instance_profile.name
