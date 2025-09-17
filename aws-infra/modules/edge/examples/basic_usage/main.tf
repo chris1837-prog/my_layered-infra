@@ -1,6 +1,6 @@
 provider "aws" {
   region  = "eu-west-1"
-  profile = "AdministratorAccess-694816839566"
+  profile = "default"
 }
 
 
