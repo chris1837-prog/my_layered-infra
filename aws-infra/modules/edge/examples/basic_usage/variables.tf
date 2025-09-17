@@ -1,7 +1,7 @@
 variable "vpc_id" {
   description = "The ID of the VPC to deploy into. Replace with your actual VPC ID."
   type        = string
-  default    = "vpc-01f65b7c69d2af66f" # Default vpc for testing in eu-central-1
+  default     = "vpc-01f65b7c69d2af66f" # Default vpc for testing in eu-central-1
 }
 
 variable "aws_profile" {
