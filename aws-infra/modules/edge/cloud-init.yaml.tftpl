@@ -19,6 +19,7 @@ packages:
   - wireguard
   - caddy
   - qrencode
+  - fail2ban
 
 early_commands:
   - apt-get install -y wireguard  # Ensure WireGuard is available early
@@ -43,6 +44,20 @@ write_files:
         reverse_proxy ${join(" ", backend_servers)}
         tls internal
       }
+
+  - path: /etc/fail2ban/jail.local
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [sshd]
+      enabled  = true
+      port     = ssh
+      filter   = sshd
+      logpath  = /var/log/auth.log
+      maxretry = 5
+      bantime  = 15m
+      findtime = 10m
+
   - path: /opt/startup.sh
     owner: root:root
     permissions: "0755"
@@ -62,7 +77,6 @@ write_files:
       curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
       echo "deb [signed-by=/usr/share/keyrings/caddy-stable-archive-keyring.gpg] https://dl.cloudsmith.io/public/caddy/stable/deb/debian any-version main" > /etc/apt/sources.list.d/caddy-stable.list
       apt-get update
-      # --- END OF FIX ---
 
       echo "[INIT] Installing Caddy..."
       export DEBIAN_FRONTEND=noninteractive
@@ -82,11 +96,9 @@ write_files:
 
       echo "[INIT] Setting up WireGuard server..."
       mkdir -p /etc/wireguard
-      # Generate keys safely
       if [ ! -f /etc/wireguard/server_private.key ]; then
         wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
       fi
-      # Write config using shell substitution (now safe in bash)
       cat > /etc/wireguard/wg0.conf <<EOF
       [Interface]
       PrivateKey = $(cat /etc/wireguard/server_private.key)
@@ -97,12 +109,36 @@ write_files:
       systemctl enable --now wg-quick@wg0
 
       echo "[INIT] Writing Caddyfile and restarting service..."
-      # Use printf again for the Caddyfile
       printf "%s {\n  reverse_proxy %s\n  tls internal\n}\n" \
       "${domain_name}" "${join(" ", backend_servers)}" > /etc/caddy/Caddyfile
-
       systemctl restart caddy
+
+      echo "[INIT] Enabling fail2ban..."
+      systemctl enable --now fail2ban
+      fail2ban-client status sshd || true
+
+
       echo "[INIT] Script finished successfully."
 
 runcmd:
-  - [ "bash", "/opt/startup.sh" ]
+  - [ "sudo", "bash", "/opt/startup.sh" ]
+  - |
+    echo "[TEST] Running basic firewall/fail2ban checks..."
+    PUBIP=$(curl -s ifconfig.me || curl -s https://api.ipify.org || echo "unknown")
+    echo "[TEST] Server public IP detected: $PUBIP"
+
+    echo "[TEST] Checking UFW status..."
+    ufw status verbose || true
+
+    echo "[TEST] Checking Fail2ban status..."
+    fail2ban-client status sshd || true
+
+    echo "[TEST] Negative test: attempting SSH from localhost (should fail if banned)..."
+    for i in {1..6}; do
+      ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 -p 22 root@localhost exit || true
+    done
+
+    echo "[TEST] Fail2ban status after brute-force simulation:"
+    fail2ban-client status sshd || true
+
+    echo "[TEST] Firewall & Fail2ban checks complete."
