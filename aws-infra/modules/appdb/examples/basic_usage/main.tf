@@ -176,15 +176,15 @@ resource "aws_instance" "edge" {
 # AppDB Module
 # -----------------------------
 module "appdb" {
-  source                 = "../.." # Path to appdb module
-  project_name           = local.project_name
-  environment            = local.environment
-  common_tags            = local.common_tags
-  private_subnet_id      = aws_subnet.private_subnet.id
-  sg_app_id              = aws_security_group.sg_appdb.id
-  instance_type          = local.instance_type
-  appdb_instance_profile_name   = null
-  app_image              = "nginx:latest" # Placeholder for testing
+  source                      = "../.." # Path to appdb module
+  project_name                = local.project_name
+  environment                 = local.environment
+  common_tags                 = local.common_tags
+  private_subnet_id           = aws_subnet.private_subnet.id
+  sg_app_id                   = aws_security_group.sg_appdb.id
+  instance_type               = local.instance_type
+  appdb_instance_profile_name = null
+  app_image                   = "nginx:latest" # Placeholder for testing
 }
 
 # -----------------------------
