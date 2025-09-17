@@ -3,7 +3,7 @@ output "engineer_role_arn" {
   value       = module.iam.engineer_role_arn
 }
 
-output "appdb_instance_profile_name" {
+output "ec2_instance_profile_name" {
   description = "Instance profile name for AppDB EC2"
-  value       = module.iam.appdb_instance_profile_name
+  value       = module.iam.ec2_instance_profile_name
 }
