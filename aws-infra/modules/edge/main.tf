@@ -37,6 +37,10 @@ resource "aws_instance" "edge" {
 
   user_data_replace_on_change = true
   user_data_base64 = data.cloudinit_config.edge.rendered
+
+  tags = merge(var.common_tags, {
+  Name = "${var.project_name}-${var.environment}-edge-instance"
+})
 }
 
 resource "aws_eip" "edge" {
