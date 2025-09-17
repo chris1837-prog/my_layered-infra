@@ -63,10 +63,10 @@ resource "aws_iam_role_policy_attachment" "engineer_remote_state" {
 }
 
 # -------------------------
-# IAM Role for AppDB EC2
+# IAM Role for EC2
 # -------------------------
-resource "aws_iam_role" "appdb_role" {
-  name = "${var.project_name}-${var.environment}-appdb-role"
+resource "aws_iam_role" "ec2_role" {
+  name = "${var.project_name}-${var.environment}-ec2-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -82,27 +82,27 @@ resource "aws_iam_role" "appdb_role" {
   })
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-appdb-role"
+    Name = "${var.project_name}-${var.environment}-ec2-role"
   })
 }
 
 # -------------------------
-# IAM Instance Profile for AppDB EC2
+# IAM Instance Profile for  EC2
 # -------------------------
-resource "aws_iam_instance_profile" "appdb_instance_profile" {
-  name = "${var.project_name}-${var.environment}-appdb-instance-profile"
-  role = aws_iam_role.appdb_role.name
+resource "aws_iam_instance_profile" "ec2_instance_profile" {
+  name = "${var.project_name}-${var.environment}-ec2-instance-profile"
+  role = aws_iam_role.ec2_role.name
 
   tags = merge(var.common_tags, {
-    Name = "${var.project_name}-${var.environment}-appdb-instance-profile"
+    Name = "${var.project_name}-${var.environment}-ec2-instance-profile"
   })
 }
 
 # -------------------------
 # Attach SSM Policy
 # -------------------------
-resource "aws_iam_role_policy_attachment" "appdb_ssm_read" {
-  role       = aws_iam_role.appdb_role.name
+resource "aws_iam_role_policy_attachment" "ec2_ssm_read" {
+  role       = aws_iam_role.ec2_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
 }
 

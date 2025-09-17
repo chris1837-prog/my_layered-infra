@@ -1,4 +1,4 @@
-# IAM Module for Terraform Remote State & AppDB Access
+# IAM Module for Terraform Remote State & EC2 SSM Parameter Store Read Only Access
 
 This module provisions secure AWS IAM roles and policies for:
 
@@ -8,15 +8,14 @@ This module provisions secure AWS IAM roles and policies for:
    - Attaches a policy with least-privilege permissions for S3 and DynamoDB.
    - Outputs the IAM role ARN for use in workflows.
    
-2. **AppDB EC2 instance** (role + instance profile for accessing SSM Parameter Store).
+2. **EC2 instance** (role + instance profile for accessing SSM Parameter Store).
 
-   - Creates an IAM role + instance profile for AppDB EC2 instances.
+   - Creates an IAM role + instance profile for EC2 instances.
    - Attaches least-privilege policies (read only) for SSM Parameter Store.
-   - Outputs the instance profile name for AppDB.
+   - Outputs the instance profile name for EC2 instances.
    - Accepts project/environment inputs and tags for consistency.
 
 It is designed to be reusable across environments and allows attaching additional policies as needed.
-Absolutely! Here’s a clean **IAM module structure skeleton** suitable for your README, showing a beginner-friendly, well-organized layout. You can paste it into your README or use it as guidance for module development.
 
 ---
 
@@ -45,7 +44,7 @@ modules/
 |----------------|---------------------------------------------------------------------------------------|
 | `main.tf`      | Defines IAM roles, instance profiles, and policies.                                   |
 | `variables.tf` | Declares module inputs (role names, project, environment, optional flags).            |
-| `outputs.tf`   | Declares outputs such as engineer role ARN, AppDB instance profile name.              |
+| `outputs.tf`   | Declares outputs such as engineer role ARN, EC2 instance profile name.                |
 | `versions.tf`  | Defines Terraform required version and provider versions.                             |
 | `examples/`    | Contains runnable example configurations to validate the module or demonstrate usage. |
 | `test/`        | Contains Terratest scripts for automated validation of the module.                    |
@@ -71,7 +70,7 @@ module "iam" {
   lock_table         = local.bootstrap.tf_state_lock_table    # from bootstrap_outputs.json
   engineer_role_name = "engineer-terraform-remote-state"      # optional override
 
-  # AppDB IAM
+  # EC2 IAM
   project_name = "layered-infra-test"
   environment  = "Testing"
 
@@ -92,16 +91,16 @@ module "iam" {
 | tf_state_bucket    | Name of the S3 bucket for Terraform remote state. | string | n/a             |
 | lock_table         | Name of the DynamoDB table for state locking.     | string | n/a             |
 | engineer_role_name | Name for the engineer IAM role.                   | string | "engineer-role" |
-| project_name       | Project name used in AppDB IAM role and tags      | string | n/a             |
-| environment        | Environment name used in AppDB IAM role and tags  | string | n/a             |
+| project_name       | Project name used in EC2 IAM role and tags        | string | n/a             |
+| environment        | Environment name used in EC2 IAM role and tags    | string | n/a             |
 | common_tags        | Map of common tags applied to all IAM resources   | map    | {}              |
 
 ### Outputs
 
-| Name                        | Description                                   |
-|-----------------------------|-----------------------------------------------|
-| engineer_role_arn           | ARN of the engineer IAM role for remote state |
-| appdb_instance_profile_name | Instance profile name to attach to AppDB EC2  |
+| Name                      | Description                                      |
+|---------------------------|--------------------------------------------------|
+| engineer_role_arn         | ARN of the engineer IAM role for remote state    |
+| ec2_instance_profile_name | Instance profile name to attach to EC2 instances |
 
 ## IAM Policy JSON
 
@@ -193,9 +192,9 @@ The default trust policy allows a EC2 to assume the role:
 
 ### Notes
 
-* The **AppDB IAM role** is required if the EC2 instance needs to access **SSM Parameter Store**, Docker registries, or other AWS services securely.
-* If no AppDB instance profile is specified in the module, the EC2 can still launch but won’t have any IAM permissions.
-* You can extend the AppDB IAM role later with additional policies (e.g., S3, Secrets Manager) without modifying the module interface.
+* The **EC2 IAM role** is required if the EC2 instance needs to access **SSM Parameter Store**, Docker registries, or other AWS services securely.
+* If no EC2 instance profile is specified in the module, the EC2 can still launch but won’t have any IAM permissions.
+* You can extend the EC2 IAM role later with additional policies (e.g., S3, Secrets Manager) without modifying the module interface.
 
 ## Examples Directory
 
@@ -206,7 +205,7 @@ The `examples/` folder contains runnable configurations demonstrating module usa
 * Minimal working example provisioning:
 
   * Engineer IAM role for Terraform remote state access.
-  * AppDB IAM role + instance profile (ready for SSM secrets usage).
+  * EC2 IAM role + instance profile (ready for SSM secrets usage).
 * Serves as both **validation test** and **documentation**.
 *You can copy and adapt this configuration as a starting point for your own infrastructure.
 * 
@@ -253,7 +252,7 @@ go test -v -timeout 30m -run TestIAMModule .
     basic_usage_test.go:30: IAM test resources destroyed.
 --- PASS: TestIAMModule (N.NNs)
         --- PASS: TestIAMModule/Engineer_role_ARN_output_exists (N.NNs)
-        --- PASS: TestIAMModule/AppDB_instance_profile_output_exists (N.NNs)
+        --- PASS: TestIAMModule/Ec2_instance_profile_output_exists (N.NNs)
 PASS
 ok      iam_module_test   N.NNs
 ```

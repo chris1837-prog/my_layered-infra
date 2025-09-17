@@ -13,7 +13,7 @@ module "iam" {
   tf_state_bucket    = "example-terraform-state-bucket"
   lock_table         = "example-terraform-lock-table"
   engineer_role_name = "example-engineer-role"
-  # AppDB IAM role + instance profile
+  # EC2 IAM role + instance profile
   project_name = "layered-infra-test"
   environment  = "Testing"
 
