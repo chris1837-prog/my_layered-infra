@@ -1,3 +1,9 @@
+variable "common_tags" {
+  description = "A map of tags to assign to all resources."
+  type        = map(string)
+  default     = {}
+}
+
 variable "project_name" {
   description = "The name of the project."
   type        = string
@@ -8,6 +14,17 @@ variable "environment" {
   type        = string
 }
 
+variable "ubuntu_version" {
+  description = "The Ubuntu version to use for the Edge VM."
+  type        = string
+  default     = "22.04"
+}
+
+variable "iam_instance_profile_name" {
+  description = "The name of the IAM instance profile to attach to the Edge VM."
+  type        = string
+}
+
 variable "vpc_id" {
   description = "The ID of the VPC to deploy the Edge VM into."
   type        = string
@@ -15,6 +32,11 @@ variable "vpc_id" {
 
 variable "public_subnet_id" {
   description = "The ID of the public subnet for the Edge VM."
+  type        = string
+}
+
+variable "sg_edge_id" {
+  description = "The ID of the security group to associate with the Edge VM."
   type        = string
 }
 
@@ -34,6 +56,16 @@ variable "admin_cidrs" {
   description = "A list of IP ranges (CIDR blocks) allowed for SSH and WireGuard access. Allow all for testing purposes."
   type        = list(string)
   default     = ["0.0.0.0/0"] # Testing purposes only, restrict later!
+}
+
+variable "admin_ssh_keys" {
+  description = "A list of public SSH keys to add to the admin user's authorized_keys."
+  type        = list(string)
+}
+
+variable "key_name" {
+  description = "The name of an existing AWS Key Pair to use for SSH access."
+  type        = string
 }
 
 variable "wireguard_port" {

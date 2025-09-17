@@ -5,7 +5,7 @@ output "edge_public_ip" {
 
 output "edge_private_key_path" {
   description = "Path to the generated private SSH key for the Edge VM. Use this to connect as the admin user."
-  value       = module.edge.edge_private_key_path
+  value       = local_file.edge_private_key.filename
 }
 
 output "edge_instance_id" {
