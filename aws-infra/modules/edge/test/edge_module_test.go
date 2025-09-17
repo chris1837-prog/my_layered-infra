@@ -25,8 +25,8 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// Init and apply the Terraform code
 	terraform.InitAndApply(t, terraformOptions)
 
-	t.Log("\033[1;34m[INFO]\033[0m Waiting 60s for cloud-init to finish...")
-	time.Sleep(60 * time.Second)
+	t.Log("\033[1;34m[INFO]\033[0m Waiting 120s for cloud-init to finish...")
+	time.Sleep(120 * time.Second)
 
 	// Get outputs
 	publicIP := terraform.Output(t, terraformOptions, "edge_public_ip")
