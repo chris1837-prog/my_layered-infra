@@ -8,47 +8,6 @@ data "aws_ami" "ubuntu" {
   }
 }
 
-resource "aws_security_group" "edge" {
-  name_prefix = "${var.project_name}-${var.environment}-edge-sg-"
-  description = "Security group for the Edge VM"
-  vpc_id      = var.vpc_id
-
-  ingress {
-    description = "Allow HTTP for redirects and Lets Encrypt"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    description = "Allow HTTPS for Caddy"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  ingress {
-    description = "Allow SSH from admin IPs"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = var.admin_cidrs
-  }
-  ingress {
-    description = "Allow WireGuard VPN from admin IPs"
-    from_port   = var.wireguard_port
-    to_port     = var.wireguard_port
-    protocol    = "udp"
-    cidr_blocks = var.admin_cidrs
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
 # --- Dynamic SSH Key Generation ---
 resource "tls_private_key" "edge" {
   algorithm = "RSA"
