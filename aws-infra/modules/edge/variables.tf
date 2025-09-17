@@ -36,6 +36,11 @@ variable "admin_cidrs" {
   default     = ["0.0.0.0/0"] # Testing purposes only, restrict later!
 }
 
+variable "key_name" {
+  description = "The name of an existing AWS Key Pair to use for SSH access."
+  type        = string
+}
+
 variable "wireguard_port" {
   description = "The UDP port for the WireGuard VPN server."
   type        = number
