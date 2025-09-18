@@ -10,6 +10,14 @@ resource "aws_route53_zone" "registry_private" {
   }
 }
 
+resource "aws_route53_record" "registry" {
+  zone_id = aws_route53_zone.registry_private.zone_id
+  name    = var.registry_domain
+  type    = "A"
+  ttl     = 300
+  records = [aws_instance.edge.private_ip]
+}
+
 resource "aws_instance" "edge" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = var.instance_type
