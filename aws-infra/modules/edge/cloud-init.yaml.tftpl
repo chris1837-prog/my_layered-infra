@@ -20,6 +20,7 @@ packages:
   - caddy
   - qrencode
   - fail2ban
+  - docker.io
 
 early_commands:
   - apt-get install -y wireguard  # Ensure WireGuard is available early
@@ -45,6 +46,16 @@ write_files:
         tls internal
       }
 
+      ${registry_domain} {
+        reverse_proxy localhost:5000
+        tls {
+          dns cloudflare # Remove or replace if not using DNS challenge
+        }
+        basicauth {
+          ${registry_user} {bcrypt}${bcrypt_hash}
+        }
+      }
+
   - path: /etc/fail2ban/jail.local
     owner: root:root
     permissions: "0644"
@@ -64,6 +75,25 @@ write_files:
     content: |
       #!/bin/bash
       set -euxo pipefail
+
+      echo "[INIT] Installing/starting Docker..."
+      apt-get update
+      apt-get install -y docker.io
+      systemctl enable --now docker
+
+      echo "[INIT] Running Docker registry container..."
+      docker run -d --restart=always --name registry \
+        -e REGISTRY_AUTH=htpasswd \
+        -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
+        -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+        -v /opt/registry/data:/var/lib/registry \
+        -v /opt/registry/auth:/auth \
+        -p 5000:5000 \
+        registry:3
+
+      echo "[INIT] Creating htpasswd for registry..."
+      mkdir -p /opt/registry/auth
+      docker run --rm --entrypoint htpasswd httpd:2 -Bbn "${registry_user}" "${registry_password}" > /opt/registry/auth/htpasswd
 
       echo "[INIT] Enabling IP forwarding for NAT..."
       sysctl -w net.ipv4.ip_forward=1
@@ -108,37 +138,24 @@ write_files:
       EOF
       systemctl enable --now wg-quick@wg0
 
+
       echo "[INIT] Writing Caddyfile and restarting service..."
-      printf "%s {\n  reverse_proxy %s\n  tls internal\n}\n" \
-      "${domain_name}" "${join(" ", backend_servers)}" > /etc/caddy/Caddyfile
+      # Caddyfile is already written by cloud-init write_files
       systemctl restart caddy
 
       echo "[INIT] Enabling fail2ban..."
       systemctl enable --now fail2ban
       fail2ban-client status sshd || true
 
-
       echo "[INIT] Script finished successfully."
+      touch /var/lib/cloud/instance/cloud-init-finished
 
 runcmd:
   - [ "sudo", "bash", "/opt/startup.sh" ]
-  - |
-    echo "[TEST] Running basic firewall/fail2ban checks..."
-    PUBIP=$(curl -s ifconfig.me || curl -s https://api.ipify.org || echo "unknown")
-    echo "[TEST] Server public IP detected: $PUBIP"
-
-    echo "[TEST] Checking UFW status..."
-    ufw status verbose || true
-
-    echo "[TEST] Checking Fail2ban status..."
-    fail2ban-client status sshd || true
-
-    echo "[TEST] Negative test: attempting SSH from localhost (should fail if banned)..."
-    for i in {1..6}; do
-      ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 -p 22 root@localhost exit || true
-    done
-
-    echo "[TEST] Fail2ban status after brute-force simulation:"
-    fail2ban-client status sshd || true
-
-    echo "[TEST] Firewall & Fail2ban checks complete."
+  - [ "bash", "-c", "echo '[TEST] Running basic firewall/fail2ban checks...'" ]
+  - [ "bash", "-c", "PUBIP=$(curl -s ifconfig.me || curl -s https://api.ipify.org || echo 'unknown'); echo '[TEST] Server public IP detected: $PUBIP'" ]
+  - [ "ufw", "status", "verbose" ]
+  - [ "fail2ban-client", "status", "sshd" ]
+  - [ "bash", "-c", "for i in {1..6}; do ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 -p 22 root@localhost exit || true; done" ]
+  - [ "fail2ban-client", "status", "sshd" ]
+  - [ "bash", "-c", "echo '[TEST] Firewall & Fail2ban checks complete.'" ]
