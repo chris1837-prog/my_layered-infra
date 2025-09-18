@@ -2,6 +2,25 @@ data "aws_ssm_parameter" "ubuntu" {
   name = local.ubuntu_ssm_path
 }
 
+resource "random_password" "registry" {
+  length  = 20
+  special = true
+}
+
+resource "aws_ssm_parameter" "registry_password" {
+  name        = local.registry_password_ssm_path
+  type        = "SecureString"
+  value       = local.registry_password_final
+  description = "Docker registry password for Edge"
+}
+
+resource "aws_ssm_parameter" "registry_user" {
+  name        = local.registry_user_ssm_path
+  type        = "String"
+  value       = var.registry_user
+  description = "Docker registry username for Edge"
+}
+
 resource "aws_route53_zone" "registry_private" {
   name   = var.registry_zone_name
   comment = "Private zone for Docker registry"
@@ -47,12 +66,15 @@ data "cloudinit_config" "edge" {
   part {
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      admin_user      = var.admin_user
-      admin_ssh_keys  = var.admin_ssh_keys
-      domain_name     = var.domain_name
-      backend_servers = var.backend_servers
-      admin_cidrs     = var.admin_cidrs
-      wireguard_port  = var.wireguard_port
+      admin_user        = var.admin_user,
+      admin_ssh_keys    = var.admin_ssh_keys,
+      domain_name       = var.domain_name,
+      backend_servers   = var.backend_servers,
+      admin_cidrs       = var.admin_cidrs,
+      wireguard_port    = var.wireguard_port,
+      registry_domain   = var.registry_domain,
+      registry_user     = var.registry_user,
+      registry_password = local.registry_password_final
     })
   }
 }
