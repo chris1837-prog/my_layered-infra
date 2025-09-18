@@ -9,4 +9,7 @@ locals {
   # Build SSM parameter names for registry credentials dynamically
   registry_password_ssm_path = "/edge/registry/${var.environment}/password"
   registry_user_ssm_path     = "/edge/registry/${var.environment}/username"
+
+  # Build final registry password
+  registry_password_final = var.registry_password != null ? var.registry_password : random_password.registry.result
 }
