@@ -25,12 +25,12 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// Init and apply the Terraform code
 	terraform.InitAndApply(t, terraformOptions)
 
-	t.Log("\033[1;34m[INFO]\033[0m Waiting 120s for cloud-init to finish...")
-	time.Sleep(120 * time.Second)
-
 	// Get outputs
 	publicIP := terraform.Output(t, terraformOptions, "edge_public_ip")
 	keyPath := terraform.Output(t, terraformOptions, "edge_private_key_path")
+	// New: Get registry_url output
+	registryURL := terraform.Output(t, terraformOptions, "registry_url")
+	t.Logf("[INFO] Registry URL: %s", registryURL)
 
 	// Read the private key
 	privateKey, err := os.ReadFile(keyPath)
