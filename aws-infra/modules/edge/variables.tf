@@ -1,3 +1,14 @@
+variable "registry_user" {
+  description = "Username for the Docker registry."
+  type        = string
+}
+
+variable "registry_password" {
+  description = "Password for the Docker registry (optional, will generate if not set)."
+  type        = string
+  default     = null
+  sensitive   = true
+}
 variable "common_tags" {
   description = "A map of tags to assign to all resources."
   type        = map(string)
