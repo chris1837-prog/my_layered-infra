@@ -25,8 +25,8 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// Init and apply the Terraform code
 	terraform.InitAndApply(t, terraformOptions)
 
-	t.Log("\033[1;34m[INFO]\033[0m Waiting 60s for cloud-init to finish...")
-	time.Sleep(60 * time.Second)
+	t.Log("\033[1;34m[INFO]\033[0m Waiting 120s for cloud-init to finish...")
+	time.Sleep(120 * time.Second)
 
 	// Get outputs
 	publicIP := terraform.Output(t, terraformOptions, "edge_public_ip")
@@ -94,5 +94,29 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		t.Log("\033[1;32m✅ [SUCCESS]\033[0m Caddy service is active")
 	} else {
 		t.Log("\033[1;31m❌ [FAIL]\033[0m Caddy service is not active")
+	}
+
+		t.Log("\033[1;34m[INFO]\033[0m Checking fail2ban service...")
+	// fail2ban: Check service is active
+	fail2banCmd := "sudo systemctl is-active fail2ban"
+	fail2banOut, err := ssh.CheckSshCommandE(t, host, fail2banCmd)
+	assert.NoError(t, err)
+	assert.Equal(t, "active", strings.TrimSpace(fail2banOut), "fail2ban service should be active")
+	if strings.TrimSpace(fail2banOut) == "active" {
+		t.Log("\033[1;32m✅ [SUCCESS]\033[0m fail2ban service is active")
+	} else {
+		t.Log("\033[1;31m❌ [FAIL]\033[0m fail2ban service is not active")
+	}
+
+	t.Log("\033[1;34m[INFO]\033[0m Checking fail2ban sshd jail...")
+	// fail2ban: Check sshd jail is present
+	jailCmd := "sudo fail2ban-client status sshd"
+	jailOut, err := ssh.CheckSshCommandE(t, host, jailCmd)
+	assert.NoError(t, err)
+	assert.Contains(t, jailOut, "Status for the jail: sshd", "fail2ban sshd jail should be present")
+	if strings.Contains(jailOut, "Status for the jail: sshd") {
+		t.Log("\033[1;32m✅ [SUCCESS]\033[0m fail2ban sshd jail is present")
+	} else {
+		t.Log("\033[1;31m❌ [FAIL]\033[0m fail2ban sshd jail is missing")
 	}
 }

@@ -34,8 +34,8 @@ func TestIAMModule(t *testing.T) {
 	})
 
     // Test 2: Assert AppDB instance profile name output exists
-	t.Run("AppDB instance profile output exists", func(t *testing.T) {
-		profileName := terraform.Output(t, terraformOptions, "appdb_instance_profile_name")
-		assert.NotEmpty(t, profileName, "AppDB IAM instance profile should be output and not empty")
+	t.Run("Ec2 instance profile output exists", func(t *testing.T) {
+		profileName := terraform.Output(t, terraformOptions, "ec2_instance_profile_name")
+		assert.NotEmpty(t, profileName, "EC2 IAM instance profile should be output and not empty")
 	})
 }
