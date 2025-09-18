@@ -14,6 +14,16 @@ variable "environment" {
   type        = string
 }
 
+variable "registry_zone_name" {
+  description = "The DNS name for the private Route 53 hosted zone (e.g., 'your-domain.internal')."
+  type        = string
+}
+
+variable "registry_domain" {
+  description = "The FQDN for the Docker registry (e.g., 'registry.your-domain.internal')."
+  type        = string
+}
+
 variable "ubuntu_version" {
   description = "The Ubuntu version to use for the Edge VM."
   type        = string
