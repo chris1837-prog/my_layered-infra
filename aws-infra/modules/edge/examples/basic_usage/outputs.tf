@@ -12,3 +12,8 @@ output "edge_instance_id" {
   description = "The ID of the created Edge VM instance."
   value       = module.edge.edge_instance_id
 }
+
+output "registry_url" {
+  description = "The URL of the Docker registry (proxied by Caddy)."
+  value       = "https://${module.edge.registry_domain}"
+}
