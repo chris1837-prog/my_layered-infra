@@ -2,6 +2,14 @@ data "aws_ssm_parameter" "ubuntu" {
   name = local.ubuntu_ssm_path
 }
 
+resource "aws_route53_zone" "registry_private" {
+  name   = var.registry_zone_name
+  comment = "Private zone for Docker registry"
+  vpc {
+    vpc_id = var.vpc_id
+  }
+}
+
 resource "aws_instance" "edge" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = var.instance_type
