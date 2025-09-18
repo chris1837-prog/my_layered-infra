@@ -60,6 +60,33 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		time.Sleep(sleepBetweenRetries)
 	}
 
+	t.Log("\033[1;34m[INFO]\033[0m Checking Docker installation...")
+	dockerVersionCmd := "docker --version"
+	dockerVersionOut, err := ssh.CheckSshCommandE(t, host, dockerVersionCmd)
+	require.NoError(t, err, "Docker should be installed and available in PATH")
+	t.Logf("Docker version: %s", dockerVersionOut)
+
+	// --- Docker Registry & Caddy Tests ---
+	t.Log("\033[1;34m[INFO]\033[0m Checking Docker registry container...")
+	regPsCmd := "sudo docker ps --format '{{.Image}}'"
+	regPsOut, err := ssh.CheckSshCommandE(t, host, regPsCmd)
+	require.NoError(t, err, "Failed to list running Docker containers")
+	assert.Contains(t, regPsOut, "registry:3", "Docker registry container should be running")
+
+	t.Log("\033[1;34m[INFO]\033[0m Checking Caddyfile for registry domain...")
+	caddyfileCmd := "sudo cat /etc/caddy/Caddyfile"
+	caddyfileOut, err := ssh.CheckSshCommandE(t, host, caddyfileCmd)
+	assert.NoError(t, err)
+	assert.Contains(t, caddyfileOut, strings.TrimPrefix(registryURL, "https://"), "Caddyfile should contain the registry domain")
+
+	t.Log("\033[1;34m[INFO]\033[0m Checking htpasswd file for registry user...")
+	htpasswdCmd := "sudo cat /opt/registry/auth/htpasswd"
+	htpasswdOut, err := ssh.CheckSshCommandE(t, host, htpasswdCmd)
+	assert.NoError(t, err)
+	assert.Contains(t, htpasswdOut, "registry", "htpasswd file should contain the registry user")
+
+	// Optionally: Test HTTPS endpoint and basic auth (skipped here, as it requires network setup)
+
 	t.Log("\033[1;34m[INFO]\033[0m Checking NAT MASQUERADE rule...")
 	// NAT: Check for MASQUERADE rule
 	natCmd := "sudo iptables -t nat -S"
