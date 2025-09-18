@@ -44,6 +44,24 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		SshKeyPair:  &ssh.KeyPair{PrivateKey: string(privateKey)},
 	}
 
+	t.Log("\033[1;34m[INFO]\033[0m Polling for cloud-init completion signal...")
+	maxWait := 900 // seconds (15 min max)
+	pollInterval := 10 * time.Second
+	found := false
+	for i := 0; i < maxWait/int(pollInterval.Seconds()); i++ {
+		out, err := ssh.CheckSshCommandE(t, host, "test -f /var/lib/cloud/instance/cloud-init-finished && echo done || echo notyet")
+		if err == nil && strings.TrimSpace(out) == "done" {
+			found = true
+			t.Log("[SUCCESS] Cloud-init finished signal detected.")
+			break
+		}
+		t.Logf("Still waiting for cloud-init... (%d/%d)", i+1, maxWait/int(pollInterval.Seconds()))
+		time.Sleep(pollInterval)
+	}
+	if !found {
+		t.Fatalf("Cloud-init did not finish within %d seconds", maxWait)
+	}
+
 	t.Log("\033[1;34m[INFO]\033[0m Checking SSH availability...")
 	// Wait for SSH to be available (retry for up to 2 minutes)
 	maxRetries := 24
