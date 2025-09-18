@@ -72,7 +72,7 @@ variable "enable_ebs_optimized" {
   type        = bool
   default     = true
 }
-
+/* Will be provided over SSM Parameter Store
 # App/db parameters
 variable "app_image" {
   type        = string
@@ -109,3 +109,4 @@ variable "postgres_password" {
   type    = string
   default = "mypassword"
 }
+*/
