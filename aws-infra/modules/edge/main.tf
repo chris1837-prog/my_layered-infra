@@ -2,7 +2,7 @@ data "aws_ssm_parameter" "ubuntu" {
   name = local.ubuntu_ssm_path
 }
 
-resource "random_password" "registry" {
+resource "random_password" "registry" {   # maybe not
   length  = 20
   special = true
 }
@@ -19,7 +19,7 @@ resource "aws_ssm_parameter" "registry_user" {
   type        = "String"
   value       = var.registry_user
   description = "Docker registry username for Edge"
-}
+} # till here maybe not
 
 resource "aws_route53_zone" "registry_private" {
   name   = var.registry_zone_name
@@ -74,7 +74,8 @@ data "cloudinit_config" "edge" {
       wireguard_port    = var.wireguard_port,
       registry_domain   = var.registry_domain,
       registry_user     = var.registry_user,
-      registry_password = local.registry_password_final
+      registry_password = local.registry_password_final,
+      bcrypt_hash       = local.bcrypt_hash
     })
   }
 }
