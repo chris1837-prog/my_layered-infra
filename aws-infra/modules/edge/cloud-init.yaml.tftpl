@@ -12,12 +12,12 @@ packages:
   - iptables-persistent
   - netfilter-persistent
   - curl
+  - ca-certificates
   - debian-keyring
   - debian-archive-keyring
   - apt-transport-https
   - openssl
   - wireguard
-  - caddy
   - qrencode
   - fail2ban
   - docker.io
@@ -47,11 +47,15 @@ write_files:
       }
 
       ${registry_domain} {
-        reverse_proxy localhost:5000
-        tls {
-          dns cloudflare # Remove or replace if not using DNS challenge
+        # Serve the local CA so external clients can fetch and trust it.
+        # Clients can curl -k https://<registry_domain>/ca.crt and install to their Docker trust store.
+        handle_path /ca.crt {
+          root * /var/www/caddy
+          file_server
         }
-        basicauth {
+        reverse_proxy localhost:5000
+        tls internal
+        basic_auth {
           ${registry_user} {bcrypt}${bcrypt_hash}
         }
       }
@@ -75,11 +79,23 @@ write_files:
     content: |
       #!/bin/bash
       set -euxo pipefail
+      mkdir -p /var/lib/cloud/instance || true
+      trap 'echo "[ERROR] startup.sh failed at line $LINENO" | tee -a /var/log/edge-init.log; touch /var/lib/cloud/instance/cloud-init-failed' ERR
+      echo "[INIT] startup.sh begun" | tee -a /var/log/edge-init.log
 
       echo "[INIT] Installing/starting Docker..."
       apt-get update
       apt-get install -y docker.io
       systemctl enable --now docker
+      # Allow SSH users to run docker without sudo
+      usermod -aG docker ubuntu || true
+      if id -u ${admin_user} >/dev/null 2>&1; then
+        usermod -aG docker ${admin_user} || true
+      fi
+
+      echo "[INIT] Preparing registry directories and credentials..."
+      mkdir -p /opt/registry/data /opt/registry/auth
+      docker run --rm --entrypoint htpasswd httpd:2 -Bbn "${registry_user}" "${registry_password}" > /opt/registry/auth/htpasswd
 
       echo "[INIT] Running Docker registry container..."
       docker run -d --restart=always --name registry \
@@ -89,11 +105,7 @@ write_files:
         -v /opt/registry/data:/var/lib/registry \
         -v /opt/registry/auth:/auth \
         -p 5000:5000 \
-        registry:3
-
-      echo "[INIT] Creating htpasswd for registry..."
-      mkdir -p /opt/registry/auth
-      docker run --rm --entrypoint htpasswd httpd:2 -Bbn "${registry_user}" "${registry_password}" > /opt/registry/auth/htpasswd
+        registry:2
 
       echo "[INIT] Enabling IP forwarding for NAT..."
       sysctl -w net.ipv4.ip_forward=1
@@ -110,18 +122,18 @@ write_files:
 
       echo "[INIT] Installing Caddy..."
       export DEBIAN_FRONTEND=noninteractive
-      apt-get install -y -o Dpkg::Options::="--force-confnew" caddy
+      apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" caddy
       echo "[INIT] Caddy has been installed."
 
       echo "[INIT] Configuring firewall with UFW..."
       ufw default deny incoming
       ufw default allow outgoing
       ufw allow 80/tcp
-      ufw allow 443/tcp
-%{ for cidr in admin_cidrs ~}
+        ufw allow 443/tcp
+        %{ for cidr in admin_cidrs ~}
       ufw allow from ${cidr} to any port 22 proto tcp
       ufw allow from ${cidr} to any port ${wireguard_port} proto udp
-%{ endfor ~}
+        %{ endfor ~}
       ufw --force enable
 
       echo "[INIT] Setting up WireGuard server..."
@@ -129,19 +141,48 @@ write_files:
       if [ ! -f /etc/wireguard/server_private.key ]; then
         wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
       fi
-      cat > /etc/wireguard/wg0.conf <<EOF
-      [Interface]
-      PrivateKey = $(cat /etc/wireguard/server_private.key)
-      Address = 10.200.0.1/24
-      ListenPort = ${wireguard_port}
-      SaveConfig = true
-      EOF
+      echo "[INIT] Writing WireGuard configuration..."
+      {
+        echo "[Interface]"
+        echo "PrivateKey = $(cat /etc/wireguard/server_private.key)"
+        echo "Address = 10.200.0.1/24"
+        echo "ListenPort = ${wireguard_port}"
+        echo "SaveConfig = true"
+      } > /etc/wireguard/wg0.conf
       systemctl enable --now wg-quick@wg0
 
+      echo "[INIT] Formatting Caddyfile..."
+      caddy fmt --overwrite /etc/caddy/Caddyfile || true
 
-      echo "[INIT] Writing Caddyfile and restarting service..."
-      # Caddyfile is already written by cloud-init write_files
-      systemctl restart caddy
+      echo "[INIT] Enabling and starting Caddy to apply templated config..."
+      systemctl enable --now caddy
+
+      echo "[INIT] Installing Caddy internal CA to Docker and OS trust stores..."
+      CA_SRC1="/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt"
+      CA_SRC2="/var/lib/caddy/pki/authorities/local/root.crt"
+      CA_SRC=""
+      # Wait briefly for Caddy to generate its local CA
+      for i in $(seq 1 15); do
+        if [ -f "$CA_SRC1" ]; then CA_SRC="$CA_SRC1"; break; fi
+        if [ -f "$CA_SRC2" ]; then CA_SRC="$CA_SRC2"; break; fi
+        sleep 2
+      done
+      DEST_DIR="/etc/docker/certs.d/${registry_domain}"
+      DEST_DIR_PORT="/etc/docker/certs.d/${registry_domain}:443"
+      install -d -m 0755 "$DEST_DIR" "$DEST_DIR_PORT"
+      if [ -n "$CA_SRC" ] && [ -f "$CA_SRC" ]; then
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_PORT/ca.crt"
+        # Also expose the CA via HTTPS at /ca.crt for external clients
+        install -d -m 0755 /var/www/caddy
+        install -m 0644 -D "$CA_SRC" /var/www/caddy/ca.crt
+        install -m 0644 -D "$CA_SRC" /usr/local/share/ca-certificates/caddy-local.crt
+        update-ca-certificates || true
+        echo "[INIT] CA installed to Docker ($DEST_DIR/ca.crt and $DEST_DIR_PORT/ca.crt) and OS trust; restarting Docker..."
+        systemctl restart docker
+      else
+        echo "[WARN] Caddy internal CA not found; Docker CLI may not trust registry TLS"
+      fi
 
       echo "[INIT] Enabling fail2ban..."
       systemctl enable --now fail2ban
