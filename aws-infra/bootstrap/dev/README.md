@@ -15,7 +15,23 @@ The bootstrapper also generates **artifacts** inside the environment folder (`en
 This ensures that every environment is hardwired to the correct state backend and CI/CD is immediately ready.
 
 ---
+## Structure
 
+```hcl
+bootstrap/dev/
+ ├── provider.tf            # AWS provider + caller identity
+ ├── remote_backend.tf      # Calls remote_backend module
+ ├── github_oidc.tf         # GitHub Actions role + policies + permissions boundary
+ ├── ssm_parameter.tf       # Stores sensitive + non-sensitive config in SSM Parameter Store
+ ├── artifacts.tf           # Writes backend.tf, bootstrap_outputs.json, ssm_parameters.json
+ ├── route53.tf             # (reserved) Route53 setup for DNS/bootstrap wiring
+ ├── variables.tf           # Defines project_name, environment, aws_region, common_tags, github_org/repo/branch, restrict_by_tags, registry/postgres values
+ ├── outputs.tf             # Outputs GitHub Actions role ARN
+ ├── versions.tf            # Defines required Terraform and provider versions
+ └── terraform.tfvars.example # Example variables file
+```
+
+---
 ## Components
 
 The bootstrapper provisions:
@@ -28,24 +44,13 @@ The bootstrapper provisions:
 
 ---
 
-## Variables
-
-The bootstrapper accepts the following relevant variable for DNS:
-
-* `domain_name` (string)
-  * Base domain name (e.g., `uselayered.com`).
-  * The hosted zone will be created for `${environment}.${domain_name}` (e.g., `dev.uselayered.com`).
-  * Default: `uselayered.com`.
-
----
-
 ## How It Works
 
 1. **Bootstrap runs with a local backend**
    This allows Terraform to create the remote backend infrastructure before switching to it.
 
 2. **Remote backend provisioning**
-   The bootstrapper calls the `remote_backend` module with these inputs:
+   * Calls the [`remote_backend` module](../../modules/remote_backend) with inputs::
 
    * `project_name`
    * `environment`
@@ -244,38 +249,7 @@ module "iam" {
 
 Provides the SSM parameter paths (for sensitive values) and non-sensitive config values directly for environment consumption.
 
----
 
-### `namecheap_setup_dev.txt`
-
-Provides human-readable DNS delegation instructions for your registrar (e.g., Namecheap) with the four NS records that Route53 assigned to the environment hosted zone.
-
-Example contents (dev):
-
-```
-DNS DELEGATION SETUP FOR DEV
-=================================================
-Please log in to the registrar for 'uselayered.com' (e.g., Namecheap) and navigate to the Advanced DNS settings.
-
-Create FOUR (4) new NS records with the following details:
-
-Type: NS
-Host: dev
-Value: Use one of the four values below (include the trailing dot).
-TTL: Automatic / 1 hour
-
-REQUIRED VALUES:
-- ns-1234.awsdns-11.org.
-- ns-5678.awsdns-22.com.
-- ns-90.awsdns-33.net.
-- ns-12.awsdns-44.co.uk.
-
-After saving these records, DNS delegation for *.dev.uselayered.com will be managed by AWS.
-```
-
-The real values will match the Terraform output `environment_subdomain_nameservers`.
-
-```json
 {
   "project_name": "layered-infra-test",
   "environment": "dev",
@@ -324,6 +298,40 @@ resource "aws_ecs_task_definition" "app" {
 }
 ```
 ---
+
+
+### `namecheap_setup_dev.txt`
+
+Provides human-readable DNS delegation instructions for your registrar (e.g., Namecheap) with the four NS records that Route53 assigned to the environment hosted zone.
+
+Example contents (dev):
+
+```
+DNS DELEGATION SETUP FOR DEV
+=================================================
+Please log in to the registrar for 'uselayered.com' (e.g., Namecheap) and navigate to the Advanced DNS settings.
+
+Create FOUR (4) new NS records with the following details:
+
+Type: NS
+Host: dev
+Value: Use one of the four values below (include the trailing dot).
+TTL: Automatic / 1 hour
+
+REQUIRED VALUES:
+- ns-1234.awsdns-11.org.
+- ns-5678.awsdns-22.com.
+- ns-90.awsdns-33.net.
+- ns-12.awsdns-44.co.uk.
+
+After saving these records, DNS delegation for *.dev.uselayered.com will be managed by AWS.
+```
+
+The real values will match the Terraform output `environment_subdomain_nameservers`.
+
+---
+
+```json
 
 ## Workflow
 
@@ -390,52 +398,7 @@ terraform apply  # provisions environment resources
 * ✅ Registrar delegation instructions generated as an artifact
 
 ---
----
 
-Perfect! Here’s the **fully updated README.md** for your bootstrapper. It keeps **all your original sections**, IAM policies, artifacts, workflow, benefits, and now includes **correct SSM parameter examples** with both the JSON structure and Terraform usage. You can copy-paste it directly.
-
----
-
-# Bootstrapper
-
-## Description
-
-The bootstrapper is a one-time setup for each environment (e.g., `dev`, `prod`).
-It provisions the **Terraform remote backend infrastructure** (S3 + DynamoDB) and creates a **GitHub Actions IAM role** with OIDC trust so Terraform can run securely from CI/CD pipelines.
-
-The bootstrapper also generates **artifacts** inside the environment folder (`environments/dev/`):
-
-* `backend.tf` → backend configuration for Terraform state.
-* `bootstrap_outputs.json` → JSON wiring values (bucket, lock table, GitHub Actions role).
-* `ssm_parameters.json` → JSON mapping SSM parameter paths (for sensitive values) and non-sensitive values.
-
-This ensures that every environment is hardwired to the correct state backend and CI/CD is immediately ready.
-
----
-
-## Structure
-
-```hcl
-bootstrap/dev/
- ├── provider.tf            # AWS provider + caller identity
- ├── remote_backend.tf      # Calls remote_backend module
- ├── github_oidc.tf         # GitHub Actions role + policies + permissions boundary
- ├── ssm_parameter.tf       # Stores sensitive + non-sensitive config in SSM Parameter Store
- ├── artifacts.tf           # Writes backend.tf, bootstrap_outputs.json, ssm_parameters.json
- ├── route53.tf             # (reserved) Route53 setup for DNS/bootstrap wiring
- ├── variables.tf           # Defines project_name, environment, aws_region, common_tags, github_org/repo/branch, restrict_by_tags, registry/postgres values
- ├── outputs.tf             # Outputs GitHub Actions role ARN
- ├── versions.tf            # Defines required Terraform and provider versions
- └── terraform.tfvars.example # Example variables file
-```
-
----
-
-## How It Works
-
-* Runs **with local backend** (so it can create the remote backend on its own).
-
-* Calls the [`remote_backend` module](../../modules/remote_backend) with inputs:
 
 
 
