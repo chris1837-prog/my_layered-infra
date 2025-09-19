@@ -26,6 +26,23 @@
   - `open_smoke.js` — Lightweight smoke test with k6.
   - `README.md` — Guide for running load tests.
 
+## layered-infra/modules/orphaned_cleanup/
+
+- `lambda_function.py` — Python Lambda to detect and delete unattached EBS volumes and stale snapshots.
+- `lambda.zip` — Packaged deployment artifact for the Lambda.
+- `main.tf` — Declares IAM role, policy, Lambda resource, and permissions.
+- `outputs.tf` — Exports Lambda function ARN.
+- `variables.tf` — Input variables for name prefix and region.
+- `versions.tf` — Terraform and AWS provider version constraints.
+- `README.md` — Usage and setup guide for the orphaned cleanup module.
+
+## layered-infra/modules/orphaned_cleanup_scheduler/
+
+- `main.tf` — CloudWatch event rule + Lambda invocation permissions.
+- `variables.tf` — Accepts Lambda function ARN and naming prefix.
+- `versions.tf` — Terraform and AWS provider version constraints.
+- `README.md` — Scheduler module to trigger orphaned cleanup daily at 03:00 UTC.
+
 > For environment variable handling (`.env`) and day-to-day run instructions, see **docs/WORKFLOW_COMPOSE.md**.
 > This keeps operational guidance in one place and avoids duplication with other docs.
 

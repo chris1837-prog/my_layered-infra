@@ -40,6 +40,8 @@
 - **Infra (Terraform, future `infra/`)** – infra team
 - **Load Testing (k6 / tests/k6/)** – QA/perf team
 - **Monitoring (Grafana, Prometheus, etc.)** – observability team
+- **EBS Cleanup (orphaned volumes/snapshots)** – FinOps team
+- **Cleanup Scheduler (CloudWatch + Lambda binding)** – Infra team
 
 ## layered-infra/mvp-compose/
 - `app/` — Node.js application source code.  
