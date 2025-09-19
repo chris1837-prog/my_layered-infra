@@ -71,3 +71,13 @@ variable "app_image_tag" {
   description = "Docker image tag for the application"
   type        = string
 }
+
+##################################
+# DNS / Route53
+##################################
+
+variable "domain_name" {
+  description = "The base domain name (e.g., uselayered.com). The hosted zone will be created for {environment}.{domain_name}."
+  type        = string
+  default     = "uselayered.com"
+}
