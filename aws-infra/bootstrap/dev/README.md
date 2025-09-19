@@ -10,6 +10,7 @@ The bootstrapper also generates **artifacts** inside the environment folder (`en
 * `backend.tf` → backend configuration for Terraform state.
 * `bootstrap_outputs.json` → JSON wiring values (bucket, lock table, GitHub Actions role).
 * `ssm_parameters.json` → JSON mapping SSM parameter paths (for sensitive values) and non-sensitive values.
+* `namecheap_setup_dev.txt` → DNS delegation instructions with the four Route53 NS records for `dev.<domain_name>`.
 
 This ensures that every environment is hardwired to the correct state backend and CI/CD is immediately ready.
 
@@ -22,7 +23,19 @@ The bootstrapper provisions:
 * **Remote Backend** (via `modules/remote_backend`).
 * **IAM Role for GitHub Actions** (trust restricted to a GitHub repo + branch).
 * **SSM Parameters** for registry + database credentials and config.
+* **Route53 Hosted Zone (per environment)** for `${environment}.${domain_name}` with nameservers output and delegation instructions artifact.
 * **Artifacts**: `backend.tf`, `bootstrap_outputs.json`, and `ssm_parameters.json`.
+
+---
+
+## Variables
+
+The bootstrapper accepts the following relevant variable for DNS:
+
+* `domain_name` (string)
+  * Base domain name (e.g., `uselayered.com`).
+  * The hosted zone will be created for `${environment}.${domain_name}` (e.g., `dev.uselayered.com`).
+  * Default: `uselayered.com`.
 
 ---
 
@@ -74,6 +87,24 @@ The bootstrapper provisions:
    * `backend.tf` → configures Terraform to use the remote backend
    * `bootstrap_outputs.json` → wiring for backend + GitHub Actions role
    * `ssm_parameters.json` → paths and non-sensitive values for SSM parameters
+
+6. **Route53 hosted zone per environment**
+  The bootstrapper creates a public hosted zone for the environment subdomain and exposes its nameservers for parent-zone delegation:
+
+  * Hosted zone name: `${environment}.${domain_name}` (e.g., `dev.uselayered.com`)
+  * Output: `environment_subdomain_nameservers` (array of four NS records)
+  * Artifact: `namecheap_setup_${environment}.txt` with registrar steps and the four NS values
+
+---
+
+## Outputs
+
+After `terraform apply`, the bootstrapper exposes these outputs:
+
+* `github_actions_role_arn` — ARN of the GitHub Actions OIDC role.
+* `tf_state_bucket_name` — Name of the S3 bucket for Terraform state.
+* `tf_state_lock_table` — Name of the DynamoDB table for state locking.
+* `environment_subdomain_nameservers` — Array of four NS records for `${environment}.${domain_name}` (use these to delegate the subdomain in your registrar).
 
 ---
 
@@ -212,7 +243,37 @@ module "iam" {
 ### `ssm_parameters.json`
 
 Provides the SSM parameter paths (for sensitive values) and non-sensitive config values directly for environment consumption.
-Sensitive values (like passwords) are **not included**, only their SSM paths.
+
+---
+
+### `namecheap_setup_dev.txt`
+
+Provides human-readable DNS delegation instructions for your registrar (e.g., Namecheap) with the four NS records that Route53 assigned to the environment hosted zone.
+
+Example contents (dev):
+
+```
+DNS DELEGATION SETUP FOR DEV
+=================================================
+Please log in to the registrar for 'uselayered.com' (e.g., Namecheap) and navigate to the Advanced DNS settings.
+
+Create FOUR (4) new NS records with the following details:
+
+Type: NS
+Host: dev
+Value: Use one of the four values below (include the trailing dot).
+TTL: Automatic / 1 hour
+
+REQUIRED VALUES:
+- ns-1234.awsdns-11.org.
+- ns-5678.awsdns-22.com.
+- ns-90.awsdns-33.net.
+- ns-12.awsdns-44.co.uk.
+
+After saving these records, DNS delegation for *.dev.uselayered.com will be managed by AWS.
+```
+
+The real values will match the Terraform output `environment_subdomain_nameservers`.
 
 ```json
 {
@@ -310,6 +371,7 @@ terraform apply  # provisions environment resources
   * IAM and other modules can read backend details dynamically.
   * Policies can evolve from full access → least privilege.
   * New bootstrap files (Route53, KMS) plug in cleanly.
+  * DNS delegation is documented and reproducible via generated artifacts.
 
 ---
 
@@ -324,6 +386,8 @@ terraform apply  # provisions environment resources
 * ✅ `ssm_parameters.json` created with paths + non-sensitive values
 * ✅ Optional tag-based permission restrictions for future tightening
 * ✅ Explicit IAM trust, permissions, and boundary policies documented
+* ✅ Route53 hosted zone per environment with nameservers output
+* ✅ Registrar delegation instructions generated as an artifact
 
 ---
 ---
