@@ -14,7 +14,7 @@ We will not create a resource named `aws_route53_zone` "staging". Instead, we wi
 **Proposed Terraform Code (`route53.tf`):**
 
 ```hcl
-#roote53.tf
+#route53.tf
 
 # This resource creates the hosted zone for the specific environment
 resource "aws_route53_zone" "environment" {
