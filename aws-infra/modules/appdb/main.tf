@@ -44,14 +44,9 @@ data "cloudinit_config" "app" {
   part {
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      APP_IMAGE         = var.app_image
-      # Uncomment later when registry/db integration is ready
-      #REGISTRY_URL      = var.registry_url
-      #REGISTRY_USER     = var.registry_user
-      #REGISTRY_PASSWORD = var.registry_password
-      #POSTGRES_DB       = var.postgres_db
-      #POSTGRES_USER     = var.postgres_user
-      #POSTGRES_PASSWORD = var.postgres_password
+      project_name           = var.project_name
+      environment            = var.environment
+      docker_compose_content = file("${path.module}/../../mvp-compose/docker-compose.yml")
     })
   }
 }
