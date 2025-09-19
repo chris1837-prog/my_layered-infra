@@ -1,8 +1,3 @@
-Excellent. This is a great update from your lead. They are asking the right architectural questions. Here is a clear, professional response you can provide.
-
----
-
-
 #### 1. Should it be in the Dev Bootstrapper?
 **Yes, we should integrate it into the existing dev bootstrapper.** The bootstrapper's purpose is to create foundational, environment-agnostic infrastructure. A hosted zone for a specific environment (e.g., `dev.uselayered.com`) fits this purpose perfectly.
 
