@@ -12,7 +12,7 @@ environment = "dev"
 # Common tags applied to all resources (default: {})
 common_tags = {
   Project     = "layered-infra"
-  Environment = "testing"
+  Environment = "dev"
   Module      = "bootstrap"
   Team        = "A"
 }
@@ -28,3 +28,18 @@ github_branch = "development"
 
 # Restrict Terraform permissions by Project/Environment tags (default: false)
 restrict_by_tags = false
+
+# Private Docker registry URL (required)
+registry_url = "registry.example.com"
+
+# Private Docker registry username (required)
+registry_user = "admin"
+
+# PostgreSQL database name (required)
+postgres_db = "myapp"
+
+# PostgreSQL username (required)
+postgres_user = "myuser"
+
+# Docker image tag for the application (required)
+app_image_tag = "latest"
