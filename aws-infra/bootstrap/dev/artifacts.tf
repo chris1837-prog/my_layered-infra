@@ -25,7 +25,7 @@ resource "local_file" "bootstrap_outputs" {
 
 # Generate JSON output file with parameter paths
 resource "local_file" "ssm_parameters_json" {
-  filename = "${path.module}/../../environment/${var.environment}/ssm_parameters.json"
+  filename = "${path.module}/../../environments/${var.environment}/ssm_parameters.json"
   content = jsonencode({
     project_name    = var.project_name
     environment     = var.environment
