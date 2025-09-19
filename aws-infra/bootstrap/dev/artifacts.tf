@@ -22,3 +22,29 @@ resource "local_file" "bootstrap_outputs" {
     github_actions_role_arn = aws_iam_role.github_actions.arn
   })
 }
+
+# Generate JSON output file with parameter paths
+resource "local_file" "ssm_parameters_json" {
+  filename = "${path.module}/../../environment/${var.environment}/ssm_parameters.json"
+  content = jsonencode({
+    project_name    = var.project_name
+    environment     = var.environment
+    aws_region      = var.aws_region
+    parameter_paths = {
+      postgres_password = aws_ssm_parameter.postgres_password.name
+      registry_password = aws_ssm_parameter.registry_password.name
+      registry_url      = aws_ssm_parameter.registry_url.name
+      registry_user     = aws_ssm_parameter.registry_user.name
+      app_image_tag     = aws_ssm_parameter.app_image_tag.name
+      postgres_db       = aws_ssm_parameter.postgres_db.name
+      postgres_user     = aws_ssm_parameter.postgres_user.name
+    }
+    parameter_values = {
+      registry_url  = var.registry_url
+      registry_user = var.registry_user
+      postgres_db   = var.postgres_db
+      postgres_user = var.postgres_user
+      app_image_tag = var.app_image_tag
+    }
+  })
+}
