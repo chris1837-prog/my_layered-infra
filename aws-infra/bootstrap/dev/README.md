@@ -17,11 +17,16 @@ This ensures that every environment is hardwired to the correct state backend an
 
 ```hcl
 bootstrap/dev/
- ├── main.tf                  # Calls remote_backend module, creates GitHub Actions role, generates backend.tf + bootstrap_outputs.json
+ ├── provider.tf              # AWS provider + caller identity
+ ├── remote_backend.tf        # Remote backend module
+ ├── github_oidc.tf           # GitHub Actions IAM role, policies, boundaries
+ ├── artifacts.tf             # backend.tf + bootstrap_outputs.json
+ ├── ssm_parameter.tf         # (new) SSM parameter resources
  ├── variables.tf             # Defines project_name, environment, aws_region, common_tags, github_org/repo/branch, restrict_by_tags
  ├── outputs.tf               # Outputs GitHub Actions role ARN
  ├── versions.tf              # Defines required Terraform and provider versions
- ├── terraform.tfvars.example # Example variables file
+ └── terraform.tfvars.example # Example variables file
+
 ````
 
 ---
