@@ -42,3 +42,32 @@ variable "restrict_by_tags" {
   type        = bool
   default     = false
 }
+
+##################################
+# Non_sensitive SSM Parameter
+##################################
+
+variable "registry_url" {
+  description = "Private Docker registry URL"
+  type        = string
+}
+
+variable "registry_user" {
+  description = "Private Docker registry username"
+  type        = string
+}
+
+variable "postgres_db" {
+  description = "PostgreSQL database name"
+  type        = string
+}
+
+variable "postgres_user" {
+  description = "PostgreSQL username"
+  type        = string
+}
+
+variable "app_image_tag" {
+  description = "Docker image tag for the application"
+  type        = string
+}
