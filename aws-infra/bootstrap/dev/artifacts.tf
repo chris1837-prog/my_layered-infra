@@ -48,3 +48,28 @@ resource "local_file" "ssm_parameters_json" {
     }
   })
 }
+
+# Generate instructions for DNS delegation setup
+resource "local_file" "delegation_instructions" {
+  filename = "${path.module}/../../environments/${var.environment}/namecheap_setup_${var.environment}.txt"
+  content  = <<-EOT
+DNS DELEGATION SETUP FOR ${upper(var.environment)}
+=================================================
+Please log in to the registrar for '${var.domain_name}' (e.g., Namecheap) and navigate to the Advanced DNS settings.
+
+Create FOUR (4) new NS records with the following details:
+
+Type: NS
+Host: ${var.environment}
+Value: Use one of the four values below (include the trailing dot).
+TTL: Automatic / 1 hour
+
+REQUIRED VALUES:
+- ${aws_route53_zone.environment.name_servers[0]}.
+- ${aws_route53_zone.environment.name_servers[1]}.
+- ${aws_route53_zone.environment.name_servers[2]}.
+- ${aws_route53_zone.environment.name_servers[3]}.
+
+After saving these records, DNS delegation for *.${var.environment}.${var.domain_name} will be managed by AWS.
+  EOT
+}

@@ -43,3 +43,6 @@ postgres_user = "myuser"
 
 # Docker image tag for the application (required)
 app_image_tag = "latest"
+
+# Base domain name for Route53 hosted zone (e.g., uselayered.com)
+domain_name = "uselayered.com"
