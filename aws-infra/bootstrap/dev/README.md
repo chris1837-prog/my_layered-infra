@@ -249,7 +249,7 @@ module "iam" {
 
 Provides the SSM parameter paths (for sensitive values) and non-sensitive config values directly for environment consumption.
 
-
+```json
 {
   "project_name": "layered-infra-test",
   "environment": "dev",
@@ -271,7 +271,6 @@ Provides the SSM parameter paths (for sensitive values) and non-sensitive config
     "app_image_tag": "latest"
   }
 }
-
 ```
 
 Example usage in environment:
@@ -298,7 +297,6 @@ resource "aws_ecs_task_definition" "app" {
 }
 ```
 ---
-
 
 ### `namecheap_setup_dev.txt`
 
