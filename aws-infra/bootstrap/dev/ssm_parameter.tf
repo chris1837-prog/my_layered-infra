@@ -30,8 +30,10 @@ resource "aws_ssm_parameter" "registry_password" {
 resource "aws_ssm_parameter" "registry_url" {
   name        = "/${var.project_name}/${var.environment}/registry_url"
   type        = "String"
-  value       = var.registry_url
+  value       = aws_route53_record.registry_public.fqdn  # Use the FQDN of the public record
   description = "Private Docker registry URL"
+
+  tags = local.merged_tags
 }
 
 resource "aws_ssm_parameter" "registry_user" {
