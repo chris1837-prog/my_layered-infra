@@ -1,6 +1,6 @@
 # Generate backend.tf
 resource "local_file" "backend_config" {
-  filename = "${path.module}/../../environments/${var.environment}/backend.tf"
+  filename = "${path.module}/../../environments/${var.environment}/artifacts/backend.tf"
   content  = <<EOT
 terraform {
   backend "s3" {
@@ -13,19 +13,24 @@ terraform {
 EOT
 }
 
-# Generate bootstrap_outputs.json
+# Generate bootstrap_outputs.json with EIP info
 resource "local_file" "bootstrap_outputs" {
-  filename = "${path.module}/../../environments/${var.environment}/bootstrap_outputs.json"
+  filename = "${path.module}/../../environments/${var.environment}/artifacts/bootstrap_outputs.json"
   content = jsonencode({
     tf_state_bucket_name    = module.remote_backend.tf_state_bucket_name
     tf_state_lock_table     = module.remote_backend.tf_state_lock_table
     github_actions_role_arn = aws_iam_role.github_actions.arn
+
+    # Edge instance wiring
+    edge_eip_allocation_id  = aws_eip.edge.allocation_id
+    edge_eip_public_ip      = aws_eip.edge.public_ip
+    public_zone_id          = aws_route53_zone.environment.zone_id
   })
 }
 
-# Generate JSON output file with parameter paths
+# Generate JSON output file with SSM parameter paths + values
 resource "local_file" "ssm_parameters_json" {
-  filename = "${path.module}/../../environments/${var.environment}/ssm_parameters.json"
+  filename = "${path.module}/../../environments/${var.environment}/artifacts/ssm_parameters.json"
   content = jsonencode({
     project_name = var.project_name
     environment  = var.environment
@@ -40,7 +45,7 @@ resource "local_file" "ssm_parameters_json" {
       postgres_user     = aws_ssm_parameter.postgres_user.name
     }
     parameter_values = {
-      registry_url  = var.registry_url
+      registry_url  = aws_route53_record.registry_public.fqdn # Use actual FQDN
       registry_user = var.registry_user
       postgres_db   = var.postgres_db
       postgres_user = var.postgres_user
@@ -51,7 +56,7 @@ resource "local_file" "ssm_parameters_json" {
 
 # Generate instructions for DNS delegation setup
 resource "local_file" "delegation_instructions" {
-  filename = "${path.module}/../../environments/${var.environment}/namecheap_setup_${var.environment}.txt"
+  filename = "${path.module}/../../environments/${var.environment}/artifacts/namecheap_setup_${var.environment}.txt"
   content  = <<-EOT
 DNS DELEGATION SETUP FOR ${upper(var.environment)}
 =================================================
