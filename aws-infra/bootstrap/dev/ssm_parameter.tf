@@ -17,6 +17,8 @@ resource "aws_ssm_parameter" "postgres_password" {
   type        = "SecureString"
   value       = random_password.postgres_password.result
   description = "PostgreSQL password"
+
+  tags = local.merged_tags
 }
 
 resource "aws_ssm_parameter" "registry_password" {
@@ -24,6 +26,8 @@ resource "aws_ssm_parameter" "registry_password" {
   type        = "SecureString"
   value       = random_password.registry_password.result
   description = "Private Docker registry password"
+
+  tags = local.merged_tags
 }
 
 # Store non-sensitive configuration as String parameters
@@ -41,6 +45,8 @@ resource "aws_ssm_parameter" "registry_user" {
   type        = "String"
   value       = var.registry_user
   description = "Private Docker registry username"
+
+  tags = local.merged_tags
 }
 
 resource "aws_ssm_parameter" "app_image_tag" {
@@ -48,6 +54,8 @@ resource "aws_ssm_parameter" "app_image_tag" {
   type        = "String"
   value       = var.app_image_tag
   description = "Docker image tag for the application"
+
+  tags = local.merged_tags
 }
 
 resource "aws_ssm_parameter" "postgres_db" {
@@ -55,6 +63,8 @@ resource "aws_ssm_parameter" "postgres_db" {
   type        = "String"
   value       = var.postgres_db
   description = "PostgreSQL database name"
+
+  tags = local.merged_tags
 }
 
 resource "aws_ssm_parameter" "postgres_user" {
@@ -62,4 +72,6 @@ resource "aws_ssm_parameter" "postgres_user" {
   type        = "String"
   value       = var.postgres_user
   description = "PostgreSQL username"
+
+  tags = local.merged_tags
 }
