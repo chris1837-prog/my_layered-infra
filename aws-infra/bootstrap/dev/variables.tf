@@ -83,7 +83,6 @@ variable "domain_name" {
 }
 
 variable "edge_private_ip" {
-  description = "Optional private IP address of the edge host (used for DNS records in Route53)"
+  description = "Private IP address of the edge host (used for DNS records in Route53)"
   type        = string
-  default     = null
 }
