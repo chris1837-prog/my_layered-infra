@@ -26,7 +26,7 @@ resource "aws_iam_role" "github_actions" {
 
   tags = merge(
     { Name = "${var.project_name}-${var.environment}-terraform-github-actions-role" },
-    var.common_tags
+    local.merged_tags
   )
 }
 
@@ -59,7 +59,7 @@ resource "aws_iam_policy" "github_actions_policy" {
   })
   tags = merge(
     { Name = "${var.project_name}-${var.environment}-terraform-github-actions-policy" },
-    var.common_tags
+    local.merged_tags
   )
 }
 
@@ -90,4 +90,9 @@ resource "aws_iam_policy" "github_actions_boundary" {
       }
     ]
   })
+
+  tags = merge(
+  { Name = "${var.project_name}-${var.environment}-github-actions-boundary" },
+  local.merged_tags
+)
 }
