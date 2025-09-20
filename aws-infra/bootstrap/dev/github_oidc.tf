@@ -1,19 +1,3 @@
-# bootstrap/dev/main.tf
-
-provider "aws" {
-  region = var.aws_region
-}
-
-data "aws_caller_identity" "current" {}
-
-# Call remote_backend module
-module "remote_backend" {
-  source       = "../../modules/remote_backend"
-  project_name = var.project_name
-  environment  = var.environment
-  common_tags  = var.common_tags
-}
-
 # GitHub Actions Role for Terraform CI/CD
 resource "aws_iam_role" "github_actions" {
   name = "${var.project_name}-${var.environment}-terraform-github-actions-role"
@@ -107,29 +91,3 @@ resource "aws_iam_policy" "github_actions_boundary" {
     ]
   })
 }
-
-# Generate backend.tf
-resource "local_file" "backend_config" {
-  filename = "${path.module}/../../environments/${var.environment}/backend.tf"
-  content  = <<EOT
-terraform {
-  backend "s3" {
-    bucket         = "${module.remote_backend.tf_state_bucket_name}"
-    dynamodb_table = "${module.remote_backend.tf_state_lock_table}"
-    key            = "terraform.tfstate"
-    region         = "${var.aws_region}"
-  }
-}
-EOT
-}
-
-# Generate bootstrap_outputs.json
-resource "local_file" "bootstrap_outputs" {
-  filename = "${path.module}/../../environments/${var.environment}/bootstrap_outputs.json"
-  content = jsonencode({
-    tf_state_bucket_name    = module.remote_backend.tf_state_bucket_name
-    tf_state_lock_table     = module.remote_backend.tf_state_lock_table
-    github_actions_role_arn = aws_iam_role.github_actions.arn
-  })
-}
-
