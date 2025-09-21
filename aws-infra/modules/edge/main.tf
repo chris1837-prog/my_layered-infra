@@ -2,41 +2,6 @@ data "aws_ssm_parameter" "ubuntu" {
   name = local.ubuntu_ssm_path
 }
 
-resource "random_password" "registry" {   # maybe not
-  length  = 20
-  special = true
-}
-
-resource "aws_ssm_parameter" "registry_password" {
-  name        = local.registry_password_ssm_path
-  type        = "SecureString"
-  value       = local.registry_password_final
-  description = "Docker registry password for Edge"
-}
-
-resource "aws_ssm_parameter" "registry_user" {
-  name        = local.registry_user_ssm_path
-  type        = "String"
-  value       = var.registry_user
-  description = "Docker registry username for Edge"
-} # till here maybe not
-
-resource "aws_route53_zone" "registry_private" {
-  name   = var.registry_zone_name
-  comment = "Private zone for Docker registry"
-  vpc {
-    vpc_id = var.vpc_id
-  }
-}
-
-resource "aws_route53_record" "registry" {
-  zone_id = aws_route53_zone.registry_private.zone_id
-  name    = var.registry_domain
-  type    = "A"
-  ttl     = 300
-  records = [aws_instance.edge.private_ip]
-}
-
 resource "aws_instance" "edge" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
   instance_type          = var.instance_type
@@ -54,11 +19,7 @@ resource "aws_instance" "edge" {
   })
 }
 
-resource "aws_eip" "edge" {
-  instance = aws_instance.edge.id
-  domain   = "vpc"
-}
-
+# Cloud-init configuration for the edge instance
 data "cloudinit_config" "edge" {
   gzip          = true
   base64_encode = true
