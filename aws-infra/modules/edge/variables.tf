@@ -9,6 +9,7 @@ variable "registry_password" {
   default     = null
   sensitive   = true
 }
+
 variable "common_tags" {
   description = "A map of tags to assign to all resources."
   type        = map(string)
@@ -52,6 +53,10 @@ variable "eip_allocation_id" {
   default     = null # Make it optional if you have fallback logic for dev, but required for staging/prod
 }
 
+variable "edge_private_ip" {
+  description = "The private IP address to assign to the Edge instance."
+  type        = string
+}
 variable "vpc_id" {
   description = "The ID of the VPC to deploy the Edge VM into."
   type        = string
