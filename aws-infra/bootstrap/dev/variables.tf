@@ -16,7 +16,7 @@ variable "environment" {
 }
 
 variable "common_tags" {
-  description = "Map of common tags to apply to all resources"
+  description = "Map of common tags to apply to all resources (merged with enforced Project/Environment tags)"
   type        = map(string)
   default     = {}
 }
@@ -44,14 +44,8 @@ variable "restrict_by_tags" {
 }
 
 ##################################
-# Non_sensitive SSM Parameter
+# Non-sensitive SSM Parameters
 ##################################
-
-variable "registry_url" {
-  description = "Private Docker registry URL"
-  type        = string
-}
-
 variable "registry_user" {
   description = "Private Docker registry username"
   type        = string
@@ -80,4 +74,9 @@ variable "domain_name" {
   description = "The base domain name (e.g., uselayered.com). The hosted zone will be created for {environment}.{domain_name}."
   type        = string
   default     = "uselayered.com"
+}
+
+variable "edge_private_ip" {
+  description = "Private IP address of the edge host (used for DNS records in Route53)"
+  type        = string
 }
