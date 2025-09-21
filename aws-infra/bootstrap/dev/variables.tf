@@ -46,12 +46,6 @@ variable "restrict_by_tags" {
 ##################################
 # Non-sensitive SSM Parameters
 ##################################
-
-variable "registry_url" {
-  description = "Private Docker registry URL"
-  type        = string
-}
-
 variable "registry_user" {
   description = "Private Docker registry username"
   type        = string
