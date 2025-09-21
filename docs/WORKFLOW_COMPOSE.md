@@ -75,3 +75,35 @@ We provide a script `backup-restore.sh` inside `mvp-compose/` to manage database
   docker compose up -d
   ```  
 - Always keep real dumps out of version control; the backups folder is already excluded via `.gitignore`.
+
+---
+
+## QA Office Hours (Cloud)
+
+The `qa` environment supports an **automated Office Hours Scheduler** that stops and starts tagged EC2 instances using a Lambda function and EventBridge rules.
+
+### Deployment
+
+This is managed via the `office_hours_scheduler` Terraform module. Key resources include:
+
+- **Lambda function**: `qa-office-hours-scheduler`
+- **CloudWatch rules**: 
+  - `qa-office-hours-scheduler-start` → `cron(0 7 ? * MON-FRI *)`
+  - `qa-office-hours-scheduler-stop` → `cron(0 19 ? * MON-FRI *)`
+- **IAM role** with permissions for EC2 and CloudWatch Logs
+- **Input tags**: 
+  - `TAG_KEY=Environment`
+  - `TAG_VALUE=QA`
+
+To deploy the scheduler in `qa`:
+
+```bash
+~/bin/aws-auth.sh --account qa --tf-apply-then-destroy --tf-chdir aws-infra/environments/qa --auto-approve
+```
+
+> 💡 This triggers a `terraform apply` followed by `destroy`, useful for verifying provisioning in ephemeral environments.
+
+### Notes
+
+- The Lambda zip file (`lambda.zip`) must exist in the module path before applying Terraform.
+- All cloud infra changes for this module are documented in `ADR-e4-office-hours.md`.
