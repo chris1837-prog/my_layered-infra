@@ -31,11 +31,21 @@ resource "aws_ssm_parameter" "registry_password" {
 }
 
 # Store non-sensitive configuration as String parameters
-resource "aws_ssm_parameter" "registry_url" {
-  name        = "/${var.project_name}/${var.environment}/registry_url"
+resource "aws_ssm_parameter" "external_registry_url" {
+  name        = "/${var.project_name}/${var.environment}/external_registry_url"
   type        = "String"
-  value       = aws_route53_record.registry_public.fqdn  # Use the FQDN of the public record
-  description = "Private Docker registry URL"
+  value       = aws_route53_record.registry_public.fqdn # Use the FQDN of the public record
+  description = "Private Docker external registry URL"
+
+  tags = local.merged_tags
+}
+
+# Store non-sensitive configuration as String parameters
+resource "aws_ssm_parameter" "internal_registry_url" {
+  name        = "/${var.project_name}/${var.environment}/internal_registry_url"
+  type        = "String"
+  value       = aws_route53_record.registry_private.fqdn # Use the FQDN of the public record
+  description = "Private Docker internal registry URL"
 
   tags = local.merged_tags
 }
