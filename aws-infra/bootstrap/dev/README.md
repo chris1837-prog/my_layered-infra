@@ -383,7 +383,7 @@ terraform apply  # provisions environment resources
 
   * `backend.tf` locks Terraform to the correct remote backend.
   * SSM SecureString stores sensitive values securely.
-  * Non-sensitive SSM parameters include **enforced tags** for governance.
+  * SSM parameters include **enforced tags** for governance.
 
 * **CI/CD ready**
 
