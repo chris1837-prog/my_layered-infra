@@ -16,7 +16,7 @@ variable "environment" {
 }
 
 variable "common_tags" {
-  description = "Map of common tags to apply to all resources"
+  description = "Map of common tags to apply to all resources (merged with enforced Project/Environment tags)"
   type        = map(string)
   default     = {}
 }
@@ -41,4 +41,42 @@ variable "restrict_by_tags" {
   description = "If true, limits Terraform permissions to resources with Project/Environment tags"
   type        = bool
   default     = false
+}
+
+##################################
+# Non-sensitive SSM Parameters
+##################################
+variable "registry_user" {
+  description = "Private Docker registry username"
+  type        = string
+}
+
+variable "postgres_db" {
+  description = "PostgreSQL database name"
+  type        = string
+}
+
+variable "postgres_user" {
+  description = "PostgreSQL username"
+  type        = string
+}
+
+variable "app_image_tag" {
+  description = "Docker image tag for the application"
+  type        = string
+}
+
+##################################
+# DNS / Route53
+##################################
+
+variable "domain_name" {
+  description = "The base domain name (e.g., uselayered.com). The hosted zone will be created for {environment}.{domain_name}."
+  type        = string
+  default     = "uselayered.com"
+}
+
+variable "edge_private_ip" {
+  description = "Private IP address of the edge host (used for DNS records in Route53)"
+  type        = string
 }
