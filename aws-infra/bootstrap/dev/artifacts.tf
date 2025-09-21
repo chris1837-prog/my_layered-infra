@@ -1,6 +1,6 @@
 # Generate backend.tf
 resource "local_file" "backend_config" {
-  filename = "${path.module}/../../environments/${var.environment}/artifacts/backend.tf"
+  filename = "${path.module}/../../environments/${var.environment}/backend.tf"
   content  = <<EOT
 terraform {
   backend "s3" {
