@@ -46,3 +46,6 @@ app_image_tag = "latest"
 
 # Base domain name for Route53 hosted zone (e.g., uselayered.com)
 domain_name = "uselayered.com"
+
+# Private IP address of the edge host (used for DNS records in Route53)
+edge_private_ip = "10.0.0.10"
