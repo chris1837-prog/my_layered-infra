@@ -21,14 +21,6 @@ resource "aws_instance" "edge" {
   })
 }
 
-# Associate the pre-allocated Elastic IP from the bootstrapper with this instance
-resource "aws_eip_association" "eip_assoc" {
-  count = var.eip_allocation_id != null ? 1 : 0
-
-  instance_id   = aws_instance.edge.id
-  allocation_id = var.eip_allocation_id
-}
-
 # Cloud-init configuration for the edge instance
 data "cloudinit_config" "edge" {
   gzip          = true
