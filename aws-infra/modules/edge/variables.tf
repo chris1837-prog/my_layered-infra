@@ -46,6 +46,12 @@ variable "iam_instance_profile_name" {
   type        = string
 }
 
+variable "eip_allocation_id" {
+  description = "The allocation ID of an existing Elastic IP to associate with the Edge instance."
+  type        = string
+  default     = null # Make it optional if you have fallback logic for dev, but required for staging/prod
+}
+
 variable "vpc_id" {
   description = "The ID of the VPC to deploy the Edge VM into."
   type        = string
