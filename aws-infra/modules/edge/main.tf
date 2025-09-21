@@ -3,13 +3,14 @@ data "aws_ssm_parameter" "ubuntu" {
 }
 
 resource "aws_instance" "edge" {
-  ami                    = data.aws_ssm_parameter.ubuntu.value
-  instance_type          = var.instance_type
-  subnet_id              = var.public_subnet_id
-  vpc_security_group_ids = [var.sg_edge_id]
-  source_dest_check      = false
-  key_name               = var.key_name
-  iam_instance_profile   = try(var.iam_instance_profile_name, null)
+  ami                          = data.aws_ssm_parameter.ubuntu.value
+  instance_type                = var.instance_type
+  subnet_id                    = var.public_subnet_id
+  vpc_security_group_ids       = [var.sg_edge_id]
+  source_dest_check            = false
+  key_name                     = var.key_name
+  associate_public_ip_address  = false
+  iam_instance_profile         = try(var.iam_instance_profile_name, null)
 
   user_data_replace_on_change = true
   user_data_base64            = data.cloudinit_config.edge.rendered
