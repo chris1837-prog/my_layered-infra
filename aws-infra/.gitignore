@@ -9,4 +9,14 @@ crash.log
 **/test/*.tfstate.backup
 **/test/go.mod
 **/test/go.sum
+
 .coverage
+
+# Terraform
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars.backup
+**/*.backup
+**/*.bin
+**/*.tfplan

@@ -117,3 +117,9 @@ See `README.md` inside `functions/e1AutoStop/` for detailed IAM, Terraform modul
   - Supports **smoke** mode (fast connectivity checks).  
   - Supports **graceful** mode (verifies app shutdown closes HTTP + DB pool cleanly).
 
+## layered-infra/aws-infra/modules/office_hours_scheduler/
+- `main.tf` – Declares the Lambda function, IAM role/policies, scheduler rules, and permissions.
+- `lambda_function.py` – Python code for the Lambda (must be zipped before deploy).
+- `outputs.tf` – Exposes Lambda name, rule names, and IAM role ARN.
+- `variables.tf` – Input variables like `tag_key`, `tag_value`, and `function_name`.
+- `versions.tf` – Required Terraform and provider versions.

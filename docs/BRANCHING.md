@@ -40,6 +40,8 @@
 - **Infra (Terraform, future `infra/`)** – infra team
 - **Load Testing (k6 / tests/k6/)** – QA/perf team
 - **Monitoring (Grafana, Prometheus, etc.)** – observability team
+- **EBS Cleanup (orphaned volumes/snapshots)** – FinOps team
+- **Cleanup Scheduler (CloudWatch + Lambda binding)** – Infra team
 
 ## layered-infra/mvp-compose/
 - `app/` — Node.js application source code.  
@@ -94,6 +96,7 @@ Because PgBouncer runs in **transaction pooling mode**, **prepared statements** 
 - App not healthy → verify `localhost:3000/health` and container logs.
 
 ---
+
 
 ## ✅ Infra Lambda Development (e.g. e1AutoStop)
 
@@ -150,3 +153,37 @@ functions/
 - `feat: add e1AutoStop Lambda`
 - `test: full test coverage`
 - `docs: add Lambda usage guide`
+=======
+This structure ensures:  
+- Clear ownership and accountability.  
+- Easy navigation of team responsibilities.  
+- Smooth PR review and integration process.
+
+---
+
+## Office Hours Scheduler (QA cloud workflow)
+
+The `qa` environment includes a scheduled **EC2 auto-stop/start module** powered by AWS Lambda and CloudWatch Events. Instances tagged with:
+
+```hcl
+TAG_KEY   = "Environment"
+TAG_VALUE = "QA"
+```
+
+are automatically:
+- **Started** at `07:00 UTC` every weekday  
+- **Stopped** at `19:00 UTC` every weekday
+
+This behavior is controlled by a reusable module defined under `aws-infra/modules/office_hours_scheduler/`. The function is written in Python and packaged into `lambda.zip` before deployment.
+
+### Deployment (for QA)
+Use our wrapper script:
+```bash
+~/bin/aws-auth.sh --account qa --tf-apply-then-destroy --tf-chdir aws-infra/environments/qa --auto-approve
+```
+
+This will perform a full apply and teardown for ephemeral QA testing.
+
+📄 For more, see:
+- [Module README](../modules/office_hours_scheduler/README.md)
+- [ADR](../../../docs/ADRs/ADR-e4-office-hours.md)
