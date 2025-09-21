@@ -7,7 +7,7 @@ The bootstrapper provisions:
 
 * **Terraform remote backend infrastructure** (S3 bucket + DynamoDB table for state locking).
 * **GitHub Actions IAM role** with OIDC trust, restricted to a specific GitHub repository and branch, allowing Terraform to run securely from CI/CD pipelines.
-* **SSM Parameters** for both sensitive (SecureString) and non-sensitive (String) values. All non-sensitive parameters include enforced tags for easy identification and automation.
+* **SSM Parameters** for both sensitive (SecureString) and non-sensitive (String) values. All parameters include enforced tags for easy identification and automation.
 * **Elastic IP (EIP)** allocation for the edge instance to provide a stable public IP.
 * **Route53 hosted zone** for the environment subdomain, with two A records:
 
@@ -105,7 +105,8 @@ The bootstrapper provisions:
 
    **Non-sensitive configuration** (`String`, with enforced tags):
 
-   * `/project/environment/registry_url` → points to the new public registry A record FQDN
+   * `/project/environment/external_registry_url` → points to the new public registry A record FQDN
+   * `/project/environment/internal_registry_url` → points to the new private registry A record FQDN
    * `/project/environment/registry_user`
    * `/project/environment/app_image_tag`
    * `/project/environment/postgres_db`
@@ -151,14 +152,16 @@ The bootstrapper provisions:
      "parameter_paths": {
        "postgres_password": "/layered-infra-test/dev/postgres_password",
        "registry_password": "/layered-infra-test/dev/registry_password",
-       "registry_url": "/layered-infra-test/dev/registry_url",
+       "external_registry_url": "/layered-infra-test/dev/external_registry_url",
+       "internal_registry_url": "/layered-infra-test/dev/internal_registry_url",
        "registry_user": "/layered-infra-test/dev/registry_user",
        "app_image_tag": "/layered-infra-test/dev/app_image_tag",
        "postgres_db": "/layered-infra-test/dev/postgres_db",
        "postgres_user": "/layered-infra-test/dev/postgres_user"
      },
      "parameter_values": {
-       "registry_url": "registry.dev.uselayered.com",
+       "external_registry_url": "registry.dev.uselayered.com",
+       "internal_registry_url": "registry.internal.dev.uselayered.com",
        "registry_user": "admin",
        "postgres_db": "myapp",
        "postgres_user": "myuser",
@@ -204,23 +207,23 @@ locals {
   ssm_parameters    = jsondecode(file("${path.module}/artifacts/ssm_parameters.json"))
 
   edge_config = {
-    eip_allocation_id   = local.bootstrap_outputs.edge_eip_allocation_id
-    private_ip          = local.bootstrap_outputs.edge_private_ip
-    ssm_parameter_paths = local.ssm_parameters.parameter_paths
+    eip_allocation_id = local.bootstrap_outputs.edge_eip_allocation_id
+    private_ip        = local.bootstrap_outputs.edge_private_ip
+    parameter_paths = {
+      external_registry_url = local.ssm_parameters.parameter_paths.external_registry_url
+      registry_user         = local.ssm_parameters.parameter_paths.registry_user
+      registry_password     = local.ssm_parameters.parameter_paths.registry_password
+      internal_registry_url = local.ssm_parameters.parameter_paths.internal_registry_url
+    }
   }
 
   appdb_config = {
-    ssm_parameter_paths = {
-      postgres_password = local.ssm_parameters.parameter_paths.postgres_password
-      registry_password = local.ssm_parameters.parameter_paths.registry_password
-      app_image_tag     = local.ssm_parameters.parameter_paths.app_image_tag
-    }
-    parameter_values = {
-      registry_url  = local.ssm_parameters.parameter_values.registry_url
-      registry_user = local.ssm_parameters.parameter_values.registry_user
-      postgres_db   = local.ssm_parameters.parameter_values.postgres_db
-      postgres_user = local.ssm_parameters.parameter_values.postgres_user
-      app_image_tag = local.ssm_parameters.parameter_values.app_image_tag
+    parameter_paths = {
+      internal_registry_url = local.ssm_parameters.parameter_paths.internal_registry_url
+      postgres_db           = local.ssm_parameters.parameter_paths.postgres_db
+      postgres_user         = local.ssm_parameters.parameter_paths.postgres_user
+      postgres_password     = local.ssm_parameters.parameter_paths.postgres_password
+      app_image_tag         = local.ssm_parameters.parameter_paths.app_image_tag
     }
   }
 }
@@ -250,13 +253,7 @@ resource "aws_ecs_task_definition" "app" {
 # Example: using edge_config and appdb_config in a module
 module "edge" {
   source = "../../modules/edge"
-
-  eip_allocation_id   = local.edge_config.eip_allocation_id
-  private_ip          = local.edge_config.private_ip
-  ssm_parameter_paths = local.edge_config.ssm_parameter_paths
-
-  appdb_parameter_paths  = local.appdb_config.ssm_parameter_paths
-  appdb_parameter_values = local.appdb_config.parameter_values
+  edge_parameter_paths  = local.edge_config.ssm_parameter_paths
 }
 
 ```
