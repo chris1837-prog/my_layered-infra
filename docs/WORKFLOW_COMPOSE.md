@@ -1,4 +1,4 @@
-# FILE_STRUCTURE.md
+# WORKFLOW_COMPOSE.md
 
 ## Folder structure overview
 
@@ -13,6 +13,8 @@
 
 - `mvp-compose/`  
   Docker Compose setup for the MVP stack including `docker-compose.yml`, environment files, and scripts.
+
+---
 
 ## layered-infra/mvp-compose/
 - `app/` — Node.js application source code.  
@@ -60,3 +62,70 @@ We provide a script `backup-restore.sh` inside `mvp-compose/` to manage database
   docker compose up -d
   ```  
 - Always keep real dumps out of version control; the backups folder is already excluded via `.gitignore`.
+
+---
+
+## Lambda: Auto-Stop QA Instances (E1)
+
+This folder contains a Lambda function that stops EC2 instances tagged with `Environment=QA` after a configurable time limit.
+
+### 📁 Path
+```
+aws-infra/functions/e1AutoStop/
+```
+
+### 🔧 Environment Variables
+
+| Variable           | Description                                | Example       |
+|-------------------|--------------------------------------------|---------------|
+| `ENV_TAG_KEY`     | Tag key to filter instances                | `Environment` |
+| `ENV_TAG_VALUE`   | Tag value to filter (e.g., QA)             | `QA`          |
+| `THRESHOLD_MINUTES` | Max allowed uptime in minutes              | `120`         |
+| `DRY_RUN`         | If `true`, logs what would happen          | `true`        |
+
+### 🧪 Testen
+
+```bash
+pytest functions/e1AutoStop/tests/
+```
+
+- Vollständige Abdeckung:
+  ```bash
+  coverage run -m pytest && coverage report -m
+  ```
+
+- `.coveragerc`:
+  ```ini
+  [run]
+  branch = True
+  source = functions/e1AutoStop
+
+  [report]
+  show_missing = True
+  skip_covered = True
+  ```
+
+### 📦 requirements.txt (lokal)
+
+```txt
+boto3==1.40.35
+boto3-stubs==1.40.35
+botocore==1.40.35
+coverage==7.10.7
+iniconfig==2.1.0
+jmespath==1.0.1
+packaging==25.0
+pluggy==1.6.0
+Pygments==2.19.2
+pytest==8.4.2
+python-dateutil==2.9.0.post0
+s3transfer==0.14.0
+six==1.17.0
+urllib3==2.5.0
+```
+
+### 🧼 Cleanup
+
+```bash
+terraform destroy -target=module.auto_stop
+```

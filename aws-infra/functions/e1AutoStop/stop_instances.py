@@ -2,22 +2,30 @@ import os
 import boto3
 from datetime import datetime, timezone, timedelta
 
-# Get environment variables
-ENV_TAG_KEY = os.environ.get("ENV_TAG_KEY", "Environment")
-ENV_TAG_VALUE = os.environ.get("ENV_TAG_VALUE", "QA")
-THRESHOLD_MINUTES = int(os.environ.get("THRESHOLD_MINUTES", "120"))
-DRY_RUN = os.environ.get("DRY_RUN", "true").lower() == "true"
+
+def get_config():
+    return {
+        "ENV_TAG_KEY": os.environ.get("ENV_TAG_KEY", "Environment"),
+        "ENV_TAG_VALUE": os.environ.get("ENV_TAG_VALUE", "QA"),
+        "THRESHOLD_MINUTES": int(os.environ.get("THRESHOLD_MINUTES", "120")),
+        "DRY_RUN": os.environ.get("DRY_RUN", "true").lower() == "true",
+    }
+
 
 def lambda_handler(_event, _context):
+    config = get_config()
     ec2 = boto3.client("ec2")
     now = datetime.now(timezone.utc)
-    threshold = timedelta(minutes=THRESHOLD_MINUTES)
+    threshold = timedelta(minutes=config["THRESHOLD_MINUTES"])
 
-    print(f"Looking for EC2 instances tagged {ENV_TAG_KEY}={ENV_TAG_VALUE} running longer than {THRESHOLD_MINUTES} minutes (DRY_RUN={DRY_RUN})")
+    print(
+        f"Looking for EC2 instances tagged {config['ENV_TAG_KEY']}={config['ENV_TAG_VALUE']} "
+        f"running longer than {config['THRESHOLD_MINUTES']} minutes (DRY_RUN={config['DRY_RUN']})"
+    )
 
     filters = [
-        {"Name": f"tag:{ENV_TAG_KEY}", "Values": [ENV_TAG_VALUE]},
-        {"Name": "instance-state-name", "Values": ["running"]}
+        {"Name": f"tag:{config['ENV_TAG_KEY']}", "Values": [config["ENV_TAG_VALUE"]]},
+        {"Name": "instance-state-name", "Values": ["running"]},
     ]
 
     response = ec2.describe_instances(Filters=filters)
@@ -27,7 +35,8 @@ def lambda_handler(_event, _context):
         for instance in reservation["Instances"]:
             instance_id = instance["InstanceId"]
             launch_time = instance["LaunchTime"]
-            # Patch: ensure launch_time is timezone-aware
+
+            # Ensure launch_time is timezone-aware
             run_time = now - launch_time.replace(tzinfo=timezone.utc)
 
             print(f"Instance {instance_id} launched at {launch_time}, running for {run_time}")
@@ -43,8 +52,8 @@ def lambda_handler(_event, _context):
         return
 
     try:
-        ec2.stop_instances(InstanceIds=stop_candidates, DryRun=DRY_RUN)
-        if DRY_RUN:
+        ec2.stop_instances(InstanceIds=stop_candidates, DryRun=config["DRY_RUN"])
+        if config["DRY_RUN"]:
             print(f"🧪 DRY RUN: Would have stopped: {stop_candidates}")
         else:
             print(f"🛑 Stopped instances: {stop_candidates}")

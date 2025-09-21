@@ -69,39 +69,84 @@ This repo ships a helper script that performs consistent backups and safe restor
   ```bash
   ./backup-restore.sh snapshot
   ```
-  Creates a versioned dump under `backups/` (format: `YYYY-MM-DD_HHMMSS-myapp.dump`).
 
 - **Smoke restore (side DB)**
   ```bash
   ./backup-restore.sh smoke-restore
   ```
-  Restores the last snapshot into a temporary database (e.g., `myapp_restore_<timestamp>`), then verifies tables and counts. Does **not** touch the live DB.
 
 - **Full restore (seed → snapshot → verify → swap)**
   ```bash
   ./backup-restore.sh full
   ```
-  End-to-end flow used locally: ensures stack is up, (re)seeds demo data idempotently, takes a snapshot, verifies via smoke-restore, then performs a **swap-restore** (restore into temp DB, terminate sessions, atomically rename to `myapp`) and re-checks app `/health` through PgBouncer.
 
 ### Important notes on PgBouncer and queries
 
-Because PgBouncer runs in **transaction pooling mode**, **prepared statements** (using `PREPARE`/`EXECUTE` or named prepared statements in node-postgres) **must not be used**, as they are incompatible with this mode. However, **plain parameterized queries are safe** and recommended to use.
+Because PgBouncer runs in **transaction pooling mode**, **prepared statements** must not be used. Use plain parameterized queries.
 
 ### Where files go
-- Backups are written to `backups/` and are **.gitignored**.
-- The script uses the Compose services defined in `mvp-compose/docker-compose.yml` and relies on environment from `.env` / `.env.example`.
+- Backups are written to `backups/` (in `.gitignore`).
+- Script uses Compose config from `mvp-compose/docker-compose.yml`.
 
 ### Troubleshooting
-- `zsh: no such file or directory: ./mvp-compose/backup-restore.sh` → Run from repo root: `./backup-restore.sh ...` (the script is **not** inside `mvp-compose/`).
+- `zsh: no such file or directory: ./mvp-compose/backup-restore.sh` → run from repo root.
 - `permission denied` → `chmod +x ./backup-restore.sh`.
-- App not healthy initially → the script waits for `http://localhost:3000/health` to return 200; if it keeps failing, check `docker compose logs app`.
+- App not healthy → verify `localhost:3000/health` and container logs.
 
-### Notes
-- All pg operations go **through PgBouncer** to mirror production access patterns.
-- Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
-- Restores are validated by checking both database objects (tables and counts) and app health to ensure consistency and correctness.
+---
 
-This structure ensures:  
-- Clear ownership and accountability.  
-- Easy navigation of team responsibilities.  
-- Smooth PR review and integration process.
+## ✅ Infra Lambda Development (e.g. e1AutoStop)
+
+### Branch usage
+- Dev branch: `_feat/e1AutoStop`
+- Team branch: `feat/infra`
+
+### Testing
+```bash
+cd aws-infra
+coverage run -m pytest
+coverage report -m
+```
+
+### Requirements
+```text
+boto3==1.40.35
+coverage==7.10.7
+pytest==8.4.2
+# usw.
+```
+
+### .coveragerc config
+```ini
+[run]
+branch = True
+source = functions/e1AutoStop
+
+[report]
+show_missing = True
+skip_covered = True
+```
+
+### 100% Coverage Output (Example)
+```
+Name                                     Stmts   Miss Branch BrPart  Cover
+--------------------------------------------------------------------------
+functions/e1AutoStop/stop_instances.py      34      0     10      0   100%
+--------------------------------------------------------------------------
+TOTAL                                       81      0     10      0   100%
+```
+
+### Directory Layout
+```bash
+functions/
+└── e1AutoStop/
+    ├── stop_instances.py
+    ├── test_handler.py
+    ├── requirements.txt
+    └── .coveragerc
+```
+
+### Conventional Commits
+- `feat: add e1AutoStop Lambda`
+- `test: full test coverage`
+- `docs: add Lambda usage guide`
