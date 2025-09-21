@@ -92,7 +92,7 @@ resource "aws_iam_policy" "github_actions_boundary" {
   })
 
   tags = merge(
-  { Name = "${var.project_name}-${var.environment}-github-actions-boundary" },
-  local.merged_tags
-)
+    { Name = "${var.project_name}-${var.environment}-github-actions-boundary" },
+    local.merged_tags
+  )
 }
