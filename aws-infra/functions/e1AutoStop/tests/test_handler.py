@@ -1,8 +1,7 @@
-import pytest
 import datetime
 from unittest.mock import patch
+from functions.e1AutoStop import stop_instances
 
-from stop_instances import lambda_handler
 
 def fake_instance(instance_id, launch_time):
     return {
@@ -12,9 +11,10 @@ def fake_instance(instance_id, launch_time):
         "Tags": [{"Key": "Environment", "Value": "QA"}]
     }
 
-@patch("stop_instances.boto3.client")
+
+@patch("e1AutoStop.stop_instances.boto3.client")
 def test_lambda_handler_stops_old_instances(mock_boto_client):
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     old_instance = fake_instance("i-old", now - datetime.timedelta(minutes=10))
     new_instance = fake_instance("i-new", now - datetime.timedelta(minutes=2))
 
@@ -31,16 +31,17 @@ def test_lambda_handler_stops_old_instances(mock_boto_client):
     }
 
     with patch.dict("os.environ", env):
-        lambda_handler({}, {})
+        stop_instances.lambda_handler({}, {})
 
     ec2_mock.stop_instances.assert_called_once_with(
         InstanceIds=["i-old"],
         DryRun=True
     )
 
-@patch("stop_instances.boto3.client")
+
+@patch("e1AutoStop.stop_instances.boto3.client")
 def test_lambda_handler_no_stop_if_none_exceed(mock_boto_client):
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     instances = [
         fake_instance("i1", now - datetime.timedelta(minutes=2)),
         fake_instance("i2", now - datetime.timedelta(minutes=1))
@@ -59,6 +60,6 @@ def test_lambda_handler_no_stop_if_none_exceed(mock_boto_client):
     }
 
     with patch.dict("os.environ", env):
-        lambda_handler({}, {})
+        stop_instances.lambda_handler({}, {})
 
     ec2_mock.stop_instances.assert_not_called()
