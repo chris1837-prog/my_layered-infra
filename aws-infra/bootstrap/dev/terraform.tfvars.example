@@ -29,9 +29,6 @@ github_branch = "development"
 # Restrict Terraform permissions by Project/Environment tags (default: false)
 restrict_by_tags = false
 
-# Private Docker registry URL (required)
-registry_url = "registry.example.com"
-
 # Private Docker registry username (required)
 registry_user = "admin"
 
