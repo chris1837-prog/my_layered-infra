@@ -10,6 +10,7 @@ resource "aws_instance" "edge" {
   source_dest_check            = false
   key_name                     = var.key_name
   associate_public_ip_address  = false
+  private_ip                   = var.edge_private_ip
   iam_instance_profile         = try(var.iam_instance_profile_name, null)
 
   user_data_replace_on_change = true
