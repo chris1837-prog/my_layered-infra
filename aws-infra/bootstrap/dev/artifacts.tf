@@ -35,9 +35,6 @@ resource "local_file" "bootstrap_outputs" {
 resource "local_file" "ssm_parameters_json" {
   filename = "${path.module}/../../environments/${var.environment}/artifacts/ssm_parameters.json"
   content = jsonencode({
-    project_name = var.project_name
-    environment  = var.environment
-    aws_region   = var.aws_region
     parameter_paths = {
       postgres_password     = aws_ssm_parameter.postgres_password.name
       registry_password     = aws_ssm_parameter.registry_password.name
