@@ -10,5 +10,5 @@ output "edge_instance_id" {
 
 output "edge_public_ip" {
   description = "The public IP address of the Edge VM. Use this to connect via SSH."
-  value       = aws_eip_association.eip_assoc[0].public_ip
+  value       = length(aws_eip_association.eip_assoc) > 0 ? aws_eip_association.eip_assoc[0].public_ip : null
 }
