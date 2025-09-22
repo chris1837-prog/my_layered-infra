@@ -4,9 +4,8 @@ variable "registry_user" {
 }
 
 variable "registry_password" {
-  description = "Password for the Docker registry (optional, will generate if not set)."
+  description = "Password for the Docker registry."
   type        = string
-  default     = null
   sensitive   = true
 }
 
@@ -33,6 +32,16 @@ variable "registry_zone_name" {
 
 variable "registry_domain" {
   description = "The FQDN for the Docker registry (e.g., 'registry.your-domain.internal')."
+  type        = string
+}
+
+variable "registry_external_url" {
+  description = "External registry URL (e.g., https://registry.example.com)."
+  type        = string
+}
+
+variable "registry_internal_url" {
+  description = "Internal registry URL (e.g., https://registry.internal.example.com)."
   type        = string
 }
 
