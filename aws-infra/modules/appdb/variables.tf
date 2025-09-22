@@ -73,8 +73,8 @@ variable "enable_ebs_optimized" {
   default     = true
 }
 
-variable "app_image_name" {
-  description = "Application image name (e.g., 'myorg/myapp' or 'myapp')"
+variable "ssm_app_image_name_path" {
+  description = "SSM parameter path for application image name (e.g., 'myorg/myapp' or 'myapp')"
   type        = string
 }
 
