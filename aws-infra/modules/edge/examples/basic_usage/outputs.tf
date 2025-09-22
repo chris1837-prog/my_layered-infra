@@ -13,7 +13,12 @@ output "edge_instance_id" {
   value       = module.edge.edge_instance_id
 }
 
-output "registry_url" {
-  description = "The URL of the Docker registry (proxied by Caddy)."
-  value       = "https://${module.edge.registry_domain}"
+output "registry_external_url" {
+  description = "The external URL of the Docker registry (proxied by Caddy)."
+  value       = "https://${module.edge.registry_external_domain}"
+}
+
+output "registry_internal_url" {
+  description = "The internal URL of the Docker registry (proxied by Caddy)."
+  value       = "https://${module.edge.registry_internal_domain}"
 }
