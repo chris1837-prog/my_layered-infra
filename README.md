@@ -14,6 +14,8 @@ Monorepo for the MVP platform. This repo hosts:
 - Contribution & PR flow: see **docs/BRANCHING.md**
 - Load testing: see **tests/k6/README.md**
 
+- Auto-stop Lambda (FinOps): see **functions/e1AutoStop/README.md**
+
 ---
 
 ## Backup & Restore (local)
@@ -66,6 +68,33 @@ Restores are validated by checking both the presence and correctness of database
 - Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
 
 ---
+
+## QA Auto-Stop Lambda
+
+The repo includes a Lambda function that automatically stops long-running QA-tagged EC2 instances to save cost.
+
+### ✅ Highlights
+- Stops instances with `Environment=QA` after a threshold (e.g. 2h).
+- Uses environment variables for flexibility.
+- Includes unit tests with full coverage (100%) using `pytest` and `coverage`.
+
+### 📁 Location
+- `functions/e1AutoStop/`
+
+### 🧪 Testing
+- Tests are located in `tests/test_handler.py`.
+- Run tests using:
+  ```bash
+  coverage run -m pytest
+  coverage report -m
+  ```
+  Coverage config in `.coveragerc`.
+
+### 📦 Dependencies
+Dependencies are pinned in `requirements.txt`:
+- `boto3`, `pytest`, `coverage`, etc.
+
+See `README.md` inside `functions/e1AutoStop/` for detailed IAM, Terraform module, and config examples.
 
 ## Contributing
 - Keep PRs **small and focused** (one concern per PR).

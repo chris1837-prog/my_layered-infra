@@ -1,3 +1,14 @@
+variable "registry_user" {
+  description = "Username for the Docker registry."
+  type        = string
+}
+
+variable "registry_password" {
+  description = "Password for the Docker registry."
+  type        = string
+  sensitive   = true
+}
+
 variable "common_tags" {
   description = "A map of tags to assign to all resources."
   type        = map(string)
@@ -14,6 +25,26 @@ variable "environment" {
   type        = string
 }
 
+variable "registry_zone_name" {
+  description = "The DNS name for the private Route 53 hosted zone (e.g., 'your-domain.internal')."
+  type        = string
+}
+
+variable "registry_domain" {
+  description = "The FQDN for the Docker registry (e.g., 'registry.your-domain.internal')."
+  type        = string
+}
+
+variable "registry_external_url" {
+  description = "External registry URL (e.g., https://registry.example.com)."
+  type        = string
+}
+
+variable "registry_internal_url" {
+  description = "Internal registry URL (e.g., https://registry.internal.example.com)."
+  type        = string
+}
+
 variable "ubuntu_version" {
   description = "The Ubuntu version to use for the Edge VM."
   type        = string
@@ -25,6 +56,16 @@ variable "iam_instance_profile_name" {
   type        = string
 }
 
+variable "eip_allocation_id" {
+  description = "The allocation ID of an existing Elastic IP to associate with the Edge instance."
+  type        = string
+  default     = null # Make it optional if you have fallback logic for dev, but required for staging/prod
+}
+
+variable "edge_private_ip" {
+  description = "The private IP address to assign to the Edge instance."
+  type        = string
+}
 variable "vpc_id" {
   description = "The ID of the VPC to deploy the Edge VM into."
   type        = string
@@ -72,6 +113,12 @@ variable "wireguard_port" {
   description = "The UDP port for the WireGuard VPN server."
   type        = number
   default     = 51820
+}
+
+variable "bcrypt_hash" {
+  description = "Optional pre-computed bcrypt hash for the Docker registry password."
+  type        = string
+  default     = null
 }
 
 variable "domain_name" {
