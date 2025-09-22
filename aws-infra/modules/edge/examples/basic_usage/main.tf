@@ -219,13 +219,13 @@ resource "local_file" "edge_private_key" {
 module "edge" {
   source = "../../"
 
-  project_name              = "layered-infra"
-  environment               = "dev"
-  vpc_id                    = aws_vpc.test_vpc.id
-  edge_private_ip           = "10.0.2.100"
-  registry_domain           = "registry.edge.example.com"
-  registry_user             = "registry"
-  registry_password         = "registry"
+  project_name      = "layered-infra"
+  environment       = "dev"
+  vpc_id            = aws_vpc.test_vpc.id
+  edge_private_ip   = "10.0.2.100"
+  registry_domain   = "registry.edge.example.com"
+  registry_user     = "registry"
+  registry_password = "registry"
   # Explicitly override registry URLs to avoid relying on SSM in examples/tests
   registry_external_url     = "https://registry.edge.example.com"
   registry_internal_url     = "https://registry.internal.edge.example.com"
