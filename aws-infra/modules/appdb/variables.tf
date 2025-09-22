@@ -72,41 +72,43 @@ variable "enable_ebs_optimized" {
   type        = bool
   default     = true
 }
-/* Will be provided over SSM Parameter Store
-# App/db parameters
-variable "app_image" {
+
+variable "app_image_name" {
+  description = "Application image name (e.g., 'myorg/myapp' or 'myapp')"
   type        = string
-  default     = "nginx:latest"
-  description = "App Docker image (placeholder until registry ready)"
 }
 
-variable "registry_url" {
-  type    = string
-  default = ""
+variable "internal_registry_url_path" {
+  description = "SSM parameter path for the internal registry URL"
+  type        = string
 }
 
-variable "registry_user" {
-  type    = string
-  default = ""
+variable "app_image_tag_path" {
+  description = "SSM parameter path for the application image tag"
+  type        = string
 }
 
-variable "registry_password" {
-  type    = string
-  default = ""
+variable "postgres_user_path" {
+  description = "SSM parameter path for the Postgres username"
+  type        = string
 }
 
-variable "postgres_db" {
-  type    = string
-  default = "myapp"
+variable "postgres_password_path" {
+  description = "SSM parameter path for the Postgres password"
+  type        = string
 }
 
-variable "postgres_user" {
-  type    = string
-  default = "myuser"
+variable "postgres_db_path" {
+  description = "SSM parameter path for the Postgres database name"
+  type        = string
 }
 
-variable "postgres_password" {
-  type    = string
-  default = "mypassword"
+variable "registry_user_path" {
+  description = "SSM parameter path for the registry username (optional, only used if login is required)"
+  type        = string
 }
-*/
+
+variable "registry_password_path" {
+  description = "SSM parameter path for the registry password (optional, only used if login is required)"
+  type        = string
+}
