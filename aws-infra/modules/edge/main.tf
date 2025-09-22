@@ -3,15 +3,15 @@ data "aws_ssm_parameter" "ubuntu" {
 }
 
 resource "aws_instance" "edge" {
-  ami                          = data.aws_ssm_parameter.ubuntu.value
-  instance_type                = var.instance_type
-  subnet_id                    = var.public_subnet_id
-  vpc_security_group_ids       = [var.sg_edge_id]
-  source_dest_check            = false
-  key_name                     = var.key_name
-  associate_public_ip_address  = false
-  private_ip                   = var.edge_private_ip
-  iam_instance_profile         = try(var.iam_instance_profile_name, null)
+  ami                         = data.aws_ssm_parameter.ubuntu.value
+  instance_type               = var.instance_type
+  subnet_id                   = var.public_subnet_id
+  vpc_security_group_ids      = [var.sg_edge_id]
+  source_dest_check           = false
+  key_name                    = var.key_name
+  associate_public_ip_address = false
+  private_ip                  = var.edge_private_ip
+  iam_instance_profile        = try(var.iam_instance_profile_name, null)
 
   user_data_replace_on_change = true
   user_data_base64            = data.cloudinit_config.edge.rendered
@@ -36,16 +36,16 @@ data "cloudinit_config" "edge" {
   part {
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      admin_user        = var.admin_user,
-      admin_ssh_keys    = var.admin_ssh_keys,
-      domain_name       = var.domain_name,
-      backend_servers   = var.backend_servers,
-      admin_cidrs       = var.admin_cidrs,
-      wireguard_port    = var.wireguard_port,
+      admin_user               = var.admin_user,
+      admin_ssh_keys           = var.admin_ssh_keys,
+      domain_name              = var.domain_name,
+      backend_servers          = var.backend_servers,
+      admin_cidrs              = var.admin_cidrs,
+      wireguard_port           = var.wireguard_port,
       registry_external_domain = var.registry_external_url,
       registry_internal_domain = var.registry_internal_url,
-      registry_user     = var.registry_user,
-      registry_password = var.registry_password
+      registry_user            = var.registry_user,
+      registry_password        = var.registry_password
     })
   }
 }
