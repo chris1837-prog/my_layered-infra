@@ -48,7 +48,7 @@ data "cloudinit_config" "app" {
       environment                = var.environment
       docker_compose_content     = file("${path.module}/../../mvp-compose/docker-compose.yml")
       app_image_name             = var.app_image_name  # e.g. "myorg/myapp" or just "myapp"
-      internal_registry_url_path = var.ssm_registry_url_path
+      internal_registry_url_path = var.ssm_internal_registry_url_path
       app_image_tag_path         = var.ssm_app_image_tag_path
       postgres_user_path         = var.ssm_postgres_user_path
       postgres_password_path     = var.ssm_postgres_password_path
