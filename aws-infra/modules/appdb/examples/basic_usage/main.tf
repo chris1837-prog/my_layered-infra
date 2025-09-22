@@ -183,8 +183,15 @@ module "appdb" {
   private_subnet_id           = aws_subnet.private_subnet.id
   sg_app_id                   = aws_security_group.sg_appdb.id
   instance_type               = local.instance_type
-  appdb_instance_profile_name = null
-  app_image                   = "nginx:latest" # Placeholder for testing
+  appdb_instance_profile_name = ""
+  app_image_name              = ""
+  ssm_app_image_tag_path      = ""
+  ssm_internal_registry_url_path = ""
+  ssm_postgres_db_path = ""
+  ssm_postgres_password_path = ""
+  ssm_postgres_user_path = ""
+  ssm_registry_password_path = ""
+  ssm_registry_user_path = ""
 }
 
 # -----------------------------
