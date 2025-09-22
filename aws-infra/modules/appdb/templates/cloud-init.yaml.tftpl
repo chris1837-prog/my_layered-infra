@@ -49,6 +49,7 @@ write_files:
           "${internal_registry_url_path}" \
           "${registry_user_path}" \
           "${registry_password_path}" \
+          "${app_image_name_path}" \
           "${app_image_tag_path}" \
           "${postgres_user_path}" \
           "${postgres_password_path}" \
@@ -62,16 +63,14 @@ write_files:
       INTERNAL_REGISTRY_URL=$(get_param "${internal_registry_url_path}")
       REGISTRY_USER=$(get_param "${registry_user_path}")
       REGISTRY_PASSWORD=$(get_param "${registry_password_path}")
+      APP_IMAGE_NAME=$(get_param "${app_image_name_path}")
       IMAGE_TAG=$(get_param "${app_image_tag_path}")
       POSTGRES_USER=$(get_param "${postgres_user_path}")
       POSTGRES_PASSWORD=$(get_param "${postgres_password_path}")
       POSTGRES_DB=$(get_param "${postgres_db_path}")
 
-      # App image repo/name provided via template
-      APP_IMAGE_NAME='${app_image_name}'
-
       # Compose image
-      IMAGE="${INTERNAL_REGISTRY_URL}/${APP_IMAGE_NAME}:${IMAGE_TAG}"
+      IMAGE="$INTERNAL_REGISTRY_URL/$APP_IMAGE_NAME:$IMAGE_TAG"
 
       # Ensure working directory
       mkdir -p /opt/appdb
@@ -84,22 +83,22 @@ write_files:
       cat > docker-compose.override.yml <<EOF
       services:
         app:
-          image: \${IMAGE}
+          image: \$IMAGE
           environment:
-            POSTGRES_DB: \${POSTGRES_DB}
-            POSTGRES_USER: \${POSTGRES_USER}
-            POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
+            POSTGRES_DB: \$POSTGRES_DB
+            POSTGRES_USER: \$POSTGRES_USER
+            POSTGRES_PASSWORD: \$POSTGRES_PASSWORD
             DATABASE_URL: "postgresql://$${POSTGRES_USER}:$${POSTGRES_PASSWORD}@pgbouncer:6432/$${POSTGRES_DB}"
         postgres:
           environment:
-            POSTGRES_DB: \${POSTGRES_DB}
-            POSTGRES_USER: \${POSTGRES_USER}
-            POSTGRES_PASSWORD: \${POSTGRES_PASSWORD}
+            POSTGRES_DB: \$POSTGRES_DB
+            POSTGRES_USER: \$POSTGRES_USER
+            POSTGRES_PASSWORD: \$POSTGRES_PASSWORD
         pgbouncer:
           environment:
-            DB_NAME: \${POSTGRES_DB}
-            DB_USER: \${POSTGRES_USER}
-            DB_PASSWORD: \${POSTGRES_PASSWORD}
+            DB_NAME: \$POSTGRES_DB
+            DB_USER: \$POSTGRES_USER
+            DB_PASSWORD: \$POSTGRES_PASSWORD
       EOF
 
       # Retry docker compose pull
