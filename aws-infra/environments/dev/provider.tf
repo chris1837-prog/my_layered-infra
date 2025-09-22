@@ -3,5 +3,5 @@
 ########################################
 
 provider "aws" {
-  region  = var.aws_region
+  region = local.bootstrap_outputs.aws_region
 }
