@@ -222,10 +222,10 @@ module "edge" {
   project_name              = "layered-infra"
   environment               = "dev"
   vpc_id                    = aws_vpc.test_vpc.id
-  registry_domain    = "registry.edge.example.com"
-  registry_user      = "registry"
-  registry_password  = "registry"
-  registry_zone_name = "edge.example.com"
+  registry_domain           = "registry.edge.example.com"
+  registry_user             = "registry"
+  registry_password         = "registry"
+  registry_zone_name        = "edge.example.com"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
   ubuntu_version            = local.ubuntu_version
