@@ -222,6 +222,7 @@ module "edge" {
   project_name              = "layered-infra"
   environment               = "dev"
   vpc_id                    = aws_vpc.test_vpc.id
+  edge_private_ip           = "10.0.2.100"
   registry_domain           = "registry.edge.example.com"
   registry_user             = "registry"
   registry_password         = "registry"
