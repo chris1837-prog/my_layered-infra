@@ -30,3 +30,16 @@ output "edge_private_ip" {
   description = "The private IP assigned for the edge instance (used in registry.internal DNS record)"
   value       = var.edge_private_ip
 }
+
+output "project_name" {
+  value = var.project_name
+}
+
+output "environment" {
+  value = var.environment
+}
+
+output "aws_region" {
+  value = var.aws_region
+}
+
