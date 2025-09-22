@@ -53,8 +53,8 @@ data "cloudinit_config" "app" {
       postgres_user_path         = var.ssm_postgres_user_path
       postgres_password_path     = var.ssm_postgres_password_path
       postgres_db_path           = var.ssm_postgres_db_path
-      registry_user_path         = var.ssm_registry_user_path     # optional, used if login required, comment out if not
-      registry_password_path     = var.ssm_registry_password_path # optional, used if login required, comment out if not
+      registry_user_path         = var.ssm_registry_user_path     # used if login required, comment out if not
+      registry_password_path     = var.ssm_registry_password_path # used if login required, comment out if not
     })
   }
 }
