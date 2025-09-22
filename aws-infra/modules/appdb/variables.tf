@@ -78,37 +78,37 @@ variable "app_image_name" {
   type        = string
 }
 
-variable "internal_registry_url_path" {
+variable "ssm_internal_registry_url_path" {
   description = "SSM parameter path for the internal registry URL"
   type        = string
 }
 
-variable "app_image_tag_path" {
+variable "ssm_app_image_tag_path" {
   description = "SSM parameter path for the application image tag"
   type        = string
 }
 
-variable "postgres_user_path" {
+variable "ssm_postgres_user_path" {
   description = "SSM parameter path for the Postgres username"
   type        = string
 }
 
-variable "postgres_password_path" {
+variable "ssm_postgres_password_path" {
   description = "SSM parameter path for the Postgres password"
   type        = string
 }
 
-variable "postgres_db_path" {
+variable "ssm_postgres_db_path" {
   description = "SSM parameter path for the Postgres database name"
   type        = string
 }
 
-variable "registry_user_path" {
+variable "ssm_registry_user_path" {
   description = "SSM parameter path for the registry username (optional, only used if login is required)"
   type        = string
 }
 
-variable "registry_password_path" {
+variable "ssm_registry_password_path" {
   description = "SSM parameter path for the registry password (optional, only used if login is required)"
   type        = string
 }
