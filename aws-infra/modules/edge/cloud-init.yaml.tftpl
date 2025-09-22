@@ -2,8 +2,8 @@
 
 apt:
   debconf_selections:
-    iptables-persistent: iptables-persistent/autosave_v4 boolean true
-    iptables-persistent: iptables-persistent/autosave_v6 boolean true
+    - 'iptables-persistent iptables-persistent/autosave_v4 boolean true'
+    - 'iptables-persistent iptables-persistent/autosave_v6 boolean true'
 
 package_update: true
 package_upgrade: true
@@ -31,9 +31,9 @@ users:
     groups: [sudo]
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
-    ssh_authorized_keys:
+  ssh_authorized_keys:
 %{ for key in admin_ssh_keys ~}
-      - '${key}'
+    - '${key}'
 %{ endfor ~}
 
 write_files:
@@ -46,7 +46,7 @@ write_files:
         tls internal
       }
 
-      ${registry_domain} {
+      ${registry_external_domain} {
         # Serve the local CA so external clients can fetch and trust it.
         # Clients can curl -k https://<registry_domain>/ca.crt and install to their Docker trust store.
         handle_path /ca.crt {
@@ -55,9 +55,15 @@ write_files:
         }
         reverse_proxy localhost:5000
         tls internal
-        basic_auth {
-          ${registry_user} {bcrypt}${bcrypt_hash}
+      }
+
+      ${registry_internal_domain} {
+        handle_path /ca.crt {
+          root * /var/www/caddy
+          file_server
         }
+        reverse_proxy localhost:5000
+        tls internal
       }
 
   - path: /etc/fail2ban/jail.local
@@ -167,18 +173,22 @@ write_files:
         if [ -f "$CA_SRC2" ]; then CA_SRC="$CA_SRC2"; break; fi
         sleep 2
       done
-      DEST_DIR="/etc/docker/certs.d/${registry_domain}"
-      DEST_DIR_PORT="/etc/docker/certs.d/${registry_domain}:443"
-      install -d -m 0755 "$DEST_DIR" "$DEST_DIR_PORT"
+      DEST_DIR_EXT="/etc/docker/certs.d/${registry_external_domain}"
+      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${registry_external_domain}:443"
+      DEST_DIR_INT="/etc/docker/certs.d/${registry_internal_domain}"
+      DEST_DIR_INT_PORT="/etc/docker/certs.d/${registry_internal_domain}:443"
+      install -d -m 0755 "$DEST_DIR_EXT" "$DEST_DIR_EXT_PORT" "$DEST_DIR_INT" "$DEST_DIR_INT_PORT"
       if [ -n "$CA_SRC" ] && [ -f "$CA_SRC" ]; then
-        install -m 0644 -D "$CA_SRC" "$DEST_DIR/ca.crt"
-        install -m 0644 -D "$CA_SRC" "$DEST_DIR_PORT/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT_PORT/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT_PORT/ca.crt"
         # Also expose the CA via HTTPS at /ca.crt for external clients
         install -d -m 0755 /var/www/caddy
         install -m 0644 -D "$CA_SRC" /var/www/caddy/ca.crt
         install -m 0644 -D "$CA_SRC" /usr/local/share/ca-certificates/caddy-local.crt
         update-ca-certificates || true
-        echo "[INIT] CA installed to Docker ($DEST_DIR/ca.crt and $DEST_DIR_PORT/ca.crt) and OS trust; restarting Docker..."
+        echo "[INIT] CA installed to Docker (external+internal) and OS trust; restarting Docker..."
         systemctl restart docker
       else
         echo "[WARN] Caddy internal CA not found; Docker CLI may not trust registry TLS"
