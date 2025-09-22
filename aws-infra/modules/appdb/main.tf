@@ -33,7 +33,7 @@ resource "aws_instance" "app" {
 
   tags = merge(
     { Name = "${var.project_name}-${var.environment}-appdb-instance" },
-    var.common_tags
+    local.merged_tags
   )
 }
 
