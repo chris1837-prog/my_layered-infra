@@ -27,6 +27,7 @@ resource "aws_eip_association" "eip_assoc" {
   instance_id   = aws_instance.edge.id
   allocation_id = var.eip_allocation_id
 }
+
 # Cloud-init configuration for the edge instance
 data "cloudinit_config" "edge" {
   gzip          = true
@@ -43,8 +44,8 @@ data "cloudinit_config" "edge" {
       wireguard_port    = var.wireguard_port,
       registry_domain   = var.registry_domain,
       registry_user     = var.registry_user,
-      registry_password = local.registry_password_final,
-      bcrypt_hash       = local.bcrypt_hash
+      registry_password = var.registry_password,
+      bcrypt_hash       = var.bcrypt_hash
     })
   }
 }
