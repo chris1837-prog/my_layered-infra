@@ -30,10 +30,13 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// Get outputs
 	publicIP := terraform.Output(t, terraformOptions, "edge_public_ip")
 	keyPath := terraform.Output(t, terraformOptions, "edge_private_key_path")
-	// New: Get registry_url output
-	registryURL := terraform.Output(t, terraformOptions, "registry_url")
-	t.Logf("[INFO] Registry URL: %s", registryURL)
-	registryHost := strings.Split(strings.TrimPrefix(registryURL, "https://"), "/")[0]
+	// New: Get split-horizon registry URLs
+	registryExternalURL := terraform.Output(t, terraformOptions, "registry_external_url")
+	registryInternalURL := terraform.Output(t, terraformOptions, "registry_internal_url")
+	t.Logf("[INFO] Registry External URL: %s", registryExternalURL)
+	t.Logf("[INFO] Registry Internal URL: %s", registryInternalURL)
+	registryExternalHost := strings.Split(strings.TrimPrefix(registryExternalURL, "https://"), "/")[0]
+	registryInternalHost := strings.Split(strings.TrimPrefix(registryInternalURL, "https://"), "/")[0]
 
 	// Read the private key
 	privateKey, err := os.ReadFile(keyPath)
@@ -126,17 +129,13 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	}
 	assert.Contains(t, regPsOut, "registry:2", "Docker registry container should be running")
 
-	t.Log("\033[1;34m[INFO]\033[0m Checking Caddyfile for registry domain...")
+	t.Log("\033[1;34m[INFO]\033[0m Checking Caddyfile for registry domains...")
 	caddyfileCmd := "sudo cat /etc/caddy/Caddyfile"
 	caddyfileOut, err := ssh.CheckSshCommandE(t, host, caddyfileCmd)
 	assert.NoError(t, err)
-	containsDomain := strings.Contains(caddyfileOut, strings.TrimPrefix(registryURL, "https://"))
-	if containsDomain {
-		t.Log("\033[1;32m✅ [SUCCESS]\033[0m Caddyfile contains the registry domain")
-	} else {
-		t.Log("\033[1;31m❌ [FAIL]\033[0m Caddyfile missing registry domain entry")
-	}
-	assert.Contains(t, caddyfileOut, strings.TrimPrefix(registryURL, "https://"), "Caddyfile should contain the registry domain")
+	assert.Contains(t, caddyfileOut, strings.TrimPrefix(registryExternalURL, "https://"), "Caddyfile should contain the external registry domain")
+	assert.Contains(t, caddyfileOut, strings.TrimPrefix(registryInternalURL, "https://"), "Caddyfile should contain the internal registry domain")
+	t.Log("\033[1;32m✅ [SUCCESS]\033[0m Caddyfile contains both registry domains")
 
 	t.Log("\033[1;34m[INFO]\033[0m Validating Caddy configuration...")
 	caddyValidateCmd := "sudo caddy validate --config /etc/caddy/Caddyfile"
@@ -153,22 +152,12 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// We'll assert against the actual username extracted below once available
 
 	// --- Registry HTTP Auth Validation via Caddy (curl) ---
-	t.Log("\033[1;34m[INFO]\033[0m Testing registry HTTP endpoint without auth (should be 401)...")
-	curlNoAuthCmd := fmt.Sprintf("curl -s -k -D - -o /dev/null --resolve '%s:443:127.0.0.1' https://%s/v2/", registryHost, registryHost)
-	headersNoAuth, err := ssh.CheckSshCommandE(t, host, curlNoAuthCmd)
-	require.NoError(t, err)
-	if !strings.Contains(headersNoAuth, " 401") {
-		t.Log("\033[1;31m❌ [FAIL]\033[0m Unauthenticated request did not return 401")
-	}
-	assert.Contains(t, headersNoAuth, " 401", "Unauthenticated request should return 401")
-	if strings.Contains(strings.ToLower(headersNoAuth), "www-authenticate: basic") {
-		t.Log("\033[1;32m✅ [SUCCESS]\033[0m Response includes WWW-Authenticate: Basic header")
-	} else {
-		t.Log("\033[1;31m❌ [FAIL]\033[0m WWW-Authenticate header not found")
-		t.Log("\033[1;33m[WARN]\033[0m Header names may be lowercased by HTTP/2")
-	}
-	if strings.Contains(headersNoAuth, " 401") {
-		t.Log("\033[1;32m✅ [SUCCESS]\033[0m Unauthenticated request returns 401 as expected")
+	t.Log("\033[1;34m[INFO]\033[0m Testing registry HTTP endpoints without auth (should be 401) for both domains...")
+	for _, h := range []string{registryExternalHost, registryInternalHost} {
+		curlNoAuthCmd := fmt.Sprintf("curl -s -k -D - -o /dev/null --resolve '%s:443:127.0.0.1' https://%s/v2/", h, h)
+		headersNoAuth, err := ssh.CheckSshCommandE(t, host, curlNoAuthCmd)
+		require.NoError(t, err)
+		assert.Contains(t, headersNoAuth, " 401", "Unauthenticated request should return 401 for "+h)
 	}
 
 	t.Log("\033[1;34m[INFO]\033[0m Extracting registry credentials from startup script for auth test...")
@@ -189,29 +178,22 @@ func TestEdgeModuleIntegration(t *testing.T) {
 
 	t.Log("\033[1;34m[INFO]\033[0m Testing registry HTTP endpoint with wrong creds (should be 401)...")
 	wrongAuth := shSingleQuote(regUser + ":" + "wrongpassword")
-	curlWrongAuthCmd := fmt.Sprintf("curl -s -k -o /dev/null -w '%%{http_code}' --resolve '%s:443:127.0.0.1' -u %s https://%s/v2/", registryHost, wrongAuth, registryHost)
-	httpCodeWrong, err := ssh.CheckSshCommandE(t, host, curlWrongAuthCmd)
-	require.NoError(t, err)
-	if strings.TrimSpace(httpCodeWrong) != "401" {
-		t.Logf("\033[1;31m❌ [FAIL]\033[0m Wrong credentials returned %s (expected 401)", strings.TrimSpace(httpCodeWrong))
+	for _, h := range []string{registryExternalHost, registryInternalHost} {
+		curlWrongAuthCmd := fmt.Sprintf("curl -s -k -o /dev/null -w '%%{http_code}' --resolve '%s:443:127.0.0.1' -u %s https://%s/v2/", h, wrongAuth, h)
+		httpCodeWrongResp, err := ssh.CheckSshCommandE(t, host, curlWrongAuthCmd)
+		require.NoError(t, err)
+		assert.Equal(t, "401", strings.TrimSpace(httpCodeWrongResp), "Wrong credentials should return 401 for "+h)
 	}
-	assert.Equal(t, "401", strings.TrimSpace(httpCodeWrong), "Wrong credentials should return 401")
-	if strings.TrimSpace(httpCodeWrong) == "401" {
-		t.Log("\033[1;32m✅ [SUCCESS]\033[0m Wrong credentials return 401 as expected")
-	}
+	t.Log("\033[1;32m✅ [SUCCESS]\033[0m Wrong credentials return 401 as expected for both domains")
 
 	t.Log("\033[1;34m[INFO]\033[0m Testing registry HTTP endpoint with correct creds (should be 200)...")
-	curlGoodAuthCmd := fmt.Sprintf("curl -s -k -o /dev/null -w '%%{http_code}' --resolve '%s:443:127.0.0.1' -u %s https://%s/v2/", registryHost, authEscaped, registryHost)
-	httpCodeGood, err := ssh.CheckSshCommandE(t, host, curlGoodAuthCmd)
-	require.NoError(t, err)
-	trimmedGood := strings.TrimSpace(httpCodeGood)
-	if trimmedGood != "200" {
-		t.Logf("\033[1;31m❌ [FAIL]\033[0m Authenticated request returned %s (expected 200)", trimmedGood)
+	for _, h := range []string{registryExternalHost, registryInternalHost} {
+		curlGoodAuthCmd := fmt.Sprintf("curl -s -k -o /dev/null -w '%%{http_code}' --resolve '%s:443:127.0.0.1' -u %s https://%s/v2/", h, authEscaped, h)
+		httpCodeGoodResp, err := ssh.CheckSshCommandE(t, host, curlGoodAuthCmd)
+		require.NoError(t, err)
+		assert.Equal(t, "200", strings.TrimSpace(httpCodeGoodResp), "Correct credentials should return 200 for "+h)
 	}
-	assert.Equal(t, "200", trimmedGood, "Correct credentials should return 200")
-	if trimmedGood == "200" {
-		t.Log("\033[1;32m✅ [SUCCESS]\033[0m Authenticated request returns 200 as expected")
-	}
+	t.Log("\033[1;32m✅ [SUCCESS]\033[0m Authenticated request returns 200 as expected for both domains")
 
 	// Validate htpasswd contains the actual registry username
 	htpasswdOut2, err := ssh.CheckSshCommandE(t, host, htpasswdCmd)
@@ -227,19 +209,21 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// --- Docker login/push/pull smoke test ---
 	// Ensure Docker trusts the Caddy internal CA for the registry domain
 	t.Log("\033[1;34m[INFO]\033[0m Verifying Docker trust store contains Caddy internal CA...")
-	caCheckCmd := fmt.Sprintf("test -f /etc/docker/certs.d/%s/ca.crt && echo present || echo missing", registryHost)
-	caStatus, _ := ssh.CheckSshCommandE(t, host, caCheckCmd)
-	caCheckCmd443 := fmt.Sprintf("test -f /etc/docker/certs.d/%s:443/ca.crt && echo present || echo missing", registryHost)
-	caStatus443, _ := ssh.CheckSshCommandE(t, host, caCheckCmd443)
-	if strings.TrimSpace(caStatus) != "present" && strings.TrimSpace(caStatus443) != "present" {
-		t.Log("\033[1;31m❌ [FAIL]\033[0m Docker trust store missing CA (both plain host and :443); login/push may fail")
-	} else {
-		t.Logf("\033[1;32m✅ [SUCCESS]\033[0m Docker trust store has CA for registry (host: %s, host:443: %s)", strings.TrimSpace(caStatus), strings.TrimSpace(caStatus443))
+	for _, h := range []string{registryExternalHost, registryInternalHost} {
+		caCheckCmd := fmt.Sprintf("test -f /etc/docker/certs.d/%s/ca.crt && echo present || echo missing", h)
+		caStatus, _ := ssh.CheckSshCommandE(t, host, caCheckCmd)
+		caCheckCmd443 := fmt.Sprintf("test -f /etc/docker/certs.d/%s:443/ca.crt && echo present || echo missing", h)
+		caStatus443, _ := ssh.CheckSshCommandE(t, host, caCheckCmd443)
+		if strings.TrimSpace(caStatus) != "present" && strings.TrimSpace(caStatus443) != "present" {
+			t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker trust store missing CA for %s (both plain host and :443)", h)
+		} else {
+			t.Logf("\033[1;32m✅ [SUCCESS]\033[0m Docker trust store has CA for %s (host: %s, host:443: %s)", h, strings.TrimSpace(caStatus), strings.TrimSpace(caStatus443))
+		}
 	}
 
 	// Login
 	t.Log("\033[1;34m[INFO]\033[0m Docker login to registry via Caddy...")
-	loginCmd := fmt.Sprintf("echo %s | docker login %s -u %s --password-stdin", shSingleQuote(regPass), registryHost, shSingleQuote(regUser))
+	loginCmd := fmt.Sprintf("echo %s | docker login %s -u %s --password-stdin", shSingleQuote(regPass), registryExternalHost, shSingleQuote(regUser))
 	loginOut, err := ssh.CheckSshCommandE(t, host, loginCmd)
 	if err != nil || !strings.Contains(loginOut, "Login Succeeded") {
 		t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker login attempt failed. Output: %s Error: %v", loginOut, err)
@@ -249,9 +233,9 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	}
 	if err != nil || !strings.Contains(loginOut, "Login Succeeded") {
 		// Print permissions diagnostics to help debug issues like permission denied on CA files
-		diag1, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -ld /etc/docker/certs.d /etc/docker/certs.d/%s /etc/docker/certs.d/%s:443 || true", registryHost, registryHost))
-		diag2, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -l /etc/docker/certs.d/%s 2>/dev/null || true", registryHost))
-		diag3, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -l /etc/docker/certs.d/%s:443 2>/dev/null || true", registryHost))
+		diag1, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -ld /etc/docker/certs.d /etc/docker/certs.d/%s /etc/docker/certs.d/%s:443 || true", registryExternalHost, registryExternalHost))
+		diag2, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -l /etc/docker/certs.d/%s 2>/dev/null || true", registryExternalHost))
+		diag3, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -l /etc/docker/certs.d/%s:443 2>/dev/null || true", registryExternalHost))
 		whoami, _ := ssh.CheckSshCommandE(t, host, "id")
 		t.Log("--- certs dirs (ls -ld) ---\n" + diag1)
 		t.Log("--- certs host (ls -l) ---\n" + diag2)
@@ -285,7 +269,8 @@ func TestEdgeModuleIntegration(t *testing.T) {
 
 	// Tag and push to registry
 	baseName := strings.SplitN(baseImage, ":", 2)[0]
-	imageName := fmt.Sprintf("%s/test/%s:tt", registryHost, baseName)
+	// Use external host for push/pull smoke test (internal will behave the same locally)
+	imageName := fmt.Sprintf("%s/test/%s:tt", registryExternalHost, baseName)
 	t.Log("\033[1;34m[INFO]\033[0m Tagging test image for registry push...")
 	tagCmd := fmt.Sprintf("docker tag %s %s 2>&1 || (echo '[WARN] direct tag failed, trying container image ID...' && img=$(docker inspect --format '{{.Image}}' registry 2>/dev/null || true) && if [ -n \"$img\" ]; then docker tag $img %s; else exit 1; fi)", baseImage, imageName, imageName)
 	tagOut, err := ssh.CheckSshCommandE(t, host, tagCmd)
