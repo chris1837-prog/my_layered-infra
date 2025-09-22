@@ -2,8 +2,8 @@
 
 apt:
   debconf_selections:
-    iptables-persistent: iptables-persistent/autosave_v4 boolean true
-    iptables-persistent: iptables-persistent/autosave_v6 boolean true
+    - 'iptables-persistent iptables-persistent/autosave_v4 boolean true'
+    - 'iptables-persistent iptables-persistent/autosave_v6 boolean true'
 
 package_update: true
 package_upgrade: true
@@ -12,14 +12,15 @@ packages:
   - iptables-persistent
   - netfilter-persistent
   - curl
+  - ca-certificates
   - debian-keyring
   - debian-archive-keyring
   - apt-transport-https
   - openssl
   - wireguard
-  - caddy
   - qrencode
   - fail2ban
+  - docker.io
 
 early_commands:
   - apt-get install -y wireguard  # Ensure WireGuard is available early
@@ -30,9 +31,9 @@ users:
     groups: [sudo]
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
-    ssh_authorized_keys:
+  ssh_authorized_keys:
 %{ for key in admin_ssh_keys ~}
-      - '${key}'
+    - '${key}'
 %{ endfor ~}
 
 write_files:
@@ -42,6 +43,26 @@ write_files:
     content: |
       ${domain_name} {
         reverse_proxy ${join(" ", backend_servers)}
+        tls internal
+      }
+
+      ${registry_external_domain} {
+        # Serve the local CA so external clients can fetch and trust it.
+        # Clients can curl -k https://<registry_domain>/ca.crt and install to their Docker trust store.
+        handle_path /ca.crt {
+          root * /var/www/caddy
+          file_server
+        }
+        reverse_proxy localhost:5000
+        tls internal
+      }
+
+      ${registry_internal_domain} {
+        handle_path /ca.crt {
+          root * /var/www/caddy
+          file_server
+        }
+        reverse_proxy localhost:5000
         tls internal
       }
 
@@ -64,6 +85,33 @@ write_files:
     content: |
       #!/bin/bash
       set -euxo pipefail
+      mkdir -p /var/lib/cloud/instance || true
+      trap 'echo "[ERROR] startup.sh failed at line $LINENO" | tee -a /var/log/edge-init.log; touch /var/lib/cloud/instance/cloud-init-failed' ERR
+      echo "[INIT] startup.sh begun" | tee -a /var/log/edge-init.log
+
+      echo "[INIT] Installing/starting Docker..."
+      apt-get update
+      apt-get install -y docker.io
+      systemctl enable --now docker
+      # Allow SSH users to run docker without sudo
+      usermod -aG docker ubuntu || true
+      if id -u ${admin_user} >/dev/null 2>&1; then
+        usermod -aG docker ${admin_user} || true
+      fi
+
+      echo "[INIT] Preparing registry directories and credentials..."
+      mkdir -p /opt/registry/data /opt/registry/auth
+      docker run --rm --entrypoint htpasswd httpd:2 -Bbn "${registry_user}" "${registry_password}" > /opt/registry/auth/htpasswd
+
+      echo "[INIT] Running Docker registry container..."
+      docker run -d --restart=always --name registry \
+        -e REGISTRY_AUTH=htpasswd \
+        -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
+        -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
+        -v /opt/registry/data:/var/lib/registry \
+        -v /opt/registry/auth:/auth \
+        -p 5000:5000 \
+        registry:2
 
       echo "[INIT] Enabling IP forwarding for NAT..."
       sysctl -w net.ipv4.ip_forward=1
@@ -80,18 +128,18 @@ write_files:
 
       echo "[INIT] Installing Caddy..."
       export DEBIAN_FRONTEND=noninteractive
-      apt-get install -y -o Dpkg::Options::="--force-confnew" caddy
+      apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" caddy
       echo "[INIT] Caddy has been installed."
 
       echo "[INIT] Configuring firewall with UFW..."
       ufw default deny incoming
       ufw default allow outgoing
       ufw allow 80/tcp
-      ufw allow 443/tcp
-%{ for cidr in admin_cidrs ~}
+        ufw allow 443/tcp
+        %{ for cidr in admin_cidrs ~}
       ufw allow from ${cidr} to any port 22 proto tcp
       ufw allow from ${cidr} to any port ${wireguard_port} proto udp
-%{ endfor ~}
+        %{ endfor ~}
       ufw --force enable
 
       echo "[INIT] Setting up WireGuard server..."
@@ -99,46 +147,66 @@ write_files:
       if [ ! -f /etc/wireguard/server_private.key ]; then
         wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
       fi
-      cat > /etc/wireguard/wg0.conf <<EOF
-      [Interface]
-      PrivateKey = $(cat /etc/wireguard/server_private.key)
-      Address = 10.200.0.1/24
-      ListenPort = ${wireguard_port}
-      SaveConfig = true
-      EOF
+      echo "[INIT] Writing WireGuard configuration..."
+      {
+        echo "[Interface]"
+        echo "PrivateKey = $(cat /etc/wireguard/server_private.key)"
+        echo "Address = 10.200.0.1/24"
+        echo "ListenPort = ${wireguard_port}"
+        echo "SaveConfig = true"
+      } > /etc/wireguard/wg0.conf
       systemctl enable --now wg-quick@wg0
 
-      echo "[INIT] Writing Caddyfile and restarting service..."
-      printf "%s {\n  reverse_proxy %s\n  tls internal\n}\n" \
-      "${domain_name}" "${join(" ", backend_servers)}" > /etc/caddy/Caddyfile
-      systemctl restart caddy
+      echo "[INIT] Formatting Caddyfile..."
+      caddy fmt --overwrite /etc/caddy/Caddyfile || true
+
+      echo "[INIT] Enabling and starting Caddy to apply templated config..."
+      systemctl enable --now caddy
+
+      echo "[INIT] Installing Caddy internal CA to Docker and OS trust stores..."
+      CA_SRC1="/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt"
+      CA_SRC2="/var/lib/caddy/pki/authorities/local/root.crt"
+      CA_SRC=""
+      # Wait briefly for Caddy to generate its local CA
+      for i in $(seq 1 15); do
+        if [ -f "$CA_SRC1" ]; then CA_SRC="$CA_SRC1"; break; fi
+        if [ -f "$CA_SRC2" ]; then CA_SRC="$CA_SRC2"; break; fi
+        sleep 2
+      done
+      DEST_DIR_EXT="/etc/docker/certs.d/${registry_external_domain}"
+      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${registry_external_domain}:443"
+      DEST_DIR_INT="/etc/docker/certs.d/${registry_internal_domain}"
+      DEST_DIR_INT_PORT="/etc/docker/certs.d/${registry_internal_domain}:443"
+      install -d -m 0755 "$DEST_DIR_EXT" "$DEST_DIR_EXT_PORT" "$DEST_DIR_INT" "$DEST_DIR_INT_PORT"
+      if [ -n "$CA_SRC" ] && [ -f "$CA_SRC" ]; then
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT_PORT/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT/ca.crt"
+        install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT_PORT/ca.crt"
+        # Also expose the CA via HTTPS at /ca.crt for external clients
+        install -d -m 0755 /var/www/caddy
+        install -m 0644 -D "$CA_SRC" /var/www/caddy/ca.crt
+        install -m 0644 -D "$CA_SRC" /usr/local/share/ca-certificates/caddy-local.crt
+        update-ca-certificates || true
+        echo "[INIT] CA installed to Docker (external+internal) and OS trust; restarting Docker..."
+        systemctl restart docker
+      else
+        echo "[WARN] Caddy internal CA not found; Docker CLI may not trust registry TLS"
+      fi
 
       echo "[INIT] Enabling fail2ban..."
       systemctl enable --now fail2ban
       fail2ban-client status sshd || true
 
-
       echo "[INIT] Script finished successfully."
+      touch /var/lib/cloud/instance/cloud-init-finished
 
 runcmd:
   - [ "sudo", "bash", "/opt/startup.sh" ]
-  - |
-    echo "[TEST] Running basic firewall/fail2ban checks..."
-    PUBIP=$(curl -s ifconfig.me || curl -s https://api.ipify.org || echo "unknown")
-    echo "[TEST] Server public IP detected: $PUBIP"
-
-    echo "[TEST] Checking UFW status..."
-    ufw status verbose || true
-
-    echo "[TEST] Checking Fail2ban status..."
-    fail2ban-client status sshd || true
-
-    echo "[TEST] Negative test: attempting SSH from localhost (should fail if banned)..."
-    for i in {1..6}; do
-      ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 -p 22 root@localhost exit || true
-    done
-
-    echo "[TEST] Fail2ban status after brute-force simulation:"
-    fail2ban-client status sshd || true
-
-    echo "[TEST] Firewall & Fail2ban checks complete."
+  - [ "bash", "-c", "echo '[TEST] Running basic firewall/fail2ban checks...'" ]
+  - [ "bash", "-c", "PUBIP=$(curl -s ifconfig.me || curl -s https://api.ipify.org || echo 'unknown'); echo '[TEST] Server public IP detected: $PUBIP'" ]
+  - [ "ufw", "status", "verbose" ]
+  - [ "fail2ban-client", "status", "sshd" ]
+  - [ "bash", "-c", "for i in {1..6}; do ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 -p 22 root@localhost exit || true; done" ]
+  - [ "fail2ban-client", "status", "sshd" ]
+  - [ "bash", "-c", "echo '[TEST] Firewall & Fail2ban checks complete.'" ]
