@@ -106,6 +106,12 @@ variable "wireguard_port" {
   default     = 51820
 }
 
+variable "bcrypt_hash" {
+  description = "Optional pre-computed bcrypt hash for the Docker registry password."
+  type        = string
+  default     = null
+}
+
 variable "domain_name" {
   description = "The public domain name Caddy will use for HTTPS."
   type        = string
