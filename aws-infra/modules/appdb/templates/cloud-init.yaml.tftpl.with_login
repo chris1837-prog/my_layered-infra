@@ -68,10 +68,10 @@ write_files:
       POSTGRES_DB=$(get_param "${postgres_db_path}")
 
       # App image repo/name provided via template
-      APP_IMAGE_REPO='${app_image_repo}'
+      APP_IMAGE_NAME='${app_image_name}'
 
       # Compose image
-      IMAGE="${INTERNAL_REGISTRY_URL}/${APP_IMAGE_REPO}:${IMAGE_TAG}"
+      IMAGE="${INTERNAL_REGISTRY_URL}/${APP_IMAGE_NAME}:${IMAGE_TAG}"
 
       # Ensure working directory
       mkdir -p /opt/appdb
