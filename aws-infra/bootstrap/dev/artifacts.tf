@@ -13,10 +13,13 @@ terraform {
 EOT
 }
 
-# Generate bootstrap_outputs.json with EIP info
+# Generate bootstrap_outputs.json
 resource "local_file" "bootstrap_outputs" {
   filename = "${path.module}/../../environments/${var.environment}/artifacts/bootstrap_outputs.json"
   content = jsonencode({
+    project_name            = var.project_name
+    environment             = var.environment
+    aws_region              = var.aws_region
     tf_state_bucket_name    = module.remote_backend.tf_state_bucket_name
     tf_state_lock_table     = module.remote_backend.tf_state_lock_table
     github_actions_role_arn = aws_iam_role.github_actions.arn
@@ -41,6 +44,7 @@ resource "local_file" "ssm_parameters_json" {
       external_registry_url = aws_ssm_parameter.external_registry_url.name
       internal_registry_url = aws_ssm_parameter.internal_registry_url.name
       registry_user         = aws_ssm_parameter.registry_user.name
+      app_image_name        = aws_ssm_parameter.app_image_name.name
       app_image_tag         = aws_ssm_parameter.app_image_tag.name
       postgres_db           = aws_ssm_parameter.postgres_db.name
       postgres_user         = aws_ssm_parameter.postgres_user.name
@@ -51,6 +55,7 @@ resource "local_file" "ssm_parameters_json" {
       registry_user         = var.registry_user
       postgres_db           = var.postgres_db
       postgres_user         = var.postgres_user
+      app_image_name        = var.app_image_name
       app_image_tag         = var.app_image_tag
     }
   })
