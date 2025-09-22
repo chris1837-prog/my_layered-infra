@@ -66,6 +66,11 @@ variable "app_image_tag" {
   type        = string
 }
 
+variable "app_image_name" {
+  description = "Docker image name for the application"
+  type        = string
+}
+
 ##################################
 # DNS / Route53
 ##################################

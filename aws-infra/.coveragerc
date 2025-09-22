@@ -1,0 +1,7 @@
+[run]
+branch = True
+source = functions/e1AutoStop
+
+[report]
+show_missing = True
+skip_covered = True

@@ -33,10 +33,13 @@ restrict_by_tags = false
 registry_user = "admin"
 
 # PostgreSQL database name (required)
-postgres_db = "myapp"
+postgres_db = "mydb"
 
 # PostgreSQL username (required)
 postgres_user = "myuser"
+
+# Docker image name (required)
+app_image_name = "myapp"
 
 # Docker image tag for the application (required)
 app_image_tag = "latest"
@@ -46,3 +49,4 @@ domain_name = "uselayered.com"
 
 # Private IP address of the edge host (used for DNS records in Route53)
 edge_private_ip = "10.0.0.10"
+

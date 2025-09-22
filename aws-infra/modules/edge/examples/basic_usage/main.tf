@@ -1,6 +1,6 @@
 provider "aws" {
-  region  = "eu-west-1"
-  profile = "default"
+  region  = "eu-central-1"
+  profile = "AdministratorAccess-694816839566"
 }
 
 
@@ -219,9 +219,17 @@ resource "local_file" "edge_private_key" {
 module "edge" {
   source = "../../"
 
-  project_name              = "layered-infra"
-  environment               = "dev"
-  vpc_id                    = aws_vpc.test_vpc.id
+  project_name      = "layered-infra"
+  environment       = "dev"
+  vpc_id            = aws_vpc.test_vpc.id
+  edge_private_ip   = "10.0.2.100"
+  registry_domain   = "registry.edge.example.com"
+  registry_user     = "registry"
+  registry_password = "registry"
+  # Explicitly override registry URLs to avoid relying on SSM in examples/tests
+  registry_external_url     = "https://registry.edge.example.com"
+  registry_internal_url     = "https://registry.internal.edge.example.com"
+  registry_zone_name        = "edge.example.com"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
   ubuntu_version            = local.ubuntu_version
@@ -233,3 +241,6 @@ module "edge" {
   domain_name               = "edge.example.com"
   backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
 }
+
+# Note: In this self-contained example we avoid creating SSM parameters.
+# Real environments should use the bootstrap module to write these to SSM.

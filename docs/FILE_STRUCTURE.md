@@ -46,6 +46,24 @@
 > For environment variable handling (`.env`) and day-to-day run instructions, see **docs/WORKFLOW_COMPOSE.md**.
 > This keeps operational guidance in one place and avoids duplication with other docs.
 
+## layered-infra/functions/e1AutoStop/
+- `stop_instances.py` — Lambda logic to stop old EC2 instances based on tag + uptime.
+- `test_handler.py` — Unit tests for the Lambda handler, using `unittest.mock`.
+- `policy.json` — IAM policy defining `ec2:DescribeInstances` and `ec2:StopInstances` permissions.
+- `requirements.txt` — Dependency file (including `boto3`, `pytest`, `coverage`, etc.).
+- `.coveragerc` — Coverage config enabling branch tracking + source path config.
+- `.coverage` — (gitignored) file generated during test runs for coverage reports.
+
+Run tests with:
+
+```bash
+coverage run -m pytest && coverage report -m
+```
+
+> ✅ 100% test coverage (branches included)
+
+---
+
 ## Backup & Restore (local)
 
 This repo ships a helper script that performs consistent backups and safe restores **via PgBouncer**. It also validates app health before/after.
@@ -91,6 +109,8 @@ Because PgBouncer runs in **transaction pooling mode**, **prepared statements** 
 - All pg operations go **through PgBouncer** to mirror production access patterns.
 - Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
 - Restores are validated by checking both database objects (tables and counts) and app health to ensure consistency and correctness.
+
+=======
 
 ## QA Office Hours (Cloud)
 

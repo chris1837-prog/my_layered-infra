@@ -59,6 +59,13 @@ resource "aws_ssm_parameter" "registry_user" {
   tags = local.merged_tags
 }
 
+resource "aws_ssm_parameter" "app_image_name" {
+  name        = "/${var.project_name}/${var.environment}/app_image_name"
+  type        = "String"
+  value       = var.app_image_name
+  description = "Docker image name for the application"
+}
+
 resource "aws_ssm_parameter" "app_image_tag" {
   name        = "/${var.project_name}/${var.environment}/app_image_tag"
   type        = "String"
