@@ -5,7 +5,7 @@ data "aws_ssm_parameter" "ubuntu" {
 
 resource "aws_instance" "app" {
   ami                    = data.aws_ssm_parameter.ubuntu.value
-  instance_type          = var.instance_type   # default = t3.medium (good balance for small DB + app)
+  instance_type          = var.instance_type # default = t3.medium (good balance for small DB + app)
   subnet_id              = var.private_subnet_id
   vpc_security_group_ids = [var.sg_app_id]
   iam_instance_profile   = try(var.appdb_instance_profile_name, null)
@@ -15,7 +15,7 @@ resource "aws_instance" "app" {
   user_data_base64            = data.cloudinit_config.app.rendered
 
   # Enable CloudWatch detailed monitoring (1-min granularity instead of 5-min)
-  monitoring    = var.enable_monitoring
+  monitoring = var.enable_monitoring
   # Ensure instance is optimized for EBS performance (on t3.* and newer it’s free)
   ebs_optimized = var.enable_ebs_optimized
 
@@ -47,7 +47,7 @@ data "cloudinit_config" "app" {
       project_name               = var.project_name
       environment                = var.environment
       docker_compose_content     = file("${path.module}/../../mvp-compose/docker-compose.yml")
-      app_image_name             = var.app_image_name  # e.g. "myorg/myapp" or just "myapp"
+      app_image_name             = var.app_image_name # e.g. "myorg/myapp" or just "myapp"
       internal_registry_url_path = var.ssm_internal_registry_url_path
       app_image_tag_path         = var.ssm_app_image_tag_path
       postgres_user_path         = var.ssm_postgres_user_path

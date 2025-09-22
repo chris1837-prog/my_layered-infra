@@ -16,9 +16,9 @@ variable "common_tags" {
 }
 
 variable "ubuntu_version" {
-   description = "Ubuntu version (20.04, 22.04, 24.04)"
-     type = string
-     default = "22.04" # change here if you want 20.04 or 24.04
+  description = "Ubuntu version (20.04, 22.04, 24.04)"
+  type        = string
+  default     = "22.04" # change here if you want 20.04 or 24.04
 }
 
 variable "instance_type" {
