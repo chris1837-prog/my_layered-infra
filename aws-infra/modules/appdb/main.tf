@@ -43,11 +43,11 @@ data "cloudinit_config" "app" {
 
   part {
     content_type = "text/cloud-config"
-    content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
+    content = templatefile("${path.module}/templates/cloud-init.yaml.tftpl", {
       project_name               = var.project_name
       environment                = var.environment
-      docker_compose_content     = file("${path.module}/../../mvp-compose/docker-compose.yml")
-      app_image_name             = var.app_image_name # e.g. "myorg/myapp" or just "myapp"
+      docker_compose_content     = file("${path.module}/../../../mvp-compose/docker-compose.yml")
+      app_image_name_path        = var.ssm_app_image_name_path # e.g. "myorg/myapp" or just "myapp"
       internal_registry_url_path = var.ssm_internal_registry_url_path
       app_image_tag_path         = var.ssm_app_image_tag_path
       postgres_user_path         = var.ssm_postgres_user_path
