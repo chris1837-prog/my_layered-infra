@@ -42,8 +42,8 @@ data "cloudinit_config" "edge" {
       backend_servers          = var.backend_servers,
       admin_cidrs              = var.admin_cidrs,
       wireguard_port           = var.wireguard_port,
-      registry_external_domain = var.registry_external_url,
-      registry_internal_domain = var.registry_internal_url,
+      registry_external_url    = var.registry_external_url,
+      registry_internal_url    = var.registry_internal_url,
       registry_user            = var.registry_user,
       registry_password        = var.registry_password
     })

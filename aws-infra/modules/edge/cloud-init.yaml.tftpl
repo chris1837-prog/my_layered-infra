@@ -46,7 +46,7 @@ write_files:
         tls internal
       }
 
-      ${registry_external_domain} {
+      ${registry_external_url} {
         # Serve the local CA so external clients can fetch and trust it.
         # Clients can curl -k https://<registry_domain>/ca.crt and install to their Docker trust store.
         handle_path /ca.crt {
@@ -57,7 +57,7 @@ write_files:
         tls internal
       }
 
-      ${registry_internal_domain} {
+      ${registry_internal_url} {
         handle_path /ca.crt {
           root * /var/www/caddy
           file_server
@@ -173,10 +173,10 @@ write_files:
         if [ -f "$CA_SRC2" ]; then CA_SRC="$CA_SRC2"; break; fi
         sleep 2
       done
-      DEST_DIR_EXT="/etc/docker/certs.d/${registry_external_domain}"
-      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${registry_external_domain}:443"
-      DEST_DIR_INT="/etc/docker/certs.d/${registry_internal_domain}"
-      DEST_DIR_INT_PORT="/etc/docker/certs.d/${registry_internal_domain}:443"
+      DEST_DIR_EXT="/etc/docker/certs.d/${registry_external_url}"
+      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${registry_external_url}:443"
+      DEST_DIR_INT="/etc/docker/certs.d/${registry_internal_url}"
+      DEST_DIR_INT_PORT="/etc/docker/certs.d/${registry_internal_url}:443"
       install -d -m 0755 "$DEST_DIR_EXT" "$DEST_DIR_EXT_PORT" "$DEST_DIR_INT" "$DEST_DIR_INT_PORT"
       if [ -n "$CA_SRC" ] && [ -f "$CA_SRC" ]; then
         install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT/ca.crt"
