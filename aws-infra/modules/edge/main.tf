@@ -22,7 +22,7 @@ resource "aws_instance" "edge" {
 }
 
 resource "aws_eip_association" "eip_assoc" {
-  count = var.eip_allocation_id != null ? 1 : 0
+  count = var.enable_eip_association ? 1 : 0
 
   instance_id   = aws_instance.edge.id
   allocation_id = var.eip_allocation_id
