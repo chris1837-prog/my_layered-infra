@@ -14,6 +14,8 @@ Monorepo for the MVP platform. This repo hosts:
 - Contribution & PR flow: see **docs/BRANCHING.md**
 - Load testing: see **tests/k6/README.md**
 
+- Auto-stop Lambda (FinOps): see **functions/e1AutoStop/README.md**
+
 ---
 
 ## Backup & Restore (local)
@@ -67,6 +69,33 @@ Restores are validated by checking both the presence and correctness of database
 
 ---
 
+## QA Auto-Stop Lambda
+
+The repo includes a Lambda function that automatically stops long-running QA-tagged EC2 instances to save cost.
+
+### ✅ Highlights
+- Stops instances with `Environment=QA` after a threshold (e.g. 2h).
+- Uses environment variables for flexibility.
+- Includes unit tests with full coverage (100%) using `pytest` and `coverage`.
+
+### 📁 Location
+- `functions/e1AutoStop/`
+
+### 🧪 Testing
+- Tests are located in `tests/test_handler.py`.
+- Run tests using:
+  ```bash
+  coverage run -m pytest
+  coverage report -m
+  ```
+  Coverage config in `.coveragerc`.
+
+### 📦 Dependencies
+Dependencies are pinned in `requirements.txt`:
+- `boto3`, `pytest`, `coverage`, etc.
+
+See `README.md` inside `functions/e1AutoStop/` for detailed IAM, Terraform module, and config examples.
+
 ## Contributing
 - Keep PRs **small and focused** (one concern per PR).
 - Pin external images/dependencies to **stable versions**.
@@ -88,3 +117,53 @@ Restores are validated by checking both the presence and correctness of database
   - Supports **smoke** mode (fast connectivity checks).  
   - Supports **graceful** mode (verifies app shutdown closes HTTP + DB pool cleanly).
 
+## AWS Cost Explorer Dashboard (E5)
+
+### 🎯 Goal
+
+Provide a clear, tag-based view of spending across the project.
+
+### ✅ Acceptance Criteria
+
+- A dashboard is created in AWS Cost Explorer.
+- The dashboard is saved with a report that groups and filters costs by our standard project tag: `Environment`.
+- The link to the shared dashboard is saved and documented for team leads.
+
+### 📊 How It Works
+
+The AWS Cost Explorer dashboard uses **linked accounts and cost allocation tags** to group expenses based on the `Environment` tag.
+
+We recommend using the following standard `Environment` tag values across all deployed resources:
+
+- `Development`
+- `Testing`
+- `QA`
+- `Staging`
+- `Production`
+
+The dashboard allows filtering, grouping, and comparing usage/cost across these dimensions.
+
+### 📎 Dashboard Link
+
+- [Access the shared E5 Cost Dashboard](https://console.aws.amazon.com/cost-management/home?#/reports/view/CustomE5Dashboard)
+
+### 🛠️ Setup Notes
+
+To ensure the dashboard shows correct and complete data:
+
+1. Enable the `Environment` tag in the **Cost Allocation Tags** section of the AWS Billing Console.
+2. Verify that all Terraform modules and resources consistently tag with `Environment = var.environment`.
+3. Use the `Linked Accounts` and `Usage Type` groupings in conjunction with the `Environment` tag for deeper analysis (optional).
+
+### 🧪 Test & Validate
+
+- Validate that all core resources (EC2, RDS, S3, etc.) include the correct `Environment` tag.
+- Navigate to AWS Cost Explorer → Reports → E5 Dashboard.
+- Check if each environment has cost data and is correctly grouped.
+=======
+## layered-infra/aws-infra/modules/office_hours_scheduler/
+- `main.tf` – Declares the Lambda function, IAM role/policies, scheduler rules, and permissions.
+- `lambda_function.py` – Python code for the Lambda (must be zipped before deploy).
+- `outputs.tf` – Exposes Lambda name, rule names, and IAM role ARN.
+- `variables.tf` – Input variables like `tag_key`, `tag_value`, and `function_name`.
+- `versions.tf` – Required Terraform and provider versions.

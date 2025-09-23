@@ -40,6 +40,8 @@
 - **Infra (Terraform, future `infra/`)** – infra team
 - **Load Testing (k6 / tests/k6/)** – QA/perf team
 - **Monitoring (Grafana, Prometheus, etc.)** – observability team
+- **EBS Cleanup (orphaned volumes/snapshots)** – FinOps team
+- **Cleanup Scheduler (CloudWatch + Lambda binding)** – Infra team
 
 ## layered-infra/mvp-compose/
 - `app/` — Node.js application source code.  
@@ -69,39 +71,119 @@ This repo ships a helper script that performs consistent backups and safe restor
   ```bash
   ./backup-restore.sh snapshot
   ```
-  Creates a versioned dump under `backups/` (format: `YYYY-MM-DD_HHMMSS-myapp.dump`).
 
 - **Smoke restore (side DB)**
   ```bash
   ./backup-restore.sh smoke-restore
   ```
-  Restores the last snapshot into a temporary database (e.g., `myapp_restore_<timestamp>`), then verifies tables and counts. Does **not** touch the live DB.
 
 - **Full restore (seed → snapshot → verify → swap)**
   ```bash
   ./backup-restore.sh full
   ```
-  End-to-end flow used locally: ensures stack is up, (re)seeds demo data idempotently, takes a snapshot, verifies via smoke-restore, then performs a **swap-restore** (restore into temp DB, terminate sessions, atomically rename to `myapp`) and re-checks app `/health` through PgBouncer.
 
 ### Important notes on PgBouncer and queries
 
-Because PgBouncer runs in **transaction pooling mode**, **prepared statements** (using `PREPARE`/`EXECUTE` or named prepared statements in node-postgres) **must not be used**, as they are incompatible with this mode. However, **plain parameterized queries are safe** and recommended to use.
+Because PgBouncer runs in **transaction pooling mode**, **prepared statements** must not be used. Use plain parameterized queries.
 
 ### Where files go
-- Backups are written to `backups/` and are **.gitignored**.
-- The script uses the Compose services defined in `mvp-compose/docker-compose.yml` and relies on environment from `.env` / `.env.example`.
+- Backups are written to `backups/` (in `.gitignore`).
+- Script uses Compose config from `mvp-compose/docker-compose.yml`.
 
 ### Troubleshooting
-- `zsh: no such file or directory: ./mvp-compose/backup-restore.sh` → Run from repo root: `./backup-restore.sh ...` (the script is **not** inside `mvp-compose/`).
+- `zsh: no such file or directory: ./mvp-compose/backup-restore.sh` → run from repo root.
 - `permission denied` → `chmod +x ./backup-restore.sh`.
-- App not healthy initially → the script waits for `http://localhost:3000/health` to return 200; if it keeps failing, check `docker compose logs app`.
+- App not healthy → verify `localhost:3000/health` and container logs.
 
-### Notes
-- All pg operations go **through PgBouncer** to mirror production access patterns.
-- Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
-- Restores are validated by checking both database objects (tables and counts) and app health to ensure consistency and correctness.
+---
 
+
+## ✅ Infra Lambda Development (e.g. e1AutoStop)
+
+### Branch usage
+- Dev branch: `_feat/e1AutoStop`
+- Team branch: `feat/infra`
+
+### Testing
+```bash
+cd aws-infra
+coverage run -m pytest
+coverage report -m
+```
+
+### Requirements
+```text
+boto3==1.40.35
+coverage==7.10.7
+pytest==8.4.2
+# usw.
+```
+
+### .coveragerc config
+```ini
+[run]
+branch = True
+source = functions/e1AutoStop
+
+[report]
+show_missing = True
+skip_covered = True
+```
+
+### 100% Coverage Output (Example)
+```
+Name                                     Stmts   Miss Branch BrPart  Cover
+--------------------------------------------------------------------------
+functions/e1AutoStop/stop_instances.py      34      0     10      0   100%
+--------------------------------------------------------------------------
+TOTAL                                       81      0     10      0   100%
+```
+
+### Directory Layout
+```bash
+functions/
+└── e1AutoStop/
+    ├── stop_instances.py
+    ├── test_handler.py
+    ├── requirements.txt
+    └── .coveragerc
+```
+
+### Conventional Commits
+- `feat: add e1AutoStop Lambda`
+- `test: full test coverage`
+- `docs: add Lambda usage guide`
+=======
 This structure ensures:  
 - Clear ownership and accountability.  
 - Easy navigation of team responsibilities.  
 - Smooth PR review and integration process.
+
+---
+
+## Office Hours Scheduler (QA cloud workflow)
+
+The `qa` environment includes a scheduled **EC2 auto-stop/start module** powered by AWS Lambda and CloudWatch Events. Instances tagged with:
+
+```hcl
+TAG_KEY   = "Environment"
+TAG_VALUE = "QA"
+```
+
+are automatically:
+- **Started** at `07:00 UTC` every weekday  
+- **Stopped** at `19:00 UTC` every weekday
+
+This behavior is controlled by a reusable module defined under `aws-infra/modules/office_hours_scheduler/`. The function is written in Python and packaged into `lambda.zip` before deployment.
+
+### Deployment (for QA)
+Use our wrapper script:
+```bash
+~/bin/aws-auth.sh --account qa --tf-apply-then-destroy --tf-chdir aws-infra/environments/qa --auto-approve
+```
+
+This will perform a full apply and teardown for ephemeral QA testing.
+
+📄 For more, see:
+- [Module README](../modules/office_hours_scheduler/README.md)
+- [ADR](../../../docs/ADRs/ADR-e4-office-hours.md)

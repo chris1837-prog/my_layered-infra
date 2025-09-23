@@ -29,20 +29,24 @@ github_branch = "development"
 # Restrict Terraform permissions by Project/Environment tags (default: false)
 restrict_by_tags = false
 
-# Private Docker registry URL (required)
-registry_url = "registry.example.com"
-
 # Private Docker registry username (required)
 registry_user = "admin"
 
 # PostgreSQL database name (required)
-postgres_db = "myapp"
+postgres_db = "mydb"
 
 # PostgreSQL username (required)
 postgres_user = "myuser"
+
+# Docker image name (required)
+app_image_name = "myapp"
 
 # Docker image tag for the application (required)
 app_image_tag = "latest"
 
 # Base domain name for Route53 hosted zone (e.g., uselayered.com)
 domain_name = "uselayered.com"
+
+# Private IP address of the edge host (used for DNS records in Route53)
+edge_private_ip = "10.0.0.10"
+

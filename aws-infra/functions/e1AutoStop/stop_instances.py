@@ -1,0 +1,61 @@
+import os
+import boto3
+from datetime import datetime, timezone, timedelta
+
+
+def get_config():
+    return {
+        "ENV_TAG_KEY": os.environ.get("ENV_TAG_KEY", "Environment"),
+        "ENV_TAG_VALUE": os.environ.get("ENV_TAG_VALUE", "QA"),
+        "THRESHOLD_MINUTES": int(os.environ.get("THRESHOLD_MINUTES", "120")),
+        "DRY_RUN": os.environ.get("DRY_RUN", "true").lower() == "true",
+    }
+
+
+def lambda_handler(_event, _context):
+    config = get_config()
+    ec2 = boto3.client("ec2")
+    now = datetime.now(timezone.utc)
+    threshold = timedelta(minutes=config["THRESHOLD_MINUTES"])
+
+    print(
+        f"Looking for EC2 instances tagged {config['ENV_TAG_KEY']}={config['ENV_TAG_VALUE']} "
+        f"running longer than {config['THRESHOLD_MINUTES']} minutes (DRY_RUN={config['DRY_RUN']})"
+    )
+
+    filters = [
+        {"Name": f"tag:{config['ENV_TAG_KEY']}", "Values": [config["ENV_TAG_VALUE"]]},
+        {"Name": "instance-state-name", "Values": ["running"]},
+    ]
+
+    response = ec2.describe_instances(Filters=filters)
+    stop_candidates = []
+
+    for reservation in response["Reservations"]:
+        for instance in reservation["Instances"]:
+            instance_id = instance["InstanceId"]
+            launch_time = instance["LaunchTime"]
+
+            # Ensure launch_time is timezone-aware
+            run_time = now - launch_time.replace(tzinfo=timezone.utc)
+
+            print(f"Instance {instance_id} launched at {launch_time}, running for {run_time}")
+
+            if run_time > threshold:
+                print(f"→ Marked for stopping: {instance_id}")
+                stop_candidates.append(instance_id)
+            else:
+                print(f"→ OK: {instance_id} below threshold.")
+
+    if not stop_candidates:
+        print("✅ No instances need stopping.")
+        return
+
+    try:
+        ec2.stop_instances(InstanceIds=stop_candidates, DryRun=config["DRY_RUN"])
+        if config["DRY_RUN"]:
+            print(f"🧪 DRY RUN: Would have stopped: {stop_candidates}")
+        else:
+            print(f"🛑 Stopped instances: {stop_candidates}")
+    except Exception as e:
+        print(f"⚠️ Failed to stop instances: {e}")

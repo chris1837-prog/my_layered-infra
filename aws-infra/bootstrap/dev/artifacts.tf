@@ -15,43 +15,52 @@ EOT
 
 # Generate bootstrap_outputs.json
 resource "local_file" "bootstrap_outputs" {
-  filename = "${path.module}/../../environments/${var.environment}/bootstrap_outputs.json"
+  filename = "${path.module}/../../environments/${var.environment}/artifacts/bootstrap_outputs.json"
   content = jsonencode({
+    project_name            = var.project_name
+    environment             = var.environment
+    aws_region              = var.aws_region
     tf_state_bucket_name    = module.remote_backend.tf_state_bucket_name
     tf_state_lock_table     = module.remote_backend.tf_state_lock_table
     github_actions_role_arn = aws_iam_role.github_actions.arn
+
+    # Edge instance wiring
+    edge_eip_allocation_id = aws_eip.edge.allocation_id
+    edge_eip_public_ip     = aws_eip.edge.public_ip
+    public_zone_id         = aws_route53_zone.environment.zone_id
   })
 }
 
-# Generate JSON output file with parameter paths
+# Generate JSON output file with SSM parameter paths + values
 resource "local_file" "ssm_parameters_json" {
-  filename = "${path.module}/../../environments/${var.environment}/ssm_parameters.json"
+  filename = "${path.module}/../../environments/${var.environment}/artifacts/ssm_parameters.json"
   content = jsonencode({
-    project_name = var.project_name
-    environment  = var.environment
-    aws_region   = var.aws_region
     parameter_paths = {
-      postgres_password = aws_ssm_parameter.postgres_password.name
-      registry_password = aws_ssm_parameter.registry_password.name
-      registry_url      = aws_ssm_parameter.registry_url.name
-      registry_user     = aws_ssm_parameter.registry_user.name
-      app_image_tag     = aws_ssm_parameter.app_image_tag.name
-      postgres_db       = aws_ssm_parameter.postgres_db.name
-      postgres_user     = aws_ssm_parameter.postgres_user.name
+      postgres_password     = aws_ssm_parameter.postgres_password.name
+      registry_password     = aws_ssm_parameter.registry_password.name
+      external_registry_url = aws_ssm_parameter.external_registry_url.name
+      internal_registry_url = aws_ssm_parameter.internal_registry_url.name
+      registry_user         = aws_ssm_parameter.registry_user.name
+      app_image_name        = aws_ssm_parameter.app_image_name.name
+      app_image_tag         = aws_ssm_parameter.app_image_tag.name
+      postgres_db           = aws_ssm_parameter.postgres_db.name
+      postgres_user         = aws_ssm_parameter.postgres_user.name
     }
     parameter_values = {
-      registry_url  = var.registry_url
-      registry_user = var.registry_user
-      postgres_db   = var.postgres_db
-      postgres_user = var.postgres_user
-      app_image_tag = var.app_image_tag
+      external_registry_url = aws_route53_record.registry_public.fqdn  # Use actual FQDN
+      internal_registry_url = aws_route53_record.registry_private.fqdn # Use actual FQDN
+      registry_user         = var.registry_user
+      postgres_db           = var.postgres_db
+      postgres_user         = var.postgres_user
+      app_image_name        = var.app_image_name
+      app_image_tag         = var.app_image_tag
     }
   })
 }
 
 # Generate instructions for DNS delegation setup
 resource "local_file" "delegation_instructions" {
-  filename = "${path.module}/../../environments/${var.environment}/namecheap_setup_${var.environment}.txt"
+  filename = "${path.module}/../../environments/${var.environment}/artifacts/namecheap_setup_${var.environment}.txt"
   content  = <<-EOT
 DNS DELEGATION SETUP FOR ${upper(var.environment)}
 =================================================

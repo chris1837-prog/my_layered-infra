@@ -26,8 +26,43 @@
   - `open_smoke.js` — Lightweight smoke test with k6.
   - `README.md` — Guide for running load tests.
 
+## layered-infra/modules/orphaned_cleanup/
+
+- `lambda_function.py` — Python Lambda to detect and delete unattached EBS volumes and stale snapshots.
+- `lambda.zip` — Packaged deployment artifact for the Lambda.
+- `main.tf` — Declares IAM role, policy, Lambda resource, and permissions.
+- `outputs.tf` — Exports Lambda function ARN.
+- `variables.tf` — Input variables for name prefix and region.
+- `versions.tf` — Terraform and AWS provider version constraints.
+- `README.md` — Usage and setup guide for the orphaned cleanup module.
+
+## layered-infra/modules/orphaned_cleanup_scheduler/
+
+- `main.tf` — CloudWatch event rule + Lambda invocation permissions.
+- `variables.tf` — Accepts Lambda function ARN and naming prefix.
+- `versions.tf` — Terraform and AWS provider version constraints.
+- `README.md` — Scheduler module to trigger orphaned cleanup daily at 03:00 UTC.
+
 > For environment variable handling (`.env`) and day-to-day run instructions, see **docs/WORKFLOW_COMPOSE.md**.
 > This keeps operational guidance in one place and avoids duplication with other docs.
+
+## layered-infra/functions/e1AutoStop/
+- `stop_instances.py` — Lambda logic to stop old EC2 instances based on tag + uptime.
+- `test_handler.py` — Unit tests for the Lambda handler, using `unittest.mock`.
+- `policy.json` — IAM policy defining `ec2:DescribeInstances` and `ec2:StopInstances` permissions.
+- `requirements.txt` — Dependency file (including `boto3`, `pytest`, `coverage`, etc.).
+- `.coveragerc` — Coverage config enabling branch tracking + source path config.
+- `.coverage` — (gitignored) file generated during test runs for coverage reports.
+
+Run tests with:
+
+```bash
+coverage run -m pytest && coverage report -m
+```
+
+> ✅ 100% test coverage (branches included)
+
+---
 
 ## Backup & Restore (local)
 
@@ -74,3 +109,44 @@ Because PgBouncer runs in **transaction pooling mode**, **prepared statements** 
 - All pg operations go **through PgBouncer** to mirror production access patterns.
 - Dumps are created with `pg_dump` (custom format) and include schema + data of the `myapp` DB.
 - Restores are validated by checking both database objects (tables and counts) and app health to ensure consistency and correctness.
+
+=======
+
+## QA Office Hours (Cloud)
+
+The `qa` environment includes an automated **Office Hours Scheduler** that uses AWS Lambda and CloudWatch Events to manage instance uptime.
+
+> For full details, see the Terraform module documentation in `modules/office_hours_scheduler/README.md` and the architectural decision in `docs/ADRs/ADR-e4-office-hours.md`.
+
+### Module Overview
+
+The scheduler module provisions:
+
+- **Lambda Function** – Starts/stops EC2 instances based on tags.
+- **CloudWatch Rules** – Defines start/stop schedules:
+  - Start: `cron(0 7 ? * MON-FRI *)`
+  - Stop: `cron(0 19 ? * MON-FRI *)`
+- **IAM Role** – Scoped access to EC2 and CloudWatch Logs.
+
+Instances are filtered via tags:
+```hcl
+TAG_KEY   = "Environment"
+TAG_VALUE = "QA"
+```
+
+### Deployment
+
+Use the auth wrapper to deploy the module in QA:
+```bash
+~/bin/aws-auth.sh --account qa --tf-apply-then-destroy --tf-chdir aws-infra/environments/qa --auto-approve
+```
+
+> This runs `terraform apply` followed by `destroy`, useful for ephemeral QA tests.
+
+### Packaging Reminder
+
+Ensure `lambda.zip` is created before applying:
+```bash
+cd aws-infra/modules/office_hours_scheduler
+zip lambda.zip lambda_function.py
+```

@@ -31,13 +31,14 @@ The Edge VM is responsible for three primary functions: providing secure network
 **Why this is important:** Caddy provides a modern, secure way to handle all incoming web traffic. It terminates HTTPS, manages TLS certificates, and forwards requests to the correct backend application.
 
 - **Reverse Proxy:** Caddy is configured to listen for traffic on its public interface and forward it to the application servers running in the private subnet.
-- **Automatic HTTPS (Internal TLS):** For this initial setup, Caddy is configured to use `tls internal`. It creates its own private Certificate Authority (CA) and issues a trusted certificate for internal use. This allows us to test the entire HTTPS and proxying workflow without needing public DNS configured yet.
+- **Automatic HTTPS (Internal TLS):** Caddy is configured to use `tls internal`. It creates its own private Certificate Authority (CA) and issues a trusted certificate for internal use.
+- **Split-Horizon Docker Registry Proxy:** The Edge VM also proxies a private Docker registry on two hostnames (external and internal). The Caddy local CA is exposed at `/ca.crt` on both registry hosts for clients to trust, and the CA is installed into the host Docker trust store so the local Docker client can authenticate to the registry via HTTPS.
 
 ## Features
 - Provisions an Ubuntu EC2 instance as an Edge VM
 - Installs and configures NAT (iptables), WireGuard VPN, Caddy reverse proxy, and fail2ban via cloud-init
 - Dynamically generates an SSH key pair (no manual key management required)
-- Assigns an Elastic IP for stable public access
+- Optionally associates an Elastic IP for stable public access (when `eip_allocation_id` is provided)
 - Configurable via variables for VPC, subnet, admin CIDRs, backend servers, and domain
 - Outputs the public IP and instance ID
 
@@ -50,6 +51,7 @@ module "edge" {
   project_name              = "layered-infra"
   environment               = "dev"
   vpc_id                    = aws_vpc.test_vpc.id
+  edge_private_ip           = "10.0.2.100"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
   ubuntu_version            = local.ubuntu_version
@@ -60,6 +62,15 @@ module "edge" {
   admin_cidrs               = ["0.0.0.0/0"]
   domain_name               = "edge.example.com"
   backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
+
+  # Private Docker Registry (required)
+  registry_user             = "registry"
+  registry_password         = "registry"           # mark as sensitive in state
+  registry_external_url     = "https://registry.edge.example.com"
+  registry_internal_url     = "https://registry.internal.edge.example.com"
+
+  # Optional: Associate an existing EIP (omit for ephemeral public IP or if handled elsewhere)
+  # eip_allocation_id       = "eipalloc-xxxxxxxxxxxxxxxxx"
 }
 ```
 
@@ -69,27 +80,34 @@ module "edge" {
 |---------------------------|-----------------------------------------------------------|--------------|-----------------|
 | project_name              | Name of the project                                       | string       | n/a             |
 | environment               | Environment name (e.g., dev, qa, prod)                    | string       | n/a             |
-| vpc_id                    | VPC ID for deployment                                    	| string       | n/a             |
-| public_subnet_id          | Public subnet ID for the Edge VM                         	| string       | n/a             |
-| sg_edge_id                | Security group ID for the Edge VM                        	| string       | n/a             |
-| instance_type             | EC2 instance type                                        	| string       | "t3.micro"      |
-| admin_user                | Admin username on the instance                           	| string       | "ubuntu"        |
-| admin_cidrs               | List of CIDRs allowed for SSH/WireGuard access           	| list(string) | ["0.0.0.0/0"]   |
-| admin_ssh_keys            | List of public SSH keys for admin user                   	| list(string) | n/a             |
-| key_name                  | Name of existing AWS Key Pair for SSH access             	| string       | n/a             |
-| ubuntu_version            | Ubuntu version for the Edge VM                          	| string       | "22.04"         |
-| iam_instance_profile_name | Name of IAM instance profile to attach to the Edge VM    	| string       | n/a             |
-| wireguard_port            | UDP port for WireGuard                                   	| number       | 51820           |
-| domain_name               | Domain for Caddy HTTPS                                  	| string       | n/a             |
-| backend_servers           | List of backend IP:port addresses                       	| list(string) | n/a             |
-| common_tags               | Map of tags to assign to all resources                  	| map(string)  | {}              |
+| vpc_id                    | VPC ID for deployment                                     | string       | n/a             |
+| public_subnet_id          | Public subnet ID for the Edge VM                          | string       | n/a             |
+| sg_edge_id                | Security group ID for the Edge VM                         | string       | n/a             |
+| instance_type             | EC2 instance type                                          | string       | "t3.micro"      |
+| admin_user                | Admin username on the instance                             | string       | "ubuntu"        |
+| admin_cidrs               | List of CIDRs allowed for SSH/WireGuard access             | list(string) | ["0.0.0.0/0"]   |
+| admin_ssh_keys            | List of public SSH keys for admin user                     | list(string) | n/a             |
+| key_name                  | Name of existing AWS Key Pair for SSH access               | string       | n/a             |
+| ubuntu_version            | Ubuntu version for the Edge VM                             | string       | "22.04"         |
+| iam_instance_profile_name | Name of IAM instance profile to attach to the Edge VM      | string       | n/a             |
+| wireguard_port            | UDP port for WireGuard                                     | number       | 51820           |
+| domain_name               | Domain for Caddy HTTPS                                     | string       | n/a             |
+| backend_servers           | List of backend IP:port addresses                          | list(string) | n/a             |
+| edge_private_ip           | Private IP address to assign to the Edge instance          | string       | n/a             |
+| registry_user             | Username for the Docker registry                           | string       | n/a             |
+| registry_password         | Password for the Docker registry (sensitive)               | string       | n/a             |
+| registry_external_url     | External registry URL (e.g., https://registry.example.com) | string       | n/a             |
+| registry_internal_url     | Internal registry URL (e.g., https://registry.internal.example.com) | string | n/a |
+| eip_allocation_id         | Existing EIP allocation ID to associate (optional)         | string       | null            |
+| common_tags               | Map of tags to assign to all resources                     | map(string)  | {}              |
 
 ## Outputs
 
-| Name             | Description                            |
-|------------------|----------------------------------------|
-| edge_instance_id | The ID of the created Edge VM instance |
-| edge_public_ip   | The public IP address of the Edge VM   |
+| Name                         | Description                                    |
+|------------------------------|------------------------------------------------|
+| edge_instance_id             | The ID of the created Edge VM instance         |
+| edge_public_ip               | The public IP address of the Edge VM           |
+| primary_network_interface_id | The primary network interface ID of the VM     |
 
 ## Service Configuration
 
