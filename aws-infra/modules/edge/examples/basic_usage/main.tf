@@ -16,7 +16,7 @@ data "aws_availability_zones" "available" {
 # -----------------------------
 locals {
   project_name  = "layered-infra"
-  environment   = "testing"
+  environment   = "dev"
   instance_type = "t3.micro"
   vpc_cidr      = "10.0.0.0/16"
 
@@ -197,6 +197,50 @@ resource "aws_iam_role_policy_attachment" "ec_ssm_read" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
 }
 
+##################################
+# Route53 Hosted Zone (per environment)
+##################################
+
+resource "aws_route53_zone" "environment" {
+  name = "${local.environment}.${"uselayered.com"}"
+
+}
+
+##################################
+# Elastic IP for edge host (public)
+##################################
+
+resource "aws_eip" "edge" {
+  domain = "vpc"
+
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${local.environment}-edge-eip"
+  })
+}
+
+##################################
+# PUBLIC record for GitHub Actions to push images
+##################################
+
+resource "aws_route53_record" "registry_public" {
+  zone_id = aws_route53_zone.environment.zone_id
+  name    = "registry.${aws_route53_zone.environment.name}" # registry.dev.uselayered.com
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.edge.public_ip]
+}
+
+##################################
+# PRIVATE record for internal VPC services to pull images
+##################################
+
+resource "aws_route53_record" "registry_private" {
+  zone_id = aws_route53_zone.environment.zone_id
+  name    = "registry.internal.${aws_route53_zone.environment.name}" # registry.internal.dev.uselayered.com
+  type    = "A"
+  ttl     = 300
+  records = ["10.0.1.130"]
+}
 
 # --- Dynamic SSH Key Generation ---
 resource "tls_private_key" "edge" {
@@ -222,14 +266,13 @@ module "edge" {
   project_name      = "layered-infra"
   environment       = "dev"
   vpc_id            = aws_vpc.test_vpc.id
-  edge_private_ip   = "10.0.2.100"
-  registry_domain   = "registry.edge.example.com"
+  edge_private_ip   = "10.0.1.130"
   registry_user     = "registry"
   registry_password = "registry"
   # Explicitly override registry URLs to avoid relying on SSM in examples/tests
-  registry_external_url     = "https://registry.edge.example.com"
-  registry_internal_url     = "https://registry.internal.edge.example.com"
-  registry_zone_name        = "edge.example.com"
+  registry_external_url     = "registry.${aws_route53_zone.environment.name}"
+  registry_internal_url     = "registry.internal.${aws_route53_zone.environment.name}"
+  registry_zone_name        = "${local.environment}.${"uselayered.com"}"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
   ubuntu_version            = local.ubuntu_version
@@ -238,8 +281,11 @@ module "edge" {
   iam_instance_profile_name = aws_iam_instance_profile.ec2_instance_profile.name
   public_subnet_id          = aws_subnet.public_subnet.id
   admin_cidrs               = ["0.0.0.0/0"]
-  domain_name               = "edge.example.com"
+  domain_name               = "uselayered.com"
   backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
+  # Ensure the Edge instance gets a public IP via the created Elastic IP
+  enable_eip_association    = true
+  eip_allocation_id         = aws_eip.edge.id
 }
 
 # Note: In this self-contained example we avoid creating SSM parameters.
