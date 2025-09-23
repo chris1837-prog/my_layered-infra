@@ -30,11 +30,6 @@ variable "registry_zone_name" {
   type        = string
 }
 
-variable "registry_domain" {
-  description = "The FQDN for the Docker registry (e.g., 'registry.your-domain.internal')."
-  type        = string
-}
-
 variable "registry_external_url" {
   description = "External registry URL (e.g., https://registry.example.com)."
   type        = string
@@ -60,6 +55,12 @@ variable "eip_allocation_id" {
   description = "The allocation ID of an existing Elastic IP to associate with the Edge instance."
   type        = string
   default     = null # Make it optional if you have fallback logic for dev, but required for staging/prod
+}
+
+variable "enable_eip_association" {
+  description = "Whether to associate the provided Elastic IP with the Edge instance. Controls resource count to avoid unknown values at plan time."
+  type        = bool
+  default     = false
 }
 
 variable "edge_private_ip" {
