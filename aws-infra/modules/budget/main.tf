@@ -2,14 +2,6 @@
 # Budget + SNS Setup
 ########################################
 
-terraform {
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-    }
-  }
-}
-
 resource "aws_sns_topic" "budget_alerts" {
   name = var.topic_name
   tags = var.tags
