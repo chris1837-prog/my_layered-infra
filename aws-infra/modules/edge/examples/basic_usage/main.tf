@@ -208,17 +208,17 @@ resource "aws_iam_role_policy_attachment" "ec_ssm_read" {
 
 # }
 
-# ##################################
-# # Elastic IP for edge host (public)
-# ##################################
+##################################
+# Elastic IP for edge host (public)
+##################################
 
-# resource "aws_eip" "edge" {
-#   domain = "vpc"
+resource "aws_eip" "edge" {
+  domain = "vpc"
 
-#   tags = merge(local.common_tags, {
-#     Name = "${local.project_name}-${local.environment}-edge-eip"
-#   })
-# }
+  tags = merge(local.common_tags, {
+    Name = "${local.project_name}-${local.environment}-edge-eip"
+  })
+}
 
 # ##################################
 # # PUBLIC record for GitHub Actions to push images
