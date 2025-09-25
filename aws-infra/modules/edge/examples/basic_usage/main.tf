@@ -228,6 +228,18 @@ resource "aws_route53_record" "registry_public" {
   type    = "A"
   ttl     = 300
   records = [aws_eip.edge.public_ip]
+
+}
+##################################
+# Primary edge record / edge host public record (for reverse proxy & ACME)
+##################################
+
+resource "aws_route53_record" "edge_primary" {
+  zone_id = aws_route53_zone.environment.zone_id
+  name    = "edge.${aws_route53_zone.environment.name}" # edge.dev.uselayered.com
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.edge.public_ip]
 }
 
 ##################################
