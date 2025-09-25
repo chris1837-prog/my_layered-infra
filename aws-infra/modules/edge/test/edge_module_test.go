@@ -35,11 +35,42 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// Get outputs
 	publicIP := terraform.Output(t, terraformOptions, "edge_public_ip")
 	keyPath := terraform.Output(t, terraformOptions, "edge_private_key_path")
+	rawRendered := terraform.Output(t, terraformOptions, "edge_user_data_raw")
+	// Attempt base64 decode then gzip decompress to show beginning of cloud-config for diagnostics
+	if rawRendered != "" {
+		decoded, err := base64.StdEncoding.DecodeString(rawRendered)
+		if err != nil {
+			t.Logf("[WARN] Failed base64 decode of rendered user-data: %v", err)
+		} else {
+			zr, err := gzip.NewReader(bytes.NewReader(decoded))
+			if err != nil {
+				t.Logf("[WARN] Failed to create gzip reader for rendered user-data: %v", err)
+			} else {
+				defer zr.Close()
+				var buf bytes.Buffer
+				_, _ = io.CopyN(&buf, zr, 32*1024) // limit to first 32KB
+				text := buf.String()
+				// Provide preview capped
+				preview := text
+				if len(preview) > 800 {
+					preview = preview[:800]
+				}
+				lines := strings.Split(preview, "\n")
+				if len(lines) > 40 {
+					lines = lines[:40]
+				}
+				preview = strings.Join(lines, "\n")
+				t.Logf("[DEBUG] Decoded user-data preview (first ~40 lines / 800 chars):\n%s", preview)
+			}
+		}
+	}
 	// New: Get split-horizon registry URLs
 	registryExternalURL := terraform.Output(t, terraformOptions, "registry_external_url")
 	registryInternalURL := terraform.Output(t, terraformOptions, "registry_internal_url")
+	primaryDomain := terraform.Output(t, terraformOptions, "primary_domain")
 	t.Logf("[INFO] Registry External URL: %s", registryExternalURL)
 	t.Logf("[INFO] Registry Internal URL: %s", registryInternalURL)
+	t.Logf("[INFO] Primary Domain: %s", primaryDomain)
 	registryExternalHost := strings.Split(strings.TrimPrefix(registryExternalURL, "https://"), "/")[0]
 	registryInternalHost := strings.Split(strings.TrimPrefix(registryInternalURL, "https://"), "/")[0]
 
