@@ -282,8 +282,9 @@ module "edge" {
   registry_user     = "registry"
   registry_password = "registry"
   # Explicitly override registry URLs to avoid relying on SSM in examples/tests
-  registry_external_url     = "registry.${aws_route53_zone.environment.name}"
-  registry_internal_url     = "registry.internal.${aws_route53_zone.environment.name}"
+  # Supply full URLs (module variables now require https:// scheme)
+  registry_external_url     = "https://registry.${aws_route53_zone.environment.name}"
+  registry_internal_url     = "https://registry.internal.${aws_route53_zone.environment.name}"
   registry_zone_name        = "${local.environment}.${"uselayered.com"}"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
