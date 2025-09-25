@@ -18,11 +18,16 @@ locals {
   }
 
   appdb_config = {
+    project_name            = local.bootstrap_outputs.project_name
+    environment             = local.bootstrap_outputs.environment
+    aws_region              = local.bootstrap_outputs.aws_region
     parameter_paths = {
       internal_registry_url = local.ssm_parameters.parameter_paths.internal_registry_url
+      external_registry_url = local.ssm_parameters.parameter_paths.external_registry_url
       postgres_db           = local.ssm_parameters.parameter_paths.postgres_db
       postgres_user         = local.ssm_parameters.parameter_paths.postgres_user
       postgres_password     = local.ssm_parameters.parameter_paths.postgres_password
+      app_image_name        = local.ssm_parameters.paramether_paths.app_image_name
       app_image_tag         = local.ssm_parameters.parameter_paths.app_image_tag
     }
   }
