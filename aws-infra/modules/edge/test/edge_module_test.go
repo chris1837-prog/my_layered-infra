@@ -74,6 +74,77 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	registryExternalHost := strings.Split(strings.TrimPrefix(registryExternalURL, "https://"), "/")[0]
 	registryInternalHost := strings.Split(strings.TrimPrefix(registryInternalURL, "https://"), "/")[0]
 
+	// ------------------------------------------------------------------
+	// DNS Readiness Pre-Check
+	// Fail early (before long ACME wait loops) if required public DNS A
+	// records are missing or not pointing at the edge public IP. This
+	// guards against wasting 5-10 minutes waiting for certificates
+	// when delegation or A records haven't propagated.
+	// ------------------------------------------------------------------
+	{
+		// Override modes via EDGE_DNS_READINESS_MODE:
+		//   strict (default): fail test immediately on missing/mismatched DNS
+		//   warn:   emit warning and continue (ACME may later fail)
+		//   skip:   skip DNS readiness entirely
+		mode := strings.ToLower(strings.TrimSpace(os.Getenv("EDGE_DNS_READINESS_MODE")))
+		if mode == "" {
+			mode = "strict"
+		}
+		if mode == "skip" {
+			t.Log("[INFO] Skipping DNS readiness check due to EDGE_DNS_READINESS_MODE=skip (expect ACME to potentially fail if delegation missing)")
+		} else {
+			lookupTargets := map[string]string{
+				"primary domain":         primaryDomain,
+				"external registry host": registryExternalHost,
+			}
+			for label, host := range lookupTargets {
+				if host == "" {
+					continue
+				}
+				// Retry resolution for up to 2 minutes (propagation or test env DNS cache)
+				maxDNSAttempts := 24
+				var resolved []string
+				for i := 0; i < maxDNSAttempts; i++ {
+					ips, err := net.LookupHost(host)
+					if err == nil && len(ips) > 0 {
+						resolved = ips
+						break
+					}
+					time.Sleep(5 * time.Second)
+				}
+				if len(resolved) == 0 {
+					msg := fmt.Sprintf("DNS readiness check failed: could not resolve %s '%s' after retries. Ensure NS delegation for the environment subdomain is in place and that an 'A' record for %s exists pointing to %s.", label, host, host, publicIP)
+					if mode == "warn" {
+						t.Log("[WARN] " + msg + " (continuing due to EDGE_DNS_READINESS_MODE=warn)")
+						continue
+					}
+					t.Fatal(msg)
+				}
+				// Check whether any resolved IP matches the edge public IP; if not, warn (but fail to be strict)
+				match := false
+				for _, ip := range resolved {
+					if ip == publicIP {
+						match = true
+						break
+					}
+				}
+				if !match {
+					msg := fmt.Sprintf("DNS readiness mismatch for %s '%s': resolved to %v but expected %s. Update the A record or wait for propagation.", label, host, resolved, publicIP)
+					if mode == "warn" {
+						t.Log("[WARN] " + msg + " (continuing due to EDGE_DNS_READINESS_MODE=warn)")
+						continue
+					}
+					t.Fatal(msg)
+				}
+				t.Logf("\u001b[1;32m✅ [SUCCESS]\u001b[0m DNS readiness: %s '%s' -> %v (includes edge IP)", label, host, resolved)
+			}
+		}
+	}
+
+	// Feature flags for optional extended tests
+	extClientEnabled := os.Getenv("EDGE_TEST_EXTERNAL_CLIENT") == "1" || strings.EqualFold(os.Getenv("EDGE_TEST_EXTERNAL_CLIENT"), "true")
+	dockerHubEnabled := os.Getenv("EDGE_E2E_DOCKERHUB") == "1" || strings.EqualFold(os.Getenv("EDGE_E2E_DOCKERHUB"), "true")
+
 	// Read the private key
 	privateKey, err := os.ReadFile(keyPath)
 	if err != nil {
