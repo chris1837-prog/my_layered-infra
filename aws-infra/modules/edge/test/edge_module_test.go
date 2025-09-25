@@ -397,6 +397,114 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	t.Logf("Caddy validate output: %s", strings.TrimSpace(caddyValidateOut))
 	t.Log("\033[1;32m✅ [SUCCESS]\033[0m Caddy configuration is valid")
 
+	// Ensure the caddy service is up before attempting ACME probing; sometimes validation completes
+	// while the systemd unit is still (re)starting with the final Caddyfile.
+	t.Log("\033[1;34m[INFO]\033[0m Waiting for caddy service to become active (up to 90s)...")
+	for i := 0; i < 18; i++ { // 18 *5s = 90s
+		statusOut, _ := ssh.CheckSshCommandE(t, host, "sudo systemctl is-active caddy || true")
+		if strings.TrimSpace(statusOut) == "active" {
+			if i > 0 {
+				to := (i + 1) * 5
+				t.Logf("[INFO] Caddy active after %ds", to)
+			}
+			break
+		}
+		if i == 17 {
+			// Collect diagnostics but don't fail yet – subsequent steps will anyway.
+			journal, _ := ssh.CheckSshCommandE(t, host, "sudo journalctl -u caddy -n 80 --no-pager 2>/dev/null || true")
+			statusLong, _ := ssh.CheckSshCommandE(t, host, "sudo systemctl status caddy --no-pager -l 2>/dev/null | tail -n 80 || true")
+			t.Log("[WARN] Caddy did not report active within 90s; continuing but ACME tests may fail.")
+			t.Log("--- caddy status (tail) ---\n" + statusLong)
+			t.Log("--- caddy journal (tail) ---\n" + journal)
+		} else {
+			time.Sleep(5 * time.Second)
+		}
+	}
+
+	// Determine whether external registry host is using ACME (public cert) or internal CA
+	// We'll extract the external host block from the Caddyfile and check for "tls internal" or a /ca.crt handler.
+	findCaddyBlock := func(content, host string) (string, bool) {
+		idx := strings.Index(content, host)
+		if idx < 0 {
+			return "", false
+		}
+		// find the first '{' after the host occurrence
+		braceOpen := strings.Index(content[idx:], "{")
+		if braceOpen < 0 {
+			return "", false
+		}
+		start := idx + braceOpen
+		depth := 0
+		end := -1
+		for i := start; i < len(content); i++ {
+			if content[i] == '{' {
+				depth++
+			} else if content[i] == '}' {
+				depth--
+				if depth == 0 {
+					end = i
+					break
+				}
+			}
+		}
+		if end == -1 || end <= start+1 {
+			return "", false
+		}
+		return content[start+1 : end], true
+	}
+	extBlock, ok := findCaddyBlock(caddyfileOut, registryExternalHost)
+	// If we can't confidently detect, assume non-ACME (internal) to keep strict checks
+	extUsesACME := false
+	if ok {
+		// ACME assumed if no explicit "tls internal" is present and no /ca.crt handler
+		hasInternalTLS := strings.Contains(extBlock, "tls internal")
+		hasCACrtHandler := strings.Contains(extBlock, "handle /ca.crt")
+		extUsesACME = !(hasInternalTLS || hasCACrtHandler)
+	}
+	if extUsesACME {
+		t.Log("\033[1;34m[INFO]\033[0m Detected ACME mode for external registry domain (public TLS)")
+		// Improved wait loop: require an 'issuer=' line from openssl and that it is NOT the local authority.
+		maxAttempts := 60 // up to 5 minutes (60 *5s)
+		for i := 0; i < maxAttempts; i++ {
+			// Use -showcerts and capture issuer + subject for clarity; keep stderr for diagnostics once every few attempts.
+			issuerCmd := fmt.Sprintf("echo | openssl s_client -servername %s -connect 127.0.0.1:443 -showcerts 2>/dev/null | openssl x509 -noout -issuer -subject || true", registryExternalHost)
+			issuerRaw, _ := ssh.CheckSshCommandE(t, host, issuerCmd)
+			issuerRaw = strings.TrimSpace(issuerRaw)
+			lines := strings.Split(issuerRaw, "\n")
+			issuerLine := ""
+			for _, ln := range lines {
+				if strings.HasPrefix(strings.ToLower(strings.TrimSpace(ln)), "issuer=") {
+					issuerLine = strings.TrimSpace(ln)
+					break
+				}
+			}
+			if issuerLine != "" && !strings.Contains(strings.ToLower(issuerLine), "caddy local authority") {
+				t.Logf("\033[1;32m✅ [SUCCESS]\033[0m ACME certificate issuer detected: %s", issuerLine)
+				break
+			}
+			if i == maxAttempts-1 {
+				// Capture detailed diagnostics before failing
+				fullDump, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("echo | openssl s_client -servername %s -connect 127.0.0.1:443 2>&1 | head -n 120 || true", registryExternalHost))
+				caddyStatus, _ := ssh.CheckSshCommandE(t, host, "sudo systemctl status caddy --no-pager -l 2>/dev/null | tail -n 80 || true")
+				caddyLog, _ := ssh.CheckSshCommandE(t, host, "sudo journalctl -u caddy -n 80 --no-pager 2>/dev/null || true")
+				t.Log("[DIAG] Final openssl s_client snippet (first 120 lines):\n" + fullDump)
+				t.Log("[DIAG] caddy status (tail):\n" + caddyStatus)
+				t.Log("[DIAG] caddy journal (tail):\n" + caddyLog)
+				t.Fatalf("ACME certificate not observed after %d attempts (~%ds). Last issuer output: %s", maxAttempts, maxAttempts*5, issuerRaw)
+			}
+			if (i+1)%6 == 0 { // every ~30s show a progress line incl raw content trimmed
+				preview := issuerRaw
+				if len(preview) > 160 {
+					preview = preview[:160] + "..."
+				}
+				t.Logf("[INFO] ACME wait attempt %d/%d issuerLine='%s' raw='%s'", i+1, maxAttempts, issuerLine, preview)
+			}
+			time.Sleep(5 * time.Second)
+		}
+	} else {
+		t.Log("\033[1;34m[INFO]\033[0m External registry domain using internal CA")
+	}
+
 	t.Log("\033[1;34m[INFO]\033[0m Checking htpasswd file for registry user...")
 	htpasswdCmd := "sudo cat /opt/registry/auth/htpasswd"
 	// We'll assert against the actual username extracted below once available
