@@ -49,11 +49,11 @@ resource "local_file" "ssm_parameters_json" {
     parameter_values = {
       external_registry_url = aws_route53_record.registry_public.fqdn  # Use actual FQDN
       internal_registry_url = aws_route53_record.registry_private.fqdn # Use actual FQDN
-      registry_user         = var.registry_user
-      postgres_db           = var.postgres_db
-      postgres_user         = var.postgres_user
-      app_image_name        = var.app_image_name
-      app_image_tag         = var.app_image_tag
+      registry_user         = aws_ssm_parameter.registry_user.value
+      postgres_db           = aws_ssm_parameter.postgres_db.value
+      postgres_user         = aws_ssm_parameter.postgres_user.value
+      app_image_name        = aws_ssm_parameter.app_image_name.value
+      app_image_tag         = aws_ssm_parameter.app_image_tag.value
     }
   })
 }
