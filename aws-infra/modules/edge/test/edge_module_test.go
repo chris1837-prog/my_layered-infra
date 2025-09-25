@@ -334,13 +334,35 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		t.Fatalf("%s", f)
 	}
 
-	t.Log("\033[1;34m[INFO]\033[0m Checking Docker installation...")
-	dockerVersionCmd := "docker --version"
-	dockerVersionOut, err := ssh.CheckSshCommandE(t, host, dockerVersionCmd)
-	if err != nil {
-		t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker not available: %v", err)
+	t.Log("\033[1;34m[INFO]\033[0m Checking Docker installation (with retries)...")
+	var dockerVersionOut string
+	var dockerErr error
+	for i := 0; i < 30; i++ { // ~5 minutes
+		dockerVersionOut, dockerErr = ssh.CheckSshCommandE(t, host, "docker --version")
+		if dockerErr == nil {
+			break
+		}
+		time.Sleep(10 * time.Second)
 	}
-	require.NoError(t, err, "Docker should be installed and available in PATH")
+	if dockerErr != nil {
+		t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker not available after retries: %v", dockerErr)
+		// Diagnostics
+		out1, _ := ssh.CheckSshCommandE(t, host, "which docker || true")
+		out2, _ := ssh.CheckSshCommandE(t, host, "dpkg -l | grep -i docker || true")
+		out3, _ := ssh.CheckSshCommandE(t, host, "grep -E 'docker|caddy' -n /var/log/edge-init.log 2>/dev/null | tail -n 120 || true")
+		out4, _ := ssh.CheckSshCommandE(t, host, "sudo systemctl status docker --no-pager -l 2>/dev/null | tail -n 120 || true")
+		out5, _ := ssh.CheckSshCommandE(t, host, "sudo journalctl -u docker --no-pager -n 120 2>/dev/null || true")
+		out6, _ := ssh.CheckSshCommandE(t, host, "tail -n 120 /var/log/cloud-init-output.log 2>/dev/null || true")
+		out7, _ := ssh.CheckSshCommandE(t, host, "tail -n 120 /var/log/cloud-init.log 2>/dev/null || true")
+		t.Log("--- which docker ---\n" + out1)
+		t.Log("--- dpkg -l | grep docker ---\n" + out2)
+		t.Log("--- edge-init.log (tail) ---\n" + out3)
+		t.Log("--- systemctl status docker ---\n" + out4)
+		t.Log("--- journalctl -u docker (tail) ---\n" + out5)
+		t.Log("--- cloud-init-output.log (tail) ---\n" + out6)
+		t.Log("--- cloud-init.log (tail) ---\n" + out7)
+	}
+	require.NoError(t, dockerErr, "Docker should be installed and available in PATH")
 	t.Logf("Docker version: %s", strings.TrimSpace(dockerVersionOut))
 	t.Log("\033[1;32m✅ [SUCCESS]\033[0m Docker is installed and available")
 
