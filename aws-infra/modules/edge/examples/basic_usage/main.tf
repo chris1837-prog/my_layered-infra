@@ -281,7 +281,7 @@ module "edge" {
   edge_private_ip   = "10.0.1.130"
   registry_user     = "registry"
   registry_password = "registry"
-  # Explicitly override registry URLs to avoid relying on SSM in examples/tests
+  # Explicitly override registry URLs to avoid relying on SSM in examples/tests.
   # Supply full URLs (module variables now require https:// scheme)
   registry_external_url     = "https://registry.${aws_route53_zone.environment.name}"
   registry_internal_url     = "https://registry.internal.${aws_route53_zone.environment.name}"
