@@ -187,6 +187,24 @@ go test -v edge_module_test.go
 - Verifies fail2ban sshd jail is present
 - Destroys all resources after the test
 
+#### Test Coverage Summary (short)
+The integration test exercises the full lifecycle and key behaviors of the Edge appliance:
+
+* Provisioning & Cloud-Init: waits for custom or native completion markers; emits rich diagnostics if slow or failed.
+* DNS Readiness Gate: optional strict/warn/skip pre-check for primary + external registry hosts before ACME attempts.
+* Docker Runtime: validates Docker installation availability with retries.
+* Registry (Split-Horizon): ensures registry container is running; validates Caddyfile contains both registry domains.
+* TLS Mode Detection: infers external registry TLS mode (ACME vs internal CA) and adapts expectations (issuer vs local CA trust files).
+* Auth Flows: checks unauthenticated (401), wrong credentials (401), and correct credentials (200) responses for both registry hosts.
+* Credential Extraction: parses `startup.sh` to confirm generated htpasswd credentials are in place.
+* Push/Pull Cycle: tags, pushes, removes, and pulls an image to verify end-to-end registry path and content addressing.
+* Docker Trust Store: asserts internal host always has CA; external host has CA only in internal-CA mode (warns if unexpected).
+* NAT: verifies presence of `MASQUERADE` rule.
+* Services: asserts WireGuard, Caddy, fail2ban active; fail2ban sshd jail present.
+* Optional External Client (env flags): can provision an outside-VPC client to test external registry + optional Docker Hub flow.
+* Diagnostic Depth: on failures (cloud-init, Docker, ACME) captures logs (cloud-init, systemd, Caddy journal, registry logs) for rapid triage.
+
+
 **Sample Terratest Output:**
 ```
 === RUN   TestEdgeModuleIntegration
