@@ -679,7 +679,8 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// Tag and push to registry
 	baseName := strings.SplitN(baseImage, ":", 2)[0]
 	// Use external host for push/pull smoke test (internal will behave the same locally)
-	imageName := fmt.Sprintf("%s/test/%s:tt", registryExternalHost, baseName)
+	// Use internal host for push/pull smoke test
+	imageName := fmt.Sprintf("%s/test/%s:tt", registryInternalHost, baseName)
 	t.Log("\033[1;34m[INFO]\033[0m Tagging test image for registry push...")
 	tagCmd := fmt.Sprintf("docker tag %s %s 2>&1 || (echo '[WARN] direct tag failed, trying container image ID...' && img=$(docker inspect --format '{{.Image}}' registry 2>/dev/null || true) && if [ -n \"$img\" ]; then docker tag $img %s; else exit 1; fi)", baseImage, imageName, imageName)
 	tagOut, err := ssh.CheckSshCommandE(t, host, tagCmd)
