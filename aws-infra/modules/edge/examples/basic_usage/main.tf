@@ -302,7 +302,6 @@ module "edge" {
   # Primary domain TLS controls
   enable_domain_tls         = true          # set false to test HTTP-only bootstrap
   enable_domain_acme        = true          # if true (and TLS enabled) use public ACME cert, else internal CA
-  app_port                  = 3000
   # Ensure the Edge instance gets a public IP via the created Elastic IP
   enable_eip_association    = true
   eip_allocation_id         = aws_eip.edge.id
