@@ -162,7 +162,7 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	maxRetries := 24
 	sleepBetweenRetries := 5 * time.Second
 	for i := 0; i < maxRetries; i++ {
-		err := ssh.CheckSshConnectionE(t, host)
+		err = ssh.CheckSshConnectionE(t, host)
 		if err == nil {
 			t.Log("\033[1;32m[SUCCESS]\033[0m SSH is available")
 			break
