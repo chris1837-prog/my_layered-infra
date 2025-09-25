@@ -174,8 +174,8 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		time.Sleep(sleepBetweenRetries)
 	}
 
-	t.Log("\033[1;34m[INFO]\033[0m Polling for cloud-init completion signal...")
-	maxWait := 300 // seconds (5 min max)
+	t.Log("\033[1;34m[INFO]\033[0m Waiting for edge init to finish (edge-init-finished marker)...")
+	maxWait := 210 // reduced from 300 now that provisioning is stable
 	pollInterval := 10 * time.Second
 	found := false
 	for i := 0; i < maxWait/int(pollInterval.Seconds()); i++ {
