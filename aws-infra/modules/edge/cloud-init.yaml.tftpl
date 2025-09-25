@@ -20,7 +20,6 @@ packages:
   - wireguard
   - qrencode
   - fail2ban
-  - docker.io
 
 bootcmd:
   - echo "[BOOTCMD] edge bootcmd executed $(date -Is)" > /var/log/edge-bootcmd.log
@@ -128,7 +127,6 @@ write_files:
       echo "[MARK] docker-section-complete $(date -Is)" >> /var/log/edge-progress.log
       systemctl enable --now docker
       # Allow SSH users to run docker without sudo
-      usermod -aG docker ubuntu || true
       if id -u ${admin_user} >/dev/null 2>&1; then
         usermod -aG docker ${admin_user} || true
       fi
@@ -232,11 +230,13 @@ write_files:
         if [ -f "$CA_SRC2" ]; then CA_SRC="$CA_SRC2"; break; fi
         sleep 2
       done
-      # Use host-only values for Docker trust dirs (scheme in URL would create unintended path hierarchy)
-      DEST_DIR_EXT="/etc/docker/certs.d/${registry_external_host}"
-      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${registry_external_host}:443"
-      DEST_DIR_INT="/etc/docker/certs.d/${registry_internal_host}"
-      DEST_DIR_INT_PORT="/etc/docker/certs.d/${registry_internal_host}:443"
+      # Derive hostnames from full registry URLs (avoid passing separate host vars)
+      REGISTRY_EXTERNAL_HOST=$(echo "${registry_external_url}" | sed -E 's#https://([^/]+)/?.*#\1#')
+      REGISTRY_INTERNAL_HOST=$(echo "${registry_internal_url}" | sed -E 's#https://([^/]+)/?.*#\1#')
+      DEST_DIR_EXT="/etc/docker/certs.d/${REGISTRY_EXTERNAL_HOST}"
+      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${REGISTRY_EXTERNAL_HOST}:443"
+      DEST_DIR_INT="/etc/docker/certs.d/${REGISTRY_INTERNAL_HOST}"
+      DEST_DIR_INT_PORT="/etc/docker/certs.d/${REGISTRY_INTERNAL_HOST}:443"
       install -d -m 0755 "$DEST_DIR_EXT" "$DEST_DIR_EXT_PORT" "$DEST_DIR_INT" "$DEST_DIR_INT_PORT"
       if [ -n "$CA_SRC" ] && [ -f "$CA_SRC" ]; then
         # For external domain, only install CA if we're not using ACME
