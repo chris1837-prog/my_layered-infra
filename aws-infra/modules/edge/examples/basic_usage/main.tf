@@ -288,7 +288,6 @@ module "edge" {
   # Route 53 records are created in bootstrap and must exist before applying this module
   registry_external_url     = "https://registry.dev.uselayered.com"
   registry_internal_url     = "https://registry.internal.dev.uselayered.com"
-  registry_zone_name        = "dev.uselayered.com"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
   ubuntu_version            = local.ubuntu_version
