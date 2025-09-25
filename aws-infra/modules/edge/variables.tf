@@ -25,11 +25,6 @@ variable "environment" {
   type        = string
 }
 
-variable "registry_zone_name" {
-  description = "The DNS name for the private Route 53 hosted zone (e.g., 'your-domain.internal')."
-  type        = string
-}
-
 variable "registry_external_url" {
   description = "External registry URL (e.g., https://registry.example.com)."
   type        = string
@@ -128,12 +123,6 @@ variable "wireguard_port" {
   default     = 51820
 }
 
-variable "bcrypt_hash" {
-  description = "Optional pre-computed bcrypt hash for the Docker registry password."
-  type        = string
-  default     = null
-}
-
 variable "domain_name" {
   description = "The public domain name Caddy will use for HTTPS."
   type        = string
@@ -149,12 +138,6 @@ variable "enable_domain_acme" {
   description = "If true (and enable_domain_tls=true), obtain a public ACME certificate for the primary domain using Caddy's automatic HTTPS. If false, use Caddy internal CA (self-signed). Ignored when enable_domain_tls=false."
   type        = bool
   default     = true
-}
-
-variable "app_port" {
-  description = "Logical port of the backend application (used for documentation/tests only; backend_servers still authoritative)."
-  type        = number
-  default     = 8080
 }
 
 variable "backend_servers" {
@@ -175,13 +158,13 @@ variable "enable_wireguard" {
 variable "enable_acme_external" {
   description = "If true, Caddy will obtain a public certificate (ACME) for the external registry domain instead of using the internal CA. Requires the external domain to resolve publicly and ports 80/443 reachable."
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "acme_email" {
   description = "Contact email for ACME (Let's Encrypt/ZeroSSL). Recommended when enable_acme_external is true."
   type        = string
-  default     = "test@example.com"
+  default     = ""
   validation {
     condition     = var.enable_acme_external ? length(trimspace(var.acme_email)) > 0 : true
     error_message = "acme_email must be non-empty when enable_acme_external is true."
