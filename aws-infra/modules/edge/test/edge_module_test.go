@@ -586,18 +586,48 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	}
 
 	// --- Docker login/push/pull smoke test ---
-	// Ensure Docker trusts the Caddy internal CA for the registry domain
-	t.Log("\033[1;34m[INFO]\033[0m Verifying Docker trust store contains Caddy internal CA...")
-	for _, h := range []string{registryExternalHost, registryInternalHost} {
+	// Verify Docker trust store setup according to mode:
+	// - Internal domain: must always have internal CA
+	// - External domain: CA expected only when NOT using ACME
+	t.Log("\033[1;34m[INFO]\033[0m Verifying Docker trust store according to ACME/internal mode...")
+	checkCA := func(h string) (bool, string, string) {
 		caCheckCmd := fmt.Sprintf("test -f /etc/docker/certs.d/%s/ca.crt && echo present || echo missing", h)
 		caStatus, _ := ssh.CheckSshCommandE(t, host, caCheckCmd)
 		caCheckCmd443 := fmt.Sprintf("test -f /etc/docker/certs.d/%s:443/ca.crt && echo present || echo missing", h)
 		caStatus443, _ := ssh.CheckSshCommandE(t, host, caCheckCmd443)
-		if strings.TrimSpace(caStatus) != "present" && strings.TrimSpace(caStatus443) != "present" {
-			t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker trust store missing CA for %s (both plain host and :443)", h)
+		has := strings.TrimSpace(caStatus) == "present" || strings.TrimSpace(caStatus443) == "present"
+		return has, strings.TrimSpace(caStatus), strings.TrimSpace(caStatus443)
+	}
+	// Internal must have CA
+	if has, s1, s2 := checkCA(registryInternalHost); !has {
+		t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker trust store missing CA for internal host %s (host: %s, host:443: %s)", registryInternalHost, s1, s2)
+		require.Fail(t, "Missing Docker CA for internal registry host")
+	} else {
+		t.Logf("\033[1;32m✅ [SUCCESS]\033[0m Docker trust store has CA for internal host %s", registryInternalHost)
+	}
+	// External: expect CA only if not ACME
+	if extUsesACME {
+		if has, s1, s2 := checkCA(registryExternalHost); has {
+			t.Logf("\033[1;33m[WARN]\033[0m External host %s has a CA file even in ACME mode (host: %s, :443: %s) — ok but unexpected", registryExternalHost, s1, s2)
 		} else {
-			t.Logf("\033[1;32m✅ [SUCCESS]\033[0m Docker trust store has CA for %s (host: %s, host:443: %s)", h, strings.TrimSpace(caStatus), strings.TrimSpace(caStatus443))
+			t.Logf("\033[1;32m✅ [SUCCESS]\033[0m No Docker CA for external host %s (expected in ACME mode)", registryExternalHost)
 		}
+	} else {
+		if has, s1, s2 := checkCA(registryExternalHost); !has {
+			require.Failf(t, "Missing Docker CA for external host", "host: %s, :443: %s", s1, s2)
+		} else {
+			t.Logf("\033[1;32m✅ [SUCCESS]\033[0m Docker trust store has CA for external host %s (internal CA mode)", registryExternalHost)
+		}
+	}
+
+	// For the purposes of this test, pin the registry hostnames to loopback on the edge host
+	// so we don't depend on public DNS propagation. This does NOT change module behavior in real envs.
+	t.Log("\033[1;34m[INFO]\033[0m Pinning registry hostnames to 127.0.0.1 in /etc/hosts for this test run...")
+	for _, h := range []string{registryExternalHost, registryInternalHost} {
+		addHostCmd := fmt.Sprintf("sudo bash -lc 'grep -q "+
+			"\"^[[:space:]]*127\\.0\\.0\\.1[[:space:]]+%s(\\s|$)\" /etc/hosts || echo \"127.0.0.1 %s\" >> /etc/hosts'", h, h)
+		_, err := ssh.CheckSshCommandE(t, host, addHostCmd)
+		require.NoError(t, err, "Failed to add %s to /etc/hosts", h)
 	}
 
 	// Login
