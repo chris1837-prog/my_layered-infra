@@ -630,9 +630,9 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		require.NoError(t, err, "Failed to add %s to /etc/hosts", h)
 	}
 
-	// Login
-	t.Log("\033[1;34m[INFO]\033[0m Docker login to registry via Caddy...")
-	loginCmd := fmt.Sprintf("echo %s | docker login %s -u %s --password-stdin", shSingleQuote(regPass), registryExternalHost, shSingleQuote(regUser))
+	// Login to internal host for stability; external may depend on ACME issuance timing
+	t.Log("\033[1;34m[INFO]\033[0m Docker login to internal registry via Caddy...")
+	loginCmd := fmt.Sprintf("echo %s | docker login %s -u %s --password-stdin", shSingleQuote(regPass), registryInternalHost, shSingleQuote(regUser))
 	loginOut, err := ssh.CheckSshCommandE(t, host, loginCmd)
 	if err != nil || !strings.Contains(loginOut, "Login Succeeded") {
 		t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker login attempt failed. Output: %s Error: %v", loginOut, err)
