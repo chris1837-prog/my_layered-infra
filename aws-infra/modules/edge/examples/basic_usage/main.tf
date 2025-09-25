@@ -197,30 +197,32 @@ resource "aws_iam_role_policy_attachment" "ec_ssm_read" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
 }
 
-##################################
-# Route53 Hosted Zone (per environment)
-##################################
+# ##################################
+# # Route53 Hosted Zone (per environment)
+# ##################################
 
-resource "aws_route53_zone" "environment" {
-  name = "${local.environment}.${"uselayered.com"}"
+# resource "aws_route53_zone" "environment" {
+#   name = "${local.environment}.${"uselayered.com"}"
 
-}
+#   tags = local.common_tags
 
-##################################
-# Elastic IP for edge host (public)
-##################################
+# }
 
-resource "aws_eip" "edge" {
-  domain = "vpc"
+# ##################################
+# # Elastic IP for edge host (public)
+# ##################################
 
-  tags = merge(local.common_tags, {
-    Name = "${local.project_name}-${local.environment}-edge-eip"
-  })
-}
+# resource "aws_eip" "edge" {
+#   domain = "vpc"
 
-##################################
-# PUBLIC record for GitHub Actions to push images
-##################################
+#   tags = merge(local.common_tags, {
+#     Name = "${local.project_name}-${local.environment}-edge-eip"
+#   })
+# }
+
+# ##################################
+# # PUBLIC record for GitHub Actions to push images
+# ##################################
 
 # resource "aws_route53_record" "registry_public" {
 #   zone_id = aws_route53_zone.environment.zone_id
