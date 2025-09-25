@@ -222,12 +222,12 @@ resource "aws_eip" "edge" {
 # PUBLIC record for GitHub Actions to push images
 ##################################
 
-resource "aws_route53_record" "registry_public" {
-  zone_id = aws_route53_zone.environment.zone_id
-  name    = "registry.${aws_route53_zone.environment.name}" # registry.dev.uselayered.com
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.edge.public_ip]
+# resource "aws_route53_record" "registry_public" {
+#   zone_id = aws_route53_zone.environment.zone_id
+#   name    = "registry.${aws_route53_zone.environment.name}" # registry.dev.uselayered.com
+#   type    = "A"
+#   ttl     = 300
+#   records = [aws_eip.edge.public_ip]
 
 }
 ##################################
