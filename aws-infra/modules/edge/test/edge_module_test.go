@@ -1,7 +1,12 @@
 package test
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net"
 	"os"
 	"strings"
 	"testing"
