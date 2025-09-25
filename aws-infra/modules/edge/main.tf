@@ -53,7 +53,6 @@ data "cloudinit_config" "edge" {
       enable_wireguard         = var.enable_wireguard,
       enable_domain_tls        = var.enable_domain_tls,
       enable_domain_acme       = var.enable_domain_acme,
-      app_port                 = var.app_port
     })
   }
 }
