@@ -725,6 +725,25 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		require.Fail(t, "Docker pull from registry did not report success")
 	}
 
+	// Optional: pull from Docker Hub and push into registry (on EDGE host) if enabled
+	if dockerHubEnabled && !extClientEnabled {
+		t.Log("\033[1;34m[INFO]\033[0m [DockerHub->Registry] Pulling busybox:latest from Docker Hub on edge host...")
+		_, err := ssh.CheckSshCommandE(t, host, "docker pull busybox:latest")
+		require.NoError(t, err, "docker pull busybox:latest should succeed from Docker Hub")
+		hubImg := "busybox:latest"
+		dest := fmt.Sprintf("%s/test/busybox:hub", registryExternalHost)
+		t.Log("\033[1;34m[INFO]\033[0m Tagging and pushing image from Docker Hub into registry (edge host)...")
+		_, err = ssh.CheckSshCommandE(t, host, fmt.Sprintf("docker tag %s %s && docker push %s", hubImg, dest, dest))
+		require.NoError(t, err, "push of DockerHub image into registry should succeed")
+		_, _ = ssh.CheckSshCommandE(t, host, fmt.Sprintf("docker rmi -f %s || true", dest))
+		out, err := ssh.CheckSshCommandE(t, host, fmt.Sprintf("docker pull %s", dest))
+		require.NoError(t, err)
+		if !(strings.Contains(out, "Downloaded newer image") || strings.Contains(out, "Image is up to date") || strings.Contains(out, "Status: Downloaded")) {
+			require.Fail(t, "DockerHub->Registry pull-back did not report success")
+		}
+		t.Log("\033[1;32m✅ [SUCCESS]\033[0m [DockerHub->Registry] Image flowed through via edge host")
+	}
+
 	t.Log("\033[1;34m[INFO]\033[0m Checking NAT MASQUERADE rule...")
 	// NAT: Check for MASQUERADE rule
 	natCmd := "sudo iptables -t nat -S"
