@@ -44,8 +44,16 @@ data "cloudinit_config" "edge" {
       wireguard_port           = var.wireguard_port,
       registry_external_url    = var.registry_external_url,
       registry_internal_url    = var.registry_internal_url,
+      registry_external_host   = element(split("/", replace(var.registry_external_url, "https://", "")), 0),
+      registry_internal_host   = element(split("/", replace(var.registry_internal_url, "https://", "")), 0),
       registry_user            = var.registry_user,
-      registry_password        = var.registry_password
+      registry_password        = var.registry_password,
+      enable_acme_external     = var.enable_acme_external,
+      acme_email               = var.acme_email,
+      enable_wireguard         = var.enable_wireguard,
+      enable_domain_tls        = var.enable_domain_tls,
+      enable_domain_acme       = var.enable_domain_acme,
+      app_port                 = var.app_port
     })
   }
 }

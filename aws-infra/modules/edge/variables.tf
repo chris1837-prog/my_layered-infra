@@ -33,11 +33,19 @@ variable "registry_zone_name" {
 variable "registry_external_url" {
   description = "External registry URL (e.g., https://registry.example.com)."
   type        = string
+  validation {
+    condition     = startswith(var.registry_external_url, "https://")
+    error_message = "registry_external_url must start with https://"
+  }
 }
 
 variable "registry_internal_url" {
   description = "Internal registry URL (e.g., https://registry.internal.example.com)."
   type        = string
+  validation {
+    condition     = startswith(var.registry_internal_url, "https://")
+    error_message = "registry_internal_url must start with https://"
+  }
 }
 
 variable "ubuntu_version" {
@@ -98,6 +106,10 @@ variable "admin_cidrs" {
   description = "A list of IP ranges (CIDR blocks) allowed for SSH and WireGuard access. Allow all for testing purposes."
   type        = list(string)
   default     = ["0.0.0.0/0"] # Testing purposes only, restrict later!
+  validation {
+    condition     = length(var.admin_cidrs) > 0
+    error_message = "admin_cidrs must have at least one CIDR entry."
+  }
 }
 
 variable "admin_ssh_keys" {
@@ -127,7 +139,51 @@ variable "domain_name" {
   type        = string
 }
 
+variable "enable_domain_tls" {
+  description = "If true, serve the primary domain over HTTPS. If false, start in HTTP-only bootstrap mode (no TLS) on port 80."
+  type        = bool
+  default     = true
+}
+
+variable "enable_domain_acme" {
+  description = "If true (and enable_domain_tls=true), obtain a public ACME certificate for the primary domain using Caddy's automatic HTTPS. If false, use Caddy internal CA (self-signed). Ignored when enable_domain_tls=false."
+  type        = bool
+  default     = true
+}
+
+variable "app_port" {
+  description = "Logical port of the backend application (used for documentation/tests only; backend_servers still authoritative)."
+  type        = number
+  default     = 8080
+}
+
 variable "backend_servers" {
   description = "A list of private IP:port addresses for the backend application servers."
   type        = list(string)
+  validation {
+    condition     = length(var.backend_servers) > 0
+    error_message = "backend_servers must contain at least one backend (ip:port)."
+  }
+}
+
+variable "enable_wireguard" {
+  description = "Whether to install and configure the WireGuard VPN server. Set to false to skip WireGuard provisioning."
+  type        = bool
+  default     = true
+}
+
+variable "enable_acme_external" {
+  description = "If true, Caddy will obtain a public certificate (ACME) for the external registry domain instead of using the internal CA. Requires the external domain to resolve publicly and ports 80/443 reachable."
+  type        = bool
+  default     = true
+}
+
+variable "acme_email" {
+  description = "Contact email for ACME (Let's Encrypt/ZeroSSL). Recommended when enable_acme_external is true."
+  type        = string
+  default     = "test@example.com"
+  validation {
+    condition     = var.enable_acme_external ? length(trimspace(var.acme_email)) > 0 : true
+    error_message = "acme_email must be non-empty when enable_acme_external is true."
+  }
 }
