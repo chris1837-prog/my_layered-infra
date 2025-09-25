@@ -252,6 +252,50 @@ func TestEdgeModuleIntegration(t *testing.T) {
 			collectAndLog()
 			t.Fatalf("Cloud-init failed; see above logs")
 		}
+
+		// Periodic mid-run diagnostics to understand where cloud-init is stuck
+		if (i+1)%diagEvery == 0 {
+			stageOut, _ := ssh.CheckSshCommandE(t, host, "cloud-init status 2>/dev/null || true")
+			bootcmd, _ := ssh.CheckSshCommandE(t, host, "sudo cat /var/log/edge-bootcmd.log 2>/dev/null || true")
+			prelog, _ := ssh.CheckSshCommandE(t, host, "sudo head -n 20 /var/log/edge-userdata-pre.log 2>/dev/null || true")
+			dbglog, _ := ssh.CheckSshCommandE(t, host, "sudo head -n 20 /var/log/edge-debug.log 2>/dev/null || true")
+			psApt, _ := ssh.CheckSshCommandE(t, host, "ps -eo pid,cmd | egrep 'apt|dpkg|cloud-init' | grep -v egrep || true")
+			memFree, _ := ssh.CheckSshCommandE(t, host, "free -h || true")
+			space, _ := ssh.CheckSshCommandE(t, host, "df -h / || true")
+			errTail := ""
+			if strings.Contains(strings.ToLower(stageOut), "error") {
+				errTail, _ = ssh.CheckSshCommandE(t, host, "grep -i 'error' /var/log/cloud-init.log | tail -n 20 || true")
+			}
+			t.Logf("[DIAG] poll=%d state=%s cloud-init-status='%s'", i+1, state, strings.TrimSpace(stageOut))
+			if bootcmd != "" {
+				t.Log("[DIAG] edge-bootcmd.log present")
+			} else {
+				t.Log("[DIAG] edge-bootcmd.log missing")
+			}
+			if prelog != "" {
+				t.Log("[DIAG] edge-userdata-pre.log present")
+			} else {
+				t.Log("[DIAG] edge-userdata-pre.log missing")
+			}
+			if dbglog != "" {
+				t.Log("[DIAG] edge-debug.log present (runcmd echo executed)")
+			} else {
+				t.Log("[DIAG] edge-debug.log missing (runcmd likely not run yet)")
+			}
+			if psApt != "" {
+				t.Log("[DIAG] processes:\n" + psApt)
+			}
+			if memFree != "" {
+				t.Log("[DIAG] free -h:\n" + memFree)
+			}
+			if space != "" {
+				t.Log("[DIAG] df -h /:\n" + space)
+			}
+			if errTail != "" {
+				t.Log("[DIAG] recent cloud-init errors:\n" + errTail)
+			}
+		}
+
 		t.Logf("Still waiting for cloud-init... (%d/%d)", i+1, maxWait/int(pollInterval.Seconds()))
 		time.Sleep(pollInterval)
 	}
