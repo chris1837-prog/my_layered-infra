@@ -229,30 +229,30 @@ resource "aws_eip" "edge" {
 #   ttl     = 300
 #   records = [aws_eip.edge.public_ip]
 
-}
-##################################
-# Primary edge record / edge host public record (for reverse proxy & ACME)
-##################################
+# }
+# ##################################
+# # Primary edge record / edge host public record (for reverse proxy & ACME)
+# ##################################
 
-resource "aws_route53_record" "edge_primary" {
-  zone_id = aws_route53_zone.environment.zone_id
-  name    = "edge.${aws_route53_zone.environment.name}" # edge.dev.uselayered.com
-  type    = "A"
-  ttl     = 300
-  records = [aws_eip.edge.public_ip]
-}
+# resource "aws_route53_record" "edge_primary" {
+#   zone_id = aws_route53_zone.environment.zone_id
+#   name    = "edge.${aws_route53_zone.environment.name}" # edge.dev.uselayered.com
+#   type    = "A"
+#   ttl     = 300
+#   records = [aws_eip.edge.public_ip]
+# }
 
-##################################
-# PRIVATE record for internal VPC services to pull images
-##################################
+# ##################################
+# # PRIVATE record for internal VPC services to pull images
+# ##################################
 
-resource "aws_route53_record" "registry_private" {
-  zone_id = aws_route53_zone.environment.zone_id
-  name    = "registry.internal.${aws_route53_zone.environment.name}" # registry.internal.dev.uselayered.com
-  type    = "A"
-  ttl     = 300
-  records = ["10.0.1.130"]
-}
+# resource "aws_route53_record" "registry_private" {
+#   zone_id = aws_route53_zone.environment.zone_id
+#   name    = "registry.internal.${aws_route53_zone.environment.name}" # registry.internal.dev.uselayered.com
+#   type    = "A"
+#   ttl     = 300
+#   records = ["10.0.1.130"]
+# }
 
 # --- Dynamic SSH Key Generation ---
 resource "tls_private_key" "edge" {
