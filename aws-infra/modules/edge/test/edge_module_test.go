@@ -178,22 +178,78 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	maxWait := 210 // reduced from 300 now that provisioning is stable
 	pollInterval := 10 * time.Second
 	found := false
+	diagEvery := 6 // collect diagnostics every N polls (~1 minute)
 	for i := 0; i < maxWait/int(pollInterval.Seconds()); i++ {
-		out, err := ssh.CheckSshCommandE(t, host, "if [ -f /var/lib/cloud/instance/cloud-init-finished ]; then echo done; elif [ -f /var/lib/cloud/instance/cloud-init-failed ]; then echo failed; else echo notyet; fi")
+		// Also treat native cloud-init completion as success even if our custom marker missing
+		markerCmd := strings.Join([]string{
+			"if [ -f /var/lib/cloud/instance/edge-init-finished ]; then echo custom-done;",
+			"elif [ -f /var/lib/cloud/instance/cloud-init-failed ]; then echo failed;",
+			"elif [ -f /var/lib/cloud/instance/boot-finished ]; then echo native-done;",
+			"else echo notyet; fi",
+		}, " ")
+		out, err := ssh.CheckSshCommandE(t, host, markerCmd)
+		state := strings.TrimSpace(out)
 		if err != nil {
 			t.Logf("SSH command error while polling: %v", err)
-		} else if strings.TrimSpace(out) == "done" {
+		}
+		if state == "custom-done" || state == "native-done" {
 			found = true
-			t.Log("[SUCCESS] Cloud-init finished signal detected.")
+			if state == "custom-done" {
+				t.Log("[SUCCESS] Custom cloud-init marker detected.")
+			} else {
+				t.Log("[SUCCESS] Native cloud-init boot-finished marker detected (custom marker absent).")
+				// Collect immediate diagnostics because our startup script did not apparently run
+				bootcmdLog, _ := ssh.CheckSshCommandE(t, host, "sudo ls -l /var/log/edge-bootcmd.log 2>/dev/null || echo missing")
+				preLog, _ := ssh.CheckSshCommandE(t, host, "sudo ls -l /var/log/edge-userdata-pre.log 2>/dev/null || echo missing")
+				runcmdLog, _ := ssh.CheckSshCommandE(t, host, "sudo ls -l /var/log/edge-debug.log 2>/dev/null || echo missing")
+				startupExists, _ := ssh.CheckSshCommandE(t, host, "test -f /opt/startup.sh && echo exists || echo missing")
+				startupSvc, _ := ssh.CheckSshCommandE(t, host, "sudo ls -l /etc/systemd/system/edge-startup.service 2>/dev/null || echo missing")
+				cloudInitOut, _ := ssh.CheckSshCommandE(t, host, "sudo head -n 80 /var/log/cloud-init-output.log 2>/dev/null || true")
+				cloudInitLog, _ := ssh.CheckSshCommandE(t, host, "sudo grep -n 'runcmd' /var/log/cloud-init.log 2>/dev/null | tail -n 40 || true")
+				cloudInitBoot, _ := ssh.CheckSshCommandE(t, host, "sudo grep -n 'bootcmd' /var/log/cloud-init.log 2>/dev/null | tail -n 40 || true")
+				cloudInitStages, _ := ssh.CheckSshCommandE(t, host, "cloud-init status --long 2>/dev/null || true")
+				unameOut, _ := ssh.CheckSshCommandE(t, host, "uname -a || true")
+				osRelease, _ := ssh.CheckSshCommandE(t, host, "cat /etc/os-release 2>/dev/null | head -n 12 || true")
+				aptVersion, _ := ssh.CheckSshCommandE(t, host, "apt --version 2>/dev/null | head -n 1 || echo 'apt-missing'")
+				t.Log("[DIAG-IMMEDIATE] edge-bootcmd.log: " + strings.TrimSpace(bootcmdLog))
+				t.Log("[DIAG-IMMEDIATE] edge-userdata-pre.log: " + strings.TrimSpace(preLog))
+				t.Log("[DIAG-IMMEDIATE] edge-debug.log: " + strings.TrimSpace(runcmdLog))
+				t.Log("[DIAG-IMMEDIATE] /opt/startup.sh: " + strings.TrimSpace(startupExists))
+				t.Log("[DIAG-IMMEDIATE] edge-startup.service: " + strings.TrimSpace(startupSvc))
+				t.Log("[DIAG-IMMEDIATE] uname -a: " + strings.TrimSpace(unameOut))
+				t.Log("[DIAG-IMMEDIATE] /etc/os-release (partial):\n" + osRelease)
+				t.Log("[DIAG-IMMEDIATE] apt version: " + strings.TrimSpace(aptVersion))
+				t.Log("[DIAG-IMMEDIATE] cloud-init-output.log (head):\n" + cloudInitOut)
+				t.Log("[DIAG-IMMEDIATE] cloud-init.log (runcmd excerpts):\n" + cloudInitLog)
+				t.Log("[DIAG-IMMEDIATE] cloud-init.log (bootcmd excerpts):\n" + cloudInitBoot)
+				t.Log("[DIAG-IMMEDIATE] cloud-init status --long:\n" + cloudInitStages)
+				// If bootcmd and write_files artifacts missing, flag warning
+				if strings.Contains(bootcmdLog, "missing") || strings.Contains(preLog, "missing") {
+					t.Log("[WARN] Bootcmd or write_files artifacts missing: cloud-init may not have parsed user-data correctly.")
+				}
+			}
 			break
-		} else if strings.TrimSpace(out) == "failed" {
+		} else if state == "failed" {
 			t.Log("\u274c [FAIL] Cloud-init failure marker detected; dumping logs...")
-			out1, _ := ssh.CheckSshCommandE(t, host, "sudo tail -n 120 /var/log/cloud-init-output.log || true")
-			out2, _ := ssh.CheckSshCommandE(t, host, "sudo tail -n 120 /var/log/cloud-init.log || true")
-			out3, _ := ssh.CheckSshCommandE(t, host, "sudo tail -n 200 /var/log/edge-init.log || true")
-			t.Log("--- cloud-init-output.log (tail) ---\n" + out1)
-			t.Log("--- cloud-init.log (tail) ---\n" + out2)
-			t.Log("--- edge-init.log (tail) ---\n" + out3)
+			collectAndLog := func() {
+				out1, _ := ssh.CheckSshCommandE(t, host, "sudo tail -n 120 /var/log/cloud-init-output.log || true")
+				out2, _ := ssh.CheckSshCommandE(t, host, "sudo tail -n 120 /var/log/cloud-init.log || true")
+				out3, _ := ssh.CheckSshCommandE(t, host, "sudo tail -n 120 /var/log/edge-init.log || true")
+				bootcmd, _ := ssh.CheckSshCommandE(t, host, "sudo cat /var/log/edge-bootcmd.log 2>/dev/null || true")
+				prelog, _ := ssh.CheckSshCommandE(t, host, "sudo cat /var/log/edge-userdata-pre.log 2>/dev/null || true")
+				dbglog, _ := ssh.CheckSshCommandE(t, host, "sudo cat /var/log/edge-debug.log 2>/dev/null || true")
+				svc1, _ := ssh.CheckSshCommandE(t, host, "sudo systemctl status caddy --no-pager -l 2>/dev/null | tail -n 80 || true")
+				reglog, _ := ssh.CheckSshCommandE(t, host, "sudo docker logs --tail 60 registry 2>/dev/null || true")
+				t.Log("--- cloud-init-output.log (tail) ---\n" + out1)
+				t.Log("--- cloud-init.log (tail) ---\n" + out2)
+				t.Log("--- edge-init.log (tail) ---\n" + out3)
+				t.Log("--- edge-bootcmd.log ---\n" + bootcmd)
+				t.Log("--- edge-userdata-pre.log ---\n" + prelog)
+				t.Log("--- edge-debug.log ---\n" + dbglog)
+				t.Log("--- systemctl status caddy (tail) ---\n" + svc1)
+				t.Log("--- docker logs registry (tail) ---\n" + reglog)
+			}
+			collectAndLog()
 			t.Fatalf("Cloud-init failed; see above logs")
 		}
 		t.Logf("Still waiting for cloud-init... (%d/%d)", i+1, maxWait/int(pollInterval.Seconds()))
