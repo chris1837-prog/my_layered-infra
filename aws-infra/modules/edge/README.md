@@ -42,7 +42,7 @@ The Edge VM is responsible for three primary functions: providing secure network
 - Installs and configures NAT (iptables), WireGuard VPN, Caddy reverse proxy, and fail2ban via cloud-init
 - Dynamically generates an SSH key pair (no manual key management required)
 - Optionally associates an Elastic IP for stable public access (when `eip_allocation_id` is provided)
- - Configurable via variables for subnet, security group, admin CIDRs, backend servers, and domain
+ - Configurable via variables for VPC, subnet, security group, admin CIDRs, backend servers, and domain
 - Outputs the public IP and instance ID
  - Conditional WireGuard provisioning (`enable_wireguard`) so you can disable VPN setup in ephemeral or constrained environments
  - Optional public ACME certificate issuance for the external registry host (`enable_acme_external` + optional `acme_email`)
@@ -57,6 +57,7 @@ module "edge" {
 
   project_name              = "layered-infra"
   environment               = "dev"
+  vpc_id                    = aws_vpc.main.id
   edge_private_ip           = "10.0.2.100"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
@@ -94,6 +95,7 @@ module "edge" {
 |---------------------------|-----------------------------------------------------------|--------------|-----------------|
 | project_name              | Name of the project                                       | string       | n/a             |
 | environment               | Environment name (e.g., dev, qa, prod)                    | string       | n/a             |
+| vpc_id                    | VPC ID where the Edge resources are deployed              | string       | n/a             |
 | public_subnet_id          | Public subnet ID for the Edge VM                          | string       | n/a             |
 | sg_edge_id                | Security group ID for the Edge VM                         | string       | n/a             |
 | instance_type             | EC2 instance type                                          | string       | "t3.micro"      |
@@ -136,15 +138,6 @@ The Edge VM is configured at boot using a single cloud-init script to:
 - Install and enable fail2ban to protect SSH from brute-force attacks
 - Restrict access to SSH and WireGuard to the specified admin CIDRs
  - (If `enable_acme_external=false`) install the Caddy internal CA into Docker trust directories named after the registry hostnames (host only, excluding scheme) so local Docker can trust the self-issued certificates. When `enable_acme_external=true`, CA trust dirs for the external registry host are intentionally not populated.
-
-## Breaking Changes
-
-The module interface was simplified to remove unused variables:
-
-- Removed: `vpc_id`, `registry_zone_name`, `bcrypt_hash`, `app_port` (none were referenced by resources or templates)
-- Updated defaults: `enable_acme_external` now defaults to `false` (was `true`), `acme_email` now defaults to empty string (was a placeholder email). When enabling `enable_acme_external`, you must now explicitly set a non-empty `acme_email`.
-
-Rationale: these inputs added noise without affecting behavior. Removing them reduces cognitive load and risk of misconfiguration.
 
 ## Example Directory
 
