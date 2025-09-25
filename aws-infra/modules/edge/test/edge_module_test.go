@@ -507,7 +507,6 @@ func TestEdgeModuleIntegration(t *testing.T) {
 
 	t.Log("\033[1;34m[INFO]\033[0m Checking htpasswd file for registry user...")
 	htpasswdCmd := "sudo cat /opt/registry/auth/htpasswd"
-	// We'll assert against the actual username extracted below once available
 
 	// --- Registry HTTP Auth Validation via Caddy (curl) ---
 	t.Log("\033[1;34m[INFO]\033[0m Testing registry HTTP endpoints without auth (should be 401) for both domains (with retries for TLS readiness)...")
@@ -635,13 +634,6 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	loginCmd := fmt.Sprintf("echo %s | docker login %s -u %s --password-stdin", shSingleQuote(regPass), registryInternalHost, shSingleQuote(regUser))
 	loginOut, err := ssh.CheckSshCommandE(t, host, loginCmd)
 	if err != nil || !strings.Contains(loginOut, "Login Succeeded") {
-		t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker login attempt failed. Output: %s Error: %v", loginOut, err)
-		t.Log("\033[1;34m[INFO]\033[0m Retrying docker login once after short delay...")
-		retryLoginCmd := fmt.Sprintf("sleep 3; %s", loginCmd)
-		loginOut, err = ssh.CheckSshCommandE(t, host, retryLoginCmd)
-	}
-	if err != nil || !strings.Contains(loginOut, "Login Succeeded") {
-		// Print permissions diagnostics to help debug issues like permission denied on CA files
 		diag1, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -ld /etc/docker/certs.d /etc/docker/certs.d/%s /etc/docker/certs.d/%s:443 || true", registryExternalHost, registryExternalHost))
 		diag2, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -l /etc/docker/certs.d/%s 2>/dev/null || true", registryExternalHost))
 		diag3, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("ls -l /etc/docker/certs.d/%s:443 2>/dev/null || true", registryExternalHost))
@@ -650,9 +642,6 @@ func TestEdgeModuleIntegration(t *testing.T) {
 		t.Log("--- certs host (ls -l) ---\n" + diag2)
 		t.Log("--- certs host:443 (ls -l) ---\n" + diag3)
 		t.Log("--- user id ---\n" + whoami)
-		if err != nil {
-			t.Logf("\033[1;31m❌ [FAIL]\033[0m Docker login command failed: %v", err)
-		}
 	}
 	require.NoError(t, err, "Docker login should succeed")
 	if !strings.Contains(loginOut, "Login Succeeded") {
