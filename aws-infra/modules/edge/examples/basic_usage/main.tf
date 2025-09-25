@@ -295,7 +295,8 @@ module "edge" {
   iam_instance_profile_name = aws_iam_instance_profile.ec2_instance_profile.name
   public_subnet_id          = aws_subnet.public_subnet.id
   admin_cidrs               = ["0.0.0.0/0"]
-  domain_name               = "uselayered.com"
+  # Use a hostname within the delegated subdomain for automatic HTTPS instead of the parent apex
+  domain_name               = "edge.dev.uselayered.com"
   backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
   # Ensure the Edge instance gets a public IP via the created Elastic IP
   enable_eip_association    = true
