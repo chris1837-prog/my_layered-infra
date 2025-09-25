@@ -803,4 +803,79 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	} else {
 		t.Log("\033[1;31m❌ [FAIL]\033[0m fail2ban sshd jail is missing")
 	}
+
+	// ===============================
+	// Optional: External client flow
+	// ===============================
+	if extClientEnabled {
+		t.Log("\033[1;34m[INFO]\033[0m [EXT] Provisioning external client fixture for outside-VPC testing...")
+		region := os.Getenv("AWS_REGION")
+		if region == "" {
+			region = "eu-central-1"
+		}
+		extTf := &terraform.Options{
+			TerraformDir: "fixtures/external_client",
+			NoColor:      true,
+			Vars: map[string]interface{}{
+				"region": region,
+			},
+		}
+		defer terraform.Destroy(t, extTf)
+		terraform.InitAndApply(t, extTf)
+		extIP := terraform.Output(t, extTf, "public_ip")
+		extKeyPath := terraform.Output(t, extTf, "private_key_path")
+		keyBytes, err := os.ReadFile(extKeyPath)
+		require.NoError(t, err)
+		client := ssh.Host{Hostname: extIP, SshUserName: "ubuntu", SshKeyPair: &ssh.KeyPair{PrivateKey: string(keyBytes)}}
+
+		// Wait for SSH on client
+		for i := 0; i < 24; i++ {
+			if err := ssh.CheckSshConnectionE(t, client); err == nil {
+				break
+			}
+			time.Sleep(5 * time.Second)
+			if i == 23 {
+				require.Fail(t, "External client SSH not available in time")
+			}
+		}
+
+		// Prepare DNS pin; then either install CA (internal mode) or skip (ACME mode)
+		t.Log("\033[1;34m[INFO]\033[0m [EXT] Pinning registry domain to Edge EIP...")
+		_, _ = ssh.CheckSshCommandE(t, client, fmt.Sprintf("echo '%s %s' | sudo tee -a /etc/hosts >/dev/null", publicIP, registryExternalHost))
+		if extUsesACME {
+			t.Log("\033[1;34m[INFO]\033[0m [EXT] ACME mode detected — skipping CA fetch/install on external client")
+		} else {
+			t.Log("\033[1;34m[INFO]\033[0m [EXT] Installing Caddy internal CA on external client...")
+			fetchCACmd := fmt.Sprintf("for i in $(seq 1 60); do curl -fsSk --resolve '%s:443:%s' https://%s/ca.crt -o /tmp/caddy-local.crt && break || sleep 2; done; test -s /tmp/caddy-local.crt", registryExternalHost, publicIP, registryExternalHost)
+			_, err = ssh.CheckSshCommandE(t, client, fetchCACmd)
+			require.NoError(t, err, "[EXT] Failed to fetch Caddy CA from edge host")
+			installCACmd := fmt.Sprintf("sudo bash -lc 'install -d -m 0755 /etc/docker/certs.d/%[1]s /etc/docker/certs.d/%[1]s:443 && install -m 0644 /tmp/caddy-local.crt /etc/docker/certs.d/%[1]s/ca.crt && install -m 0644 /tmp/caddy-local.crt /etc/docker/certs.d/%[1]s:443/ca.crt && install -m 0644 -D /tmp/caddy-local.crt /usr/local/share/ca-certificates/caddy-local.crt && update-ca-certificates || true && systemctl restart docker || true'", registryExternalHost)
+			_, err = ssh.CheckSshCommandE(t, client, installCACmd)
+			require.NoError(t, err, "[EXT] Failed to install CA on external client")
+		}
+
+		// Login (no CA needed in ACME mode)
+		loginClientCmd := fmt.Sprintf("echo %s | docker login %s -u %s --password-stdin", shSingleQuote(regPass), registryExternalHost, shSingleQuote(regUser))
+		loginClientOut, err := ssh.CheckSshCommandE(t, client, loginClientCmd)
+		require.NoError(t, err, "[EXT] docker login should succeed")
+		assert.Contains(t, loginClientOut, "Login Succeeded")
+
+		// If requested, prove Docker Hub -> our registry flow entirely from outside
+		if dockerHubEnabled {
+			t.Log("\033[1;34m[INFO]\033[0m [EXT][DockerHub->Registry] Pulling busybox:latest from Docker Hub on external client...")
+			_, err := ssh.CheckSshCommandE(t, client, "docker pull busybox:latest")
+			require.NoError(t, err, "[EXT] docker pull busybox:latest should succeed")
+			dest := fmt.Sprintf("%s/test/busybox:hub", registryExternalHost)
+			t.Log("\033[1;34m[INFO]\033[0m [EXT] Tagging and pushing to registry...")
+			_, err = ssh.CheckSshCommandE(t, client, fmt.Sprintf("docker tag busybox:latest %s && docker push %s", dest, dest))
+			require.NoError(t, err, "[EXT] push of DockerHub image into registry should succeed")
+			_, _ = ssh.CheckSshCommandE(t, client, fmt.Sprintf("docker rmi -f %s || true", dest))
+			out, err := ssh.CheckSshCommandE(t, client, fmt.Sprintf("docker pull %s", dest))
+			require.NoError(t, err)
+			if !(strings.Contains(out, "Downloaded newer image") || strings.Contains(out, "Image is up to date") || strings.Contains(out, "Status: Downloaded")) {
+				require.Fail(t, "[EXT] DockerHub->Registry pull-back did not report success")
+			}
+			t.Log("\033[1;32m✅ [SUCCESS]\033[0m [EXT][DockerHub->Registry] Image flowed through from Docker Hub")
+		}
+	}
 }
