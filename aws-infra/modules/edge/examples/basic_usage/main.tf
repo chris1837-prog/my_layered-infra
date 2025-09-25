@@ -308,6 +308,3 @@ module "edge" {
   enable_eip_association    = true
   eip_allocation_id         = aws_eip.edge.id
 }
-
-# Note: In this self-contained example we avoid creating SSM parameters.
-# Real environments should use the bootstrap module to write these to SSM.
