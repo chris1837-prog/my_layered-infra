@@ -510,11 +510,32 @@ func TestEdgeModuleIntegration(t *testing.T) {
 	// We'll assert against the actual username extracted below once available
 
 	// --- Registry HTTP Auth Validation via Caddy (curl) ---
-	t.Log("\033[1;34m[INFO]\033[0m Testing registry HTTP endpoints without auth (should be 401) for both domains...")
+	t.Log("\033[1;34m[INFO]\033[0m Testing registry HTTP endpoints without auth (should be 401) for both domains (with retries for TLS readiness)...")
 	for _, h := range []string{registryExternalHost, registryInternalHost} {
-		curlNoAuthCmd := fmt.Sprintf("curl -s -k -D - -o /dev/null --resolve '%s:443:127.0.0.1' https://%s/v2/", h, h)
-		headersNoAuth, err := ssh.CheckSshCommandE(t, host, curlNoAuthCmd)
-		require.NoError(t, err)
+		attempts := 24 // up to 2 minutes
+		var headersNoAuth string
+		var cmdErr error
+		for i := 0; i < attempts; i++ {
+			curlNoAuthCmd := fmt.Sprintf("curl -s -k -D - -o /dev/null --connect-timeout 5 --resolve '%s:443:127.0.0.1' https://%s/v2/ || echo '__EXIT:$?'", h, h)
+			headersNoAuth, cmdErr = ssh.CheckSshCommandE(t, host, curlNoAuthCmd)
+			// Treat exit markers or empty output as transient if we haven't seen HTTP 401 yet
+			if cmdErr == nil && strings.Contains(headersNoAuth, " 401") {
+				break
+			}
+			if i == attempts-1 {
+				// diagnostics
+				opensslDump, _ := ssh.CheckSshCommandE(t, host, fmt.Sprintf("echo | openssl s_client -servername %s -connect 127.0.0.1:443 2>&1 | head -n 80 || true", h))
+				caddyLog, _ := ssh.CheckSshCommandE(t, host, "sudo journalctl -u caddy -n 60 --no-pager 2>/dev/null || true")
+				t.Log("--- openssl s_client (tail) ---\n" + opensslDump)
+				t.Log("--- caddy journal (tail) ---\n" + caddyLog)
+				require.NoError(t, cmdErr, fmt.Sprintf("curl no-auth failed for %s after retries", h))
+				assert.Contains(t, headersNoAuth, " 401", "Unauthenticated request should return 401 for "+h)
+			}
+			time.Sleep(5 * time.Second)
+		}
+		if !strings.Contains(headersNoAuth, " 401") {
+			t.Fatalf("Did not observe 401 from %s /v2/ after retries. Last output: %s", h, headersNoAuth)
+		}
 		assert.Contains(t, headersNoAuth, " 401", "Unauthenticated request should return 401 for "+h)
 	}
 
