@@ -34,6 +34,8 @@ data "cloudinit_config" "edge" {
   base64_encode = true
 
   part {
+    # Template is configured to expect direct values, not SSM parameter paths
+    # When you want to call this module, you must resolve SSM parameters to values first or change the template config to accept paths
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
       admin_user               = var.admin_user,
