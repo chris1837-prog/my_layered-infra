@@ -6,7 +6,7 @@ resource "random_id" "suffix" {
 resource "aws_s3_bucket" "terraform_state" {
   bucket = "${var.project_name}-${var.environment}-tf-state-${random_id.suffix.hex}"
 
-  tags = merge(var.common_tags, {
+  tags = merge(local.merged_tags, {
     Name = "Terraform State - ${var.environment}"
   })
 }
@@ -53,7 +53,7 @@ resource "aws_dynamodb_table" "terraform_locks" {
     type = "S"
   }
 
-  tags = merge(var.common_tags, {
+  tags = merge(local.merged_tags, {
     Name = "Terraform Locks - ${var.environment}"
   })
 }

@@ -15,8 +15,6 @@ module "remote_backend" {
   environment  = "dev"
 
   common_tags = {
-    Project     = "layered-infra"
-    ManagedBy   = "Terraform"
     Environment = "Testing"
     Team        = "A"
     Module      = "remote_backend"

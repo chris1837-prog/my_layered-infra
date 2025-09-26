@@ -1,5 +1,5 @@
 # This file is necessary for running 'terraform init' and 'terraform validate'
-# in the examples/basic_usage/ directory.
+# in the examples/basic/ directory.
 terraform {
   required_version = "~> 1.12.0"
 
@@ -8,10 +8,5 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 6.5.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.5"
-    }
   }
-
 }

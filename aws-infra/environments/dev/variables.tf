@@ -1,14 +1,6 @@
 ########################################
 # Variables (DEV)
 ########################################
-
-# --- AWS Provider Vars ---
-variable "aws_region" {
-  description = "AWS region for DEV"
-  type        = string
-  default     = "eu-central-1"
-}
-
 variable "aws_profile" {
   description = "AWS CLI/SSO profile for DEV"
   type        = string
