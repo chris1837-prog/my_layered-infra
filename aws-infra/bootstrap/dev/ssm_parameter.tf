@@ -50,6 +50,15 @@ resource "aws_ssm_parameter" "internal_registry_url" {
   tags = local.merged_tags
 }
 
+resource "aws_ssm_parameter" "edge_primary_url" {
+  name        = "/${var.project_name}/${var.environment}/edge_primary_url"
+  type        = "String"
+  value       = aws_route53_record.edge_primary.fqdn # Use the FQDN of the public record
+  description = "Primary URL for the Edge VM"
+
+  tags = local.merged_tags
+}
+
 resource "aws_ssm_parameter" "registry_user" {
   name        = "/${var.project_name}/${var.environment}/registry_user"
   type        = "String"
