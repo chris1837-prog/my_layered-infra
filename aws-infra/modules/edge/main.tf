@@ -22,7 +22,7 @@ resource "aws_instance" "edge" {
 }
 
 resource "aws_eip_association" "eip_assoc" {
-  count = var.eip_allocation_id != null ? 1 : 0
+  count = var.enable_eip_association ? 1 : 0
 
   instance_id   = aws_instance.edge.id
   allocation_id = var.eip_allocation_id
@@ -34,6 +34,8 @@ data "cloudinit_config" "edge" {
   base64_encode = true
 
   part {
+    # Template is configured to expect direct values, not SSM parameter paths
+    # When you want to call this module, you must resolve SSM parameters to values first or change the template config to accept paths
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
       admin_user               = var.admin_user,
@@ -42,10 +44,15 @@ data "cloudinit_config" "edge" {
       backend_servers          = var.backend_servers,
       admin_cidrs              = var.admin_cidrs,
       wireguard_port           = var.wireguard_port,
-      registry_external_domain = var.registry_external_url,
-      registry_internal_domain = var.registry_internal_url,
+      registry_external_url    = var.registry_external_url,
+      registry_internal_url    = var.registry_internal_url,
       registry_user            = var.registry_user,
-      registry_password        = var.registry_password
+      registry_password        = var.registry_password,
+      enable_acme_external     = var.enable_acme_external,
+      acme_email               = var.acme_email,
+      enable_wireguard         = var.enable_wireguard,
+      enable_domain_tls        = var.enable_domain_tls,
+      enable_domain_acme       = var.enable_domain_acme,
     })
   }
 }

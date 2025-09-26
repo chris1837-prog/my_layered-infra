@@ -40,6 +40,7 @@ resource "local_file" "ssm_parameters_json" {
       registry_password     = aws_ssm_parameter.registry_password.name
       external_registry_url = aws_ssm_parameter.external_registry_url.name
       internal_registry_url = aws_ssm_parameter.internal_registry_url.name
+      edge_primary_url      = aws_ssm_parameter.edge_primary_url.name
       registry_user         = aws_ssm_parameter.registry_user.name
       app_image_name        = aws_ssm_parameter.app_image_name.name
       app_image_tag         = aws_ssm_parameter.app_image_tag.name
@@ -49,6 +50,7 @@ resource "local_file" "ssm_parameters_json" {
     parameter_values = {
       external_registry_url = aws_route53_record.registry_public.fqdn  # Use actual FQDN
       internal_registry_url = aws_route53_record.registry_private.fqdn # Use actual FQDN
+      edge_primary_url      = aws_route53_record.edge_primary.fqdn      # Use actual FQDN
       registry_user         = aws_ssm_parameter.registry_user.value
       postgres_db           = aws_ssm_parameter.postgres_db.value
       postgres_user         = aws_ssm_parameter.postgres_user.value

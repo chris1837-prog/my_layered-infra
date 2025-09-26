@@ -20,10 +20,9 @@ packages:
   - wireguard
   - qrencode
   - fail2ban
-  - docker.io
 
-early_commands:
-  - apt-get install -y wireguard  # Ensure WireGuard is available early
+bootcmd:
+  - echo "[BOOTCMD] edge bootcmd executed $(date -Is)" > /var/log/edge-bootcmd.log
 
 users:
   - name: ${admin_user}
@@ -31,34 +30,63 @@ users:
     groups: [sudo]
     shell: /bin/bash
     sudo: ['ALL=(ALL) NOPASSWD:ALL']
-  ssh_authorized_keys:
-%{ for key in admin_ssh_keys ~}
-    - '${key}'
-%{ endfor ~}
+    ssh_authorized_keys: ${jsonencode(admin_ssh_keys)}
 
 write_files:
+  - path: /var/log/edge-userdata-pre.log
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [PRE] user-data write_files section reached at $(date -Is)
   - path: /etc/caddy/Caddyfile
     owner: root:root
     permissions: "0644"
     content: |
-      ${domain_name} {
-        reverse_proxy ${join(" ", backend_servers)}
-        tls internal
+      # Generated Caddyfile (single-template inline)
+      %{ if acme_email != "" }
+      {
+        email ${acme_email}
       }
+      %{ endif }
 
-      ${registry_external_domain} {
-        # Serve the local CA so external clients can fetch and trust it.
-        # Clients can curl -k https://<registry_domain>/ca.crt and install to their Docker trust store.
-        handle_path /ca.crt {
+      %{ if enable_domain_tls }
+      ${domain_name} {
+        # Primary application domain reverse proxy
+        reverse_proxy ${join(" ", backend_servers)}
+        %{ if enable_domain_acme }
+        # Public ACME certificate (automatic HTTPS). Do NOT specify a tls block; Caddy will manage issuance & renewals.
+        %{ else }
+        # Internal CA certificate (self-signed via Caddy local CA)
+        tls internal
+        %{ endif }
+      }
+      %{ else }
+      http://${domain_name} {
+        # HTTP-only bootstrap mode (no TLS yet) – useful to validate routing before enabling HTTPS
+        reverse_proxy ${join(" ", backend_servers)}
+      }
+      %{ endif }
+
+      ${registry_external_url} {
+        # External split-horizon host (public)
+        reverse_proxy localhost:5000
+        %{ if enable_acme_external }
+        # Use public ACME cert (Let's Encrypt). No explicit tls block needed; Caddy automatic HTTPS will obtain ACME cert.
+        # (An explicit empty tls { } block caused a parse error in Caddy 2.10.2.)
+        %{ else }
+        # Use internal CA and expose /ca.crt for external clients
+        tls internal
+        handle /ca.crt {
           root * /var/www/caddy
           file_server
         }
-        reverse_proxy localhost:5000
-        tls internal
+        %{ endif }
       }
 
-      ${registry_internal_domain} {
-        handle_path /ca.crt {
+      ${registry_internal_url} {
+        # Internal split-horizon host
+        # Always trust internal CA; expose CA for internal clients
+        handle /ca.crt {
           root * /var/www/caddy
           file_server
         }
@@ -85,18 +113,39 @@ write_files:
     content: |
       #!/bin/bash
       set -euxo pipefail
+      export DEBIAN_FRONTEND=noninteractive
       mkdir -p /var/lib/cloud/instance || true
       trap 'echo "[ERROR] startup.sh failed at line $LINENO" | tee -a /var/log/edge-init.log; touch /var/lib/cloud/instance/cloud-init-failed' ERR
       echo "[INIT] startup.sh begun" | tee -a /var/log/edge-init.log
+      echo "[MARK] init-begin $(date -Is)" >> /var/log/edge-progress.log
 
       echo "[INIT] Installing/starting Docker..."
-      apt-get update
-      apt-get install -y docker.io
+      if ! command -v docker >/dev/null 2>&1; then
+        apt-get update
+        apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" docker.io
+      fi
+      echo "[MARK] docker-section-complete $(date -Is)" >> /var/log/edge-progress.log
       systemctl enable --now docker
       # Allow SSH users to run docker without sudo
-      usermod -aG docker ubuntu || true
       if id -u ${admin_user} >/dev/null 2>&1; then
         usermod -aG docker ${admin_user} || true
+      fi
+
+      # Wait for Docker CLI to be available, to avoid races with apt/links
+      echo "[INIT] Waiting for Docker CLI to become available..."
+      for i in $(seq 1 30); do
+        if command -v docker >/dev/null 2>&1; then
+          docker --version || true
+          echo "[INIT] Docker CLI detected."
+          break
+        fi
+        sleep 5
+      done
+      if ! command -v docker >/dev/null 2>&1; then
+        echo "[WARN] Docker CLI still not found after waiting; showing diagnostics..." | tee -a /var/log/edge-init.log
+        which docker || true
+        dpkg -l | grep -i docker || true
+        apt-cache policy docker.io || true
       fi
 
       echo "[INIT] Preparing registry directories and credentials..."
@@ -131,18 +180,23 @@ write_files:
       apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" caddy
       echo "[INIT] Caddy has been installed."
 
+      # NOTE: Do NOT modify /etc/hosts for registry domains here.
+      # Split-horizon DNS is expected to resolve these differently inside vs outside.
+      # Tests may pin hostnames as needed, but the appliance should not hardcode DNS.
+
       echo "[INIT] Configuring firewall with UFW..."
       ufw default deny incoming
       ufw default allow outgoing
       ufw allow 80/tcp
-        ufw allow 443/tcp
-        %{ for cidr in admin_cidrs ~}
+      ufw allow 443/tcp
+      %{ for cidr in admin_cidrs ~}
       ufw allow from ${cidr} to any port 22 proto tcp
       ufw allow from ${cidr} to any port ${wireguard_port} proto udp
-        %{ endfor ~}
+      %{ endfor ~}
       ufw --force enable
 
-      echo "[INIT] Setting up WireGuard server..."
+      %{ if enable_wireguard }
+      echo "[INIT] Setting up WireGuard server (enabled)..."
       mkdir -p /etc/wireguard
       if [ ! -f /etc/wireguard/server_private.key ]; then
         wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
@@ -156,6 +210,9 @@ write_files:
         echo "SaveConfig = true"
       } > /etc/wireguard/wg0.conf
       systemctl enable --now wg-quick@wg0
+      %{ else }
+      echo "[INIT] Skipping WireGuard setup (enable_wireguard=false)" | tee -a /var/log/edge-init.log
+      %{ endif }
 
       echo "[INIT] Formatting Caddyfile..."
       caddy fmt --overwrite /etc/caddy/Caddyfile || true
@@ -163,7 +220,7 @@ write_files:
       echo "[INIT] Enabling and starting Caddy to apply templated config..."
       systemctl enable --now caddy
 
-      echo "[INIT] Installing Caddy internal CA to Docker and OS trust stores..."
+      echo "[INIT] Installing Caddy internal CA to Docker and OS trust stores (only when internal CA is used)..."
       CA_SRC1="/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt"
       CA_SRC2="/var/lib/caddy/pki/authorities/local/root.crt"
       CA_SRC=""
@@ -173,19 +230,31 @@ write_files:
         if [ -f "$CA_SRC2" ]; then CA_SRC="$CA_SRC2"; break; fi
         sleep 2
       done
-      DEST_DIR_EXT="/etc/docker/certs.d/${registry_external_domain}"
-      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${registry_external_domain}:443"
-      DEST_DIR_INT="/etc/docker/certs.d/${registry_internal_domain}"
-      DEST_DIR_INT_PORT="/etc/docker/certs.d/${registry_internal_domain}:443"
+      # Derive hostnames from full registry URLs (avoid passing separate host vars)
+      REGISTRY_EXTERNAL_HOST=$(echo "${registry_external_url}" | sed -E 's#https://([^/]+)/?.*#\1#')
+      REGISTRY_INTERNAL_HOST=$(echo "${registry_internal_url}" | sed -E 's#https://([^/]+)/?.*#\1#')
+      DEST_DIR_EXT="/etc/docker/certs.d/${REGISTRY_EXTERNAL_HOST}"
+      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${REGISTRY_EXTERNAL_HOST}:443"
+      DEST_DIR_INT="/etc/docker/certs.d/${REGISTRY_INTERNAL_HOST}"
+      DEST_DIR_INT_PORT="/etc/docker/certs.d/${REGISTRY_INTERNAL_HOST}:443"
       install -d -m 0755 "$DEST_DIR_EXT" "$DEST_DIR_EXT_PORT" "$DEST_DIR_INT" "$DEST_DIR_INT_PORT"
       if [ -n "$CA_SRC" ] && [ -f "$CA_SRC" ]; then
+        # For external domain, only install CA if we're not using ACME
+      %{ if enable_acme_external ~}
+        # ACME enabled for external domain; do not install local CA into external trust dirs
+      %{ else ~}
         install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT/ca.crt"
         install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT_PORT/ca.crt"
+      %{ endif ~}
         install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT/ca.crt"
         install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT_PORT/ca.crt"
         # Also expose the CA via HTTPS at /ca.crt for external clients
+      %{ if enable_acme_external ~}
+        # ACME in use externally; skip exposing CA for external
+      %{ else ~}
         install -d -m 0755 /var/www/caddy
         install -m 0644 -D "$CA_SRC" /var/www/caddy/ca.crt
+      %{ endif ~}
         install -m 0644 -D "$CA_SRC" /usr/local/share/ca-certificates/caddy-local.crt
         update-ca-certificates || true
         echo "[INIT] CA installed to Docker (external+internal) and OS trust; restarting Docker..."
@@ -199,14 +268,27 @@ write_files:
       fail2ban-client status sshd || true
 
       echo "[INIT] Script finished successfully."
-      touch /var/lib/cloud/instance/cloud-init-finished
+      echo "[MARK] final-success $(date -Is)" >> /var/log/edge-progress.log
+      touch /var/lib/cloud/instance/edge-init-finished
+      ls -l /var/lib/cloud/instance/edge-init-finished || true
+
+  - path: /etc/systemd/system/edge-startup.service
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Edge module bootstrap (fallback)\n
+      After=network-online.target docker.service
+      Wants=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart=/opt/startup.sh
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
 
 runcmd:
-  - [ "sudo", "bash", "/opt/startup.sh" ]
-  - [ "bash", "-c", "echo '[TEST] Running basic firewall/fail2ban checks...'" ]
-  - [ "bash", "-c", "PUBIP=$(curl -s ifconfig.me || curl -s https://api.ipify.org || echo 'unknown'); echo '[TEST] Server public IP detected: $PUBIP'" ]
-  - [ "ufw", "status", "verbose" ]
-  - [ "fail2ban-client", "status", "sshd" ]
-  - [ "bash", "-c", "for i in {1..6}; do ssh -o StrictHostKeyChecking=no -o ConnectTimeout=3 -p 22 root@localhost exit || true; done" ]
-  - [ "fail2ban-client", "status", "sshd" ]
-  - [ "bash", "-c", "echo '[TEST] Firewall & Fail2ban checks complete.'" ]
+  - [ bash, -c, "echo '[RUNCMD] minimal execution starting $(date -Is)' > /var/log/edge-debug.log" ]
+  - [ bash, /opt/startup.sh ]
