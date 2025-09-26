@@ -31,7 +31,10 @@ The Edge VM is responsible for three primary functions: providing secure network
 **Why this is important:** Caddy provides a modern, secure way to handle all incoming web traffic. It terminates HTTPS, manages TLS certificates, and forwards requests to the correct backend application.
 
 - **Reverse Proxy:** Caddy is configured to listen for traffic on its public interface and forward it to the application servers running in the private subnet.
-- **Automatic HTTPS (Internal TLS):** Caddy is configured to use `tls internal`. It creates its own private Certificate Authority (CA) and issues a trusted certificate for internal use.
+- **TLS Modes for Primary Domain:**
+  - **HTTP Bootstrap:** (`enable_domain_tls = false`) Serve only HTTP (port 80). Use to validate reachability before enabling HTTPS.
+  - **Internal CA:** (`enable_domain_tls = true`, `enable_domain_acme = false`) Caddy issues a certificate from its built-in local CA (`tls internal`). Suitable for internal/testing usage.
+  - **Public ACME:** (`enable_domain_tls = true`, `enable_domain_acme = true`) Caddy obtains a publicly trusted certificate automatically (Let’s Encrypt/ZeroSSL). Requires public DNS A/AAAA records and open ports 80/443.
 - **Split-Horizon Docker Registry Proxy:** The Edge VM also proxies a private Docker registry on two hostnames (external and internal). The Caddy local CA is exposed at `/ca.crt` on both registry hosts for clients to trust, and the CA is installed into the host Docker trust store so the local Docker client can authenticate to the registry via HTTPS.
 
 ## Features
@@ -39,8 +42,12 @@ The Edge VM is responsible for three primary functions: providing secure network
 - Installs and configures NAT (iptables), WireGuard VPN, Caddy reverse proxy, and fail2ban via cloud-init
 - Dynamically generates an SSH key pair (no manual key management required)
 - Optionally associates an Elastic IP for stable public access (when `eip_allocation_id` is provided)
-- Configurable via variables for VPC, subnet, admin CIDRs, backend servers, and domain
+ - Configurable via variables for VPC, subnet, security group, admin CIDRs, backend servers, and domain
 - Outputs the public IP and instance ID
+ - Conditional WireGuard provisioning (`enable_wireguard`) so you can disable VPN setup in ephemeral or constrained environments
+ - Optional public ACME certificate issuance for the external registry host (`enable_acme_external` + optional `acme_email`)
+ - Strong input validation: registry URLs must include an `https://` scheme; backend server list must be non-empty; admin CIDRs list must be non-empty
+ - Internal Caddy CA automatically trusted by local Docker daemon using host-only directory names (avoids paths that include a URL scheme)
 
 ## Usage
 
@@ -50,7 +57,7 @@ module "edge" {
 
   project_name              = "layered-infra"
   environment               = "dev"
-  vpc_id                    = aws_vpc.test_vpc.id
+  vpc_id                    = aws_vpc.main.id
   edge_private_ip           = "10.0.2.100"
   instance_type             = local.instance_type
   sg_edge_id                = aws_security_group.edge.id
@@ -61,13 +68,21 @@ module "edge" {
   public_subnet_id          = aws_subnet.public_subnet.id
   admin_cidrs               = ["0.0.0.0/0"]
   domain_name               = "edge.example.com"
+  enable_domain_tls         = true                 # false = HTTP-only bootstrap
+  enable_domain_acme        = true                 # true = public ACME (if enable_domain_tls); false = internal CA
   backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
 
   # Private Docker Registry (required)
   registry_user             = "registry"
   registry_password         = "registry"           # mark as sensitive in state
+  # Registry URLs MUST include the https:// scheme (validated)
   registry_external_url     = "https://registry.edge.example.com"
   registry_internal_url     = "https://registry.internal.edge.example.com"
+
+  # Toggle features
+  enable_wireguard          = true                  # set false to skip VPN installation
+  enable_acme_external      = false                 # set true to obtain a public ACME cert for external registry host
+  acme_email                = "ops@example.com"     # required when enable_acme_external = true
 
   # Optional: Associate an existing EIP (omit for ephemeral public IP or if handled elsewhere)
   # eip_allocation_id       = "eipalloc-xxxxxxxxxxxxxxxxx"
@@ -80,7 +95,7 @@ module "edge" {
 |---------------------------|-----------------------------------------------------------|--------------|-----------------|
 | project_name              | Name of the project                                       | string       | n/a             |
 | environment               | Environment name (e.g., dev, qa, prod)                    | string       | n/a             |
-| vpc_id                    | VPC ID for deployment                                     | string       | n/a             |
+| vpc_id                    | VPC ID where the Edge resources are deployed              | string       | n/a             |
 | public_subnet_id          | Public subnet ID for the Edge VM                          | string       | n/a             |
 | sg_edge_id                | Security group ID for the Edge VM                         | string       | n/a             |
 | instance_type             | EC2 instance type                                          | string       | "t3.micro"      |
@@ -91,13 +106,18 @@ module "edge" {
 | ubuntu_version            | Ubuntu version for the Edge VM                             | string       | "22.04"         |
 | iam_instance_profile_name | Name of IAM instance profile to attach to the Edge VM      | string       | n/a             |
 | wireguard_port            | UDP port for WireGuard                                     | number       | 51820           |
-| domain_name               | Domain for Caddy HTTPS                                     | string       | n/a             |
+| domain_name               | Domain for Caddy (HTTP/HTTPS depending on flags)           | string       | n/a             |
+| enable_domain_tls         | Enable HTTPS for primary domain (false = HTTP only)        | bool         | true            |
+| enable_domain_acme        | Use public ACME cert for primary domain (if TLS enabled)   | bool         | true            |
 | backend_servers           | List of backend IP:port addresses                          | list(string) | n/a             |
 | edge_private_ip           | Private IP address to assign to the Edge instance          | string       | n/a             |
 | registry_user             | Username for the Docker registry                           | string       | n/a             |
 | registry_password         | Password for the Docker registry (sensitive)               | string       | n/a             |
-| registry_external_url     | External registry URL (e.g., https://registry.example.com) | string       | n/a             |
-| registry_internal_url     | Internal registry URL (e.g., https://registry.internal.example.com) | string | n/a |
+| registry_external_url     | External registry URL (must start with https://)           | string       | n/a             |
+| registry_internal_url     | Internal registry URL (must start with https://)           | string       | n/a             |
+| enable_wireguard          | Whether to install & configure WireGuard VPN               | bool         | true            |
+| enable_acme_external      | Use public ACME cert for external registry host            | bool         | false           |
+| acme_email                | Contact email for ACME when public certs enabled           | string       | ""              |
 | eip_allocation_id         | Existing EIP allocation ID to associate (optional)         | string       | null            |
 | common_tags               | Map of tags to assign to all resources                     | map(string)  | {}              |
 
@@ -117,6 +137,7 @@ The Edge VM is configured at boot using a single cloud-init script to:
 - Start and enable Caddy as a reverse proxy for backend servers with HTTPS
 - Install and enable fail2ban to protect SSH from brute-force attacks
 - Restrict access to SSH and WireGuard to the specified admin CIDRs
+ - (If `enable_acme_external=false`) install the Caddy internal CA into Docker trust directories named after the registry hostnames (host only, excluding scheme) so local Docker can trust the self-issued certificates. When `enable_acme_external=true`, CA trust dirs for the external registry host are intentionally not populated.
 
 ## Example Directory
 
@@ -165,6 +186,24 @@ go test -v edge_module_test.go
 - Checks that NAT, WireGuard, Caddy, and fail2ban are all active and correctly configured
 - Verifies fail2ban sshd jail is present
 - Destroys all resources after the test
+
+#### Test Coverage Summary (short)
+The integration test exercises the full lifecycle and key behaviors of the Edge appliance:
+
+* Provisioning & Cloud-Init: waits for custom or native completion markers; emits rich diagnostics if slow or failed.
+* DNS Readiness Gate: optional strict/warn/skip pre-check for primary + external registry hosts before ACME attempts.
+* Docker Runtime: validates Docker installation availability with retries.
+* Registry (Split-Horizon): ensures registry container is running; validates Caddyfile contains both registry domains.
+* TLS Mode Detection: infers external registry TLS mode (ACME vs internal CA) and adapts expectations (issuer vs local CA trust files).
+* Auth Flows: checks unauthenticated (401), wrong credentials (401), and correct credentials (200) responses for both registry hosts.
+* Credential Extraction: parses `startup.sh` to confirm generated htpasswd credentials are in place.
+* Push/Pull Cycle: tags, pushes, removes, and pulls an image to verify end-to-end registry path and content addressing.
+* Docker Trust Store: asserts internal host always has CA; external host has CA only in internal-CA mode (warns if unexpected).
+* NAT: verifies presence of `MASQUERADE` rule.
+* Services: asserts WireGuard, Caddy, fail2ban active; fail2ban sshd jail present.
+* Optional External Client (env flags): can provision an outside-VPC client to test external registry + optional Docker Hub flow.
+* Diagnostic Depth: on failures (cloud-init, Docker, ACME) captures logs (cloud-init, systemd, Caddy journal, registry logs) for rapid triage.
+
 
 **Sample Terratest Output:**
 ```

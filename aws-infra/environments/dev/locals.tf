@@ -10,6 +10,7 @@ locals {
       registry_user         = local.ssm_parameters.parameter_paths.registry_user
       registry_password     = local.ssm_parameters.parameter_paths.registry_password
       internal_registry_url = local.ssm_parameters.parameter_paths.internal_registry_url
+      edge_primary_url      = local.ssm_parameters.parameter_paths.edge_primary_url
     }
   }
 
