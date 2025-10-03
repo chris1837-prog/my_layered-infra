@@ -2,6 +2,10 @@
 
 **Scope:** Manual EBS snapshots for Postgres data volume, naming/tagging policy, retention guidance, IAM least privilege.
 
+This procedure uses the AWS CLI to create, tag, and manage manual snapshots of a Postgres data volume.  
+It is designed to stay within the scope of the EBS module and avoids altering global infrastructure (e.g., environments or bootstraps).  
+The snapshot process is designed to be reusable, even when volume creation is handled via Terraform (see Area 1).
+
 ---
 
 ## Prerequisites
