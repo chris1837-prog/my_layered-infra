@@ -26,7 +26,7 @@ services:
     # Force Postgres to use MD5 password hashing (works with PgBouncer — the default since PG14 is SCRAM-SHA-256)
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data     # Named volume: persistent DB data
+      - ${POSTGRES_DATA_SOURCE:-postgres_data}:/var/lib/postgresql/data     # Host bind path or named volume for DB data
       - ./init-db:/docker-entrypoint-initdb.d      # SQL/scripts here run only on first init
 
     healthcheck:

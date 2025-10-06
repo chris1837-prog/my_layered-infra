@@ -61,6 +61,54 @@ variable "delete_on_termination" {
   default     = true # ⚠️ If you want DB persistence, set to false
 }
 
+variable "db_volume_size" {
+  description = "Size of the dedicated Postgres data volume in GB"
+  type        = number
+  default     = 50
+}
+
+variable "db_volume_type" {
+  description = "EBS volume type for Postgres data (gp3, gp2, io1, etc.)"
+  type        = string
+  default     = "gp3"
+}
+
+variable "db_volume_iops" {
+  description = "Provisioned IOPS for the Postgres data volume (required for certain volume types)"
+  type        = number
+  default     = null
+}
+
+variable "db_volume_throughput" {
+  description = "Provisioned throughput (MiB/s) for gp3 volumes"
+  type        = number
+  default     = null
+}
+
+variable "db_volume_encrypted" {
+  description = "Whether the Postgres data volume should be encrypted"
+  type        = bool
+  default     = true
+}
+
+variable "db_volume_kms_key_id" {
+  description = "Optional KMS key ID to use for Postgres data volume encryption"
+  type        = string
+  default     = null
+}
+
+variable "db_volume_device_name" {
+  description = "Linux device name to attach the Postgres data volume as (Nitro instances remap to /dev/nvme*)"
+  type        = string
+  default     = "/dev/xvdh"
+}
+
+variable "db_volume_mount_path" {
+  description = "Filesystem path where the Postgres data volume should be mounted"
+  type        = string
+  default     = "/var/lib/postgresql/data"
+}
+
 variable "enable_monitoring" {
   description = "Enable detailed monitoring (1-min CloudWatch metrics)"
   type        = bool
