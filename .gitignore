@@ -78,3 +78,14 @@ coverage/
 *.swp
 *.swo
 .DS_Store
+
+# -------------------------
+# Scratch QA validation artifacts
+# -------------------------
+aws-infra/bootstrap/examples/c5-area1/c5-area1.tfvars
+aws-infra/bootstrap/examples/c5-area1/backend.tf
+aws-infra/bootstrap/examples/c5-area1/.terraform/
+aws-infra/bootstrap/examples/c5-area1/terraform.tfstate*
+aws-infra/environments/examples/c5-area1/.terraform/
+aws-infra/environments/examples/c5-area1/terraform.tfstate*
+aws-infra/environments/examples/c5-area1/artifacts/
