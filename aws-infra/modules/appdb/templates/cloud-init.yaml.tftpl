@@ -10,68 +10,6 @@ packages:
   - awscli
 
 write_files:
-  - path: /opt/layered/bin/ensure-db-volume.sh
-    owner: root:root
-    permissions: '0755'
-    content: |
-      #!/bin/bash
-      set -Eeuo pipefail
-
-      MOUNT_PATH="${db_volume_mount_path}"
-      DEVICE_HINT="${db_volume_device_name}"
-      VOLUME_ID="${db_volume_id}"
-      SANITIZED_ID="${sanitized_volume_id}"
-      DEVICE_SYMLINK="/dev/disk/by-id/nvme-Amazon_Elastic_Block_Store_${sanitized_volume_id}"
-
-      log() {
-        printf '%s ensure-db-volume: %s\n' "$(date --iso-8601=seconds)" "$1"
-      }
-
-      DEVICE=""
-      for attempt in $(seq 1 30); do
-        if [ -b "$DEVICE_SYMLINK" ]; then
-          DEVICE=$(readlink -f "$DEVICE_SYMLINK")
-          log "Detected NVMe symlink $DEVICE_SYMLINK -> $DEVICE"
-          break
-        fi
-        if [ -b "$DEVICE_HINT" ]; then
-          DEVICE="$DEVICE_HINT"
-          log "Falling back to hinted device $DEVICE_HINT"
-          break
-        fi
-        sleep 2
-      done
-
-      if [ -z "$DEVICE" ]; then
-        log "Failed to locate block device for volume $VOLUME_ID"
-        exit 1
-      fi
-
-      if ! blkid "$DEVICE" >/dev/null 2>&1; then
-        log "Formatting $DEVICE as ext4"
-        mkfs.ext4 -F "$DEVICE"
-      else
-        log "$DEVICE already formatted"
-      fi
-
-      mkdir -p "$MOUNT_PATH"
-
-      if ! mountpoint -q "$MOUNT_PATH"; then
-        log "Mounting $DEVICE at $MOUNT_PATH"
-        mount "$DEVICE" "$MOUNT_PATH"
-      else
-        log "$MOUNT_PATH already mounted"
-      fi
-
-      UUID=$(blkid -s UUID -o value "$DEVICE")
-      if ! grep -q "$UUID" /etc/fstab; then
-        log "Persisting mount to /etc/fstab"
-        echo "UUID=$UUID $MOUNT_PATH ext4 defaults,nofail 0 2" >> /etc/fstab
-      fi
-
-      chmod 0755 "$MOUNT_PATH"
-      echo "$DEVICE" > /opt/layered/db-volume-device
-
   - path: /opt/layered/bin/render-compose-env.sh
     owner: root:root
     permissions: '0755'
@@ -139,33 +77,14 @@ ENVEOF
     content: |
 %{ indent(6, docker_compose_content) }
 
-  - path: /etc/systemd/system/ensure-db-volume.service
-    owner: root:root
-    permissions: '0644'
-    content: |
-      [Unit]
-      Description=Ensure Postgres data volume is present, formatted, and mounted
-      DefaultDependencies=no
-      After=network-online.target
-      Wants=network-online.target
-      Before=docker.service layered-compose.service
-
-      [Service]
-      Type=oneshot
-      ExecStart=/opt/layered/bin/ensure-db-volume.sh
-      RemainAfterExit=yes
-
-      [Install]
-      WantedBy=multi-user.target
-
   - path: /etc/systemd/system/layered-compose.service
     owner: root:root
     permissions: '0644'
     content: |
       [Unit]
       Description=Layered Infra application stack (Docker Compose)
-      After=docker.service ensure-db-volume.service network-online.target
-      Requires=docker.service ensure-db-volume.service
+      After=docker.service network-online.target
+      Requires=docker.service
 
       [Service]
       Type=oneshot
@@ -183,7 +102,5 @@ runcmd:
   - [ bash, -c, 'mkdir -p /opt/layered/bin /opt/layered/mvp-compose' ]
   - [ systemctl, daemon-reload ]
   - [ systemctl, enable, --now, docker ]
-  - [ systemctl, enable, ensure-db-volume.service ]
-  - [ systemctl, start, ensure-db-volume.service ]
   - [ systemctl, enable, layered-compose.service ]
   - [ systemctl, start, layered-compose.service ]

@@ -1,5 +1,12 @@
 # C5 Area 1 Bootstrap Notes
 
-This folder intentionally does **not** re-run bootstrap Terraform. Re-use the shared `layered_qa` bootstrap stack (per Alejandro’s guidance), and only test incremental changes under `aws-infra/environments/examples/c5-area1`.
+The self-contained example for provisioning the Postgres data disk now lives
+alongside the module itself at:
 
-Keep this directory around so state files or backend configs created during local experiments can be ignored safely.
+```
+aws-infra/modules/ebs_data_volume/examples/basic_usage
+```
+
+Use this placeholder directory purely as a scratch space for local backend or
+state files that you do **not** want tracked in git. Do not add Terraform
+configuration here going forward.

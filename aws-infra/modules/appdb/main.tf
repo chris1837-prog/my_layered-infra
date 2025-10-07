@@ -41,32 +41,25 @@ resource "aws_instance" "app" {
   )
 }
 
-resource "aws_ebs_volume" "db_data" {
+module "db_data_volume" {
+  source = "../ebs_data_volume"
+
+  name              = "${var.project_name}-${var.environment}-appdb-db-data"
+  project           = var.project_name
+  env               = var.environment
   availability_zone = data.aws_subnet.private.availability_zone
-  size              = var.db_volume_size
-  type              = var.db_volume_type
-  encrypted         = var.db_volume_encrypted
-  kms_key_id        = var.db_volume_kms_key_id
-  iops              = var.db_volume_iops
-  throughput        = var.db_volume_throughput
 
-  tags = merge(
-    { Name = "${var.project_name}-${var.environment}-appdb-db-data" },
-    local.merged_tags
-  )
+  size_gb    = var.db_volume_size
+  type       = var.db_volume_type
+  encrypted  = var.db_volume_encrypted
+  kms_key_id = var.db_volume_kms_key_id
+  iops       = var.db_volume_iops
+  throughput = var.db_volume_throughput
 
-  lifecycle {
-    prevent_destroy = true
-  }
-}
+  device_name           = var.db_volume_device_name
+  attach_to_instance_id = aws_instance.app.id
 
-resource "aws_volume_attachment" "db_data" {
-  device_name = var.db_volume_device_name
-  instance_id = aws_instance.app.id
-  volume_id   = aws_ebs_volume.db_data.id
-
-  stop_instance_before_detaching = true
-  force_detach                   = true
+  tags = local.merged_tags
 }
 
 data "cloudinit_config" "app" {
@@ -89,7 +82,7 @@ data "cloudinit_config" "app" {
       registry_password_path     = var.ssm_registry_password_path # used if login required, comment out if not
       db_volume_device_name      = var.db_volume_device_name
       db_volume_mount_path       = var.db_volume_mount_path
-      db_volume_id               = aws_ebs_volume.db_data.id
+      db_volume_id               = module.db_data_volume.volume_id
     })
   }
 }

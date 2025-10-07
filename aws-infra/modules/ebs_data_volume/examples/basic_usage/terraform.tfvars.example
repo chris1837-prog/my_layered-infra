@@ -1,0 +1,14 @@
+# Copy to terraform.tfvars and adjust before applying.
+
+aws_profile               = "layered-qa"
+aws_region                = "eu-central-1"
+project                   = "layered"
+env                       = "qa"
+availability_zone         = "eu-central-1a"
+pg_data_size_gb           = 100
+pg_data_device_name       = "/dev/xvdb"
+postgres_host_instance_id = "i-xxxxxxxxxxxxxxxxx" # optional; leave empty for ASG flows
+additional_tags = {
+  Owner      = "Squad-C"
+  BackupType = "manual"
+}

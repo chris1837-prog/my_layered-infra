@@ -15,10 +15,10 @@ output "appdb_subnet_id" {
 
 output "db_volume_id" {
   description = "ID of the dedicated Postgres data volume"
-  value       = aws_ebs_volume.db_data.id
+  value       = module.db_data_volume.volume_id
 }
 
 output "db_volume_arn" {
   description = "ARN of the dedicated Postgres data volume"
-  value       = aws_ebs_volume.db_data.arn
+  value       = module.db_data_volume.volume_arn
 }

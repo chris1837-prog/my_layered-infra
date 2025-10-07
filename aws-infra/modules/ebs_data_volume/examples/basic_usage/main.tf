@@ -1,5 +1,10 @@
+# =============================================================================
+# examples/basic_usage/main.tf
+# Minimal configuration that exercises the ebs_data_volume module.
+# =============================================================================
+
 module "pg_data_volume" {
-  source = "../../../modules/ebs_data_volume"
+  source = "../.." # Points to the root of the ebs_data_volume module
 
   name                  = var.pg_data_name
   project               = var.project
