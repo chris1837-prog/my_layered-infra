@@ -1,4 +1,4 @@
-# Runbook: RDS PostgreSQL – Restore-from-Snapshot (Dry Run)
+# Runbook:  PostgreSQL – Restore-from-Snapshot (Dry Run)
 
 ## Scope and Assumptions
 
