@@ -1,0 +1,17 @@
+name: Deploy Development Environment
+
+on:
+  push:
+    branches: [ development ]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy & Validate (Dev)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
