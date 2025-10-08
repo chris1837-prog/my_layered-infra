@@ -13,13 +13,15 @@ resource "aws_ebs_volume" "data" {
   type              = var.type
   encrypted         = var.encrypted
   kms_key_id        = var.kms_key_id
+  iops              = var.iops
+  throughput        = var.throughput
 
   tags = merge(local.base_tags, var.tags)
 }
 
 resource "aws_volume_attachment" "this" {
-  count       = var.attach_to_instance_id == null ? 0 : 1
+  for_each    = var.attach_to_instances
   device_name = var.device_name
   volume_id   = aws_ebs_volume.data.id
-  instance_id = var.attach_to_instance_id
+  instance_id = each.value
 }

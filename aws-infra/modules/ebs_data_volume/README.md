@@ -4,20 +4,35 @@ Creates a dedicated EBS volume for PostgreSQL data and (optionally) attaches it 
 
 ## Features
 - Opinionated tagging (`Project`, `Env`, `Role=postgres-data`) with optional overrides.
-- Optional attachment to an existing instance (`attach_to_instance_id`).
+- Optional attachment to one or more instances via `attach_to_instances`.
 - Defaults to encrypted `gp3` volumes but all major tuning knobs are exposed.
 
 ## Example
 ```hcl
 module "pg_data_volume" {
-  source = "../../../modules/ebs_data_volume" # when called from environments/examples/*
+  source = "github.com/webeet-io/layered-infra/aws-infra/modules/ebs_data_volume"
 
-  project               = "layered"
-  env                   = "qa"
-  availability_zone     = "eu-central-1a"
-  size_gb               = 100
-  attach_to_instance_id = aws_instance.single_host.id
+  project           = "layered"
+  env               = "qa"
+  availability_zone = "eu-central-1a"
+
+  size_gb     = 100
+  type        = "gp3"
+  encrypted   = true
+  kms_key_id  = null
+  iops        = null
+  throughput  = null
+
+  device_name = "/dev/xvdb"
+  attach_to_instances = {
+    primary = aws_instance.single_host.id
+  }
+  tags = { Owner = "Squad-C" }
 }
 ```
 
-When using a launch template / Auto Scaling Group, leave `attach_to_instance_id` unset and map the volume in the launch template instead.
+> See `examples/basic_usage` for a complete, self-contained setup (VPC, EC2,
+> and volume attachment) that you can run in a sandbox account.
+
+When using a launch template / Auto Scaling Group, leave `attach_to_instances`
+empty and map the volume in the launch template instead.

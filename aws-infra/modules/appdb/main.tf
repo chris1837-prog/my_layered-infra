@@ -56,8 +56,10 @@ module "db_data_volume" {
   iops       = var.db_volume_iops
   throughput = var.db_volume_throughput
 
-  device_name           = var.db_volume_device_name
-  attach_to_instance_id = aws_instance.app.id
+  device_name = var.db_volume_device_name
+  attach_to_instances = {
+    primary = aws_instance.app.id
+  }
 
   tags = local.merged_tags
 }

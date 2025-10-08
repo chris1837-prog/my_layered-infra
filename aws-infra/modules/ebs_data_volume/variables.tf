@@ -42,16 +42,28 @@ variable "kms_key_id" {
   default     = null
 }
 
+variable "iops" {
+  description = "Provisioned IOPS for the volume (only valid for certain volume types)."
+  type        = number
+  default     = null
+}
+
+variable "throughput" {
+  description = "Provisioned throughput in MiB/s for gp3 volumes."
+  type        = number
+  default     = null
+}
+
 variable "device_name" {
   description = "Device name to expose inside the instance (e.g. /dev/xvdb)."
   type        = string
   default     = "/dev/xvdb"
 }
 
-variable "attach_to_instance_id" {
-  description = "Instance ID to attach the volume to. Leave null to skip attachment (for Launch Template/ASG workflows)."
-  type        = string
-  default     = null
+variable "attach_to_instances" {
+  description = "Map of logical names to instance IDs that should receive the volume. Leave empty to skip attachment."
+  type        = map(string)
+  default     = {}
 }
 
 variable "tags" {
