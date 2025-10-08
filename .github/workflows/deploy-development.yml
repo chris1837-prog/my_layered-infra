@@ -2,31 +2,77 @@ name: Deploy Development Environment
 
 on:
   push:
-    branches: [ development ]
+    branches: [ development ]   # Trigger: run on pushes to 'development'
 
 permissions:
-  id-token: write
-  contents: read
+  id-token: write               # Needed for OIDC (temporary AWS creds)
+  contents: read                # Read repo contents (for checkout)
+
+env:
+  AWS_REGION: eu-central-1                      # TODO (team): confirm dev region
+  TF_DIR: aws-infra/environments/development    # TODO (team): confirm TF path
+  APP_DOMAIN: dev.example.com                   # TODO (team): set real dev domain
 
 jobs:
   deploy:
     name: Deploy & Validate (Dev)
     runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-development                 # Avoid overlapping dev deploys
+      cancel-in-progress: false
+
     steps:
+      # Get repo content onto the runner
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Authenticate to AWS via OIDC (no long-lived keys)
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ <...> }} # ROLE REFERENCE TO BE ADDED
-          aws-region: eu-central-1 # HARDCODE aws-region here?
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}   # TODO (team): final IAM role
+          aws-region: ${{ env.AWS_REGION }}                  # TODO (team): confirm dev region (eu-central-1) 
+          role-session-name: gh-deploy-dev
 
+      # Install Terraform on the runner
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.12.2
+        # with:
+        #   terraform_version: 1.12.2            # TODO (team): pin if required
 
+      # Init backend/providers in the dev environment dir
       - name: Terraform Init
-        run: terraform init -input=false
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform init -input=false -upgrade            # TODO (team): decide whether you want to have -upgrade or not
 
+      # Create a plan for reproducible apply (clear logs, easier review)
+      - name: Terraform Plan
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform plan -out=tfplan
+
+      # Apply only when the source branch is 'development'
+      - name: Terraform Apply (development)
+        if: ${{ github.ref == 'refs/heads/development' }}
+        working-directory: ${{ env.TF_DIR }}
+        run: terraform apply -auto-approve tfplan
+
+      # Give ALB/DNS/app a short window to become ready (≤ ~3 min)
+      - name: Wait until app is reachable (simple retry)
+        run: |
+          for i in {1..18}; do
+            if curl -sSfI "https://${APP_DOMAIN}/health" > /dev/null; then
+              echo "App is reachable."
+              exit 0
+            fi
+            echo "Not reachable yet, retry $i/18..."
+            sleep 10
+          done
+          echo "App did not become reachable in time." >&2
+          exit 1
+
+      # Minimal E2E smoke test (expect HTTP 200)
+      - name: E2E smoke test (expect HTTP 200)
+        run: |
+          status=$(curl -s -o /dev/null -w "%{http_code}" "https://${APP_DOMAIN}/health")
+          echo "HTTP status: $status"
+          test "$status" = "200"
