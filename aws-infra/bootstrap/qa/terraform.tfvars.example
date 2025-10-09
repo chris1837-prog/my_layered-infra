@@ -1,0 +1,33 @@
+# AWS region for QA
+aws_region = "eu-central-1"
+
+# Project name (should be consistent)
+project_name = "layered-infra"
+
+# -- KEY CHANGE: Set the environment to "qa" --
+environment = "qa"
+
+# Common tags for all QA bootstrap resources
+common_tags = {
+  Project     = "layered-infra"
+  Environment = "qa"
+  Module      = "bootstrap"
+  Team        = "A"
+}
+
+# --- GitHub Actions OIDC ---
+# Note: You might want a different branch for QA later, but 'development' is fine for now.
+github_org    = "webeet-io"
+github_repo   = "layered-infra"
+github_branch = "development"
+
+# --- SSM Parameter Values for QA ---
+registry_user  = "admin"
+postgres_db    = "myapp_qa"
+postgres_user  = "myuser_qa"
+app_image_name = "myapp"
+app_image_tag  = "latest"
+
+# --- DNS & Networking for QA ---
+domain_name     = "uselayered.com"
+edge_private_ip = "10.0.10.10" # Use a different private IP for the QA edge host
