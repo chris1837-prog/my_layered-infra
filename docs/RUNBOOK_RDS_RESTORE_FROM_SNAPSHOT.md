@@ -49,8 +49,8 @@ This step creates a new EBS volume that contains all data from the snapshot.
      ```
 5. Click **Create Volume**.  
 6. Wait until the new volume status is **“available.”**
-
-🟢 Once it is available, it’s ready to attach to the EC2 instance.
+7. **Note the new Volume ID** (for example `vol-0a1234b5c6789d`).  
+   You will need it later when attaching and mounting the volume.
 
 ## Step 4 – Attach the New Volume to the EC2 Instance
 
@@ -72,34 +72,13 @@ Next, we will mount the volume and make sure PostgreSQL can read it.
 
 ## Step 5 – Mount the Volume on the EC2 Instance
 
-Now we make the new EBS volume visible inside the EC2 instance so that PostgreSQL can use it.
+To mount the restored EBS volume, use the helper script included in the repository: **`ops/mount-postgres-ebs.sh`**.  
+Example:
+```bash
+sudo ops/mount-postgres-ebs.sh --device /dev/xvdf --mountpoint /data/postgres
+```
+Replace `/dev/xvdf` and `/data/postgres` with the actual device name and mount path used by your PostgreSQL container.
 
-### Steps
-1. Connect to the EC2 instance (for example, using SSH or VPN).  
-2. List all available disks:
-   ```bash
-   lsblk
-   ```
-You should see the new volume (for example /dev/xvdf).
-
-3. Create a mount point (only if it doesn’t already exist):
-   ```
-   sudo mkdir -p /data/postgres
-   ```
-Mount the volume:
-   ```
-   sudo mount /dev/xvdf /data/postgres
-   ```
-Check that the volume is mounted correctly:
-   ```
-   df -h
-   ```
-You should see /data/postgres in the list.
-
-⚠️ Note: The path /data/postgres is an example.
-Use the same path that your Docker container uses for database storage (e.g., /var/lib/postgresql/data).
-
-When the volume is mounted, it’s ready for PostgreSQL to read the data again.
 
 ## Step 6 – Start the PostgreSQL Container
 
