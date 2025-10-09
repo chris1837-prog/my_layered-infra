@@ -73,6 +73,14 @@ Next, we will mount the volume and make sure PostgreSQL can read it.
 ## Step 5 – Mount the Volume on the EC2 Instance
 
 To mount the restored EBS volume, use the helper script included in the repository: **`ops/mount-postgres-ebs.sh`**.  
+This Bash script automatically prepares the attached EBS volume for PostgreSQL by:
+
+- Checking that the device exists and is accessible.  
+- Formatting the volume as **ext4** if it’s new.  
+- Creating or updating a persistent entry in **/etc/fstab**.  
+- Mounting the volume to the correct PostgreSQL data path.  
+- Setting ownership and permissions (`999:999`, `chmod 700`) so the container can use it immediately.  
+
 Example:
 ```bash
 sudo ops/mount-postgres-ebs.sh --device /dev/xvdf --mountpoint /data/postgres
