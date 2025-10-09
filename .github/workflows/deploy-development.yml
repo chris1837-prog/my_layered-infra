@@ -2,23 +2,23 @@ name: Deploy Development Environment
 
 on:
   push:
-    branches: [ development ]   # Trigger: run on pushes to 'development'
+    branches: [ development ]                                # Trigger: run on pushes to 'development'
 
 permissions:
-  id-token: write               # Needed for OIDC (temporary AWS creds)
-  contents: read                # Read repo contents (for checkout)
+  id-token: write                                            # Needed for OIDC (temporary AWS creds)
+  contents: read                                             # Read repo contents (for checkout)
 
 env:
-  AWS_REGION: eu-central-1                      # TODO (team): confirm dev region
-  TF_DIR: aws-infra/environments/development    # TODO (team): confirm TF path
-  APP_DOMAIN: dev.example.com                   # TODO (team): set real dev domain
+  AWS_REGION: ${{ secrets.AWS_REGION || 'eu-central-1' }}    # Fallback: Secret or eu-central-1
+  TF_DIR: aws-infra/environments/dev           
+  APP_DOMAIN: dev.example.com                                # TODO (team): set real dev domain
 
 jobs:
   deploy:
     name: Deploy & Validate (Dev)
     runs-on: ubuntu-latest
     concurrency:
-      group: deploy-development                 # Avoid overlapping dev deploys
+      group: deploy-development                              # Avoid overlapping dev deploys
       cancel-in-progress: false
 
     steps:
@@ -31,14 +31,14 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}   # TODO (team): final IAM role
-          aws-region: ${{ env.AWS_REGION }}                  # TODO (team): confirm dev region (eu-central-1) 
+          aws-region: ${{ env.AWS_REGION }}                  
           role-session-name: gh-deploy-dev
 
       # Install Terraform on the runner
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         # with:
-        #   terraform_version: 1.12.2            # TODO (team): pin if required
+        #   terraform_version: 1.12.2                        # TODO (team): pin if required
 
       # Init backend/providers in the dev environment dir
       - name: Terraform Init
