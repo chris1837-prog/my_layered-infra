@@ -83,10 +83,9 @@ This Bash script automatically prepares the attached EBS volume for PostgreSQL b
 
 Example:
 ```bash
-sudo ops/mount-postgres-ebs.sh --device /dev/xvdf --mountpoint /data/postgres
+sudo DEVICE=/dev/xvdf MOUNTPOINT=/data/postgres ops/mount-postgres-ebs.sh
 ```
-Replace `/dev/xvdf` and `/data/postgres` with the actual device name and mount path used by your PostgreSQL container.
-
+This script reads the `DEVICE` and `MOUNTPOINT` values from environment variables and mounts the EBS volume to the correct PostgreSQL data directory.
 
 ## Step 6 – Start the PostgreSQL Container
 
