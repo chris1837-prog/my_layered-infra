@@ -45,6 +45,11 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: terraform init -input=false -upgrade            # TODO (team): decide whether you want to have -upgrade or not
 
+      # Read app domain from TF outputs
+      - name: Read app domain from TF outputs
+        working-directory: ${{ env.TF_DIR }}
+        run: echo "APP_DOMAIN=$(terraform output -raw app_domain)" >> "$GITHUB_ENV"
+
       # Create a plan for reproducible apply (clear logs, easier review)
       - name: Terraform Plan
         working-directory: ${{ env.TF_DIR }}
