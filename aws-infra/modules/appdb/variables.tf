@@ -160,3 +160,9 @@ variable "ssm_registry_password_path" {
   description = "SSM parameter path for the registry password (optional, only used if login is required)"
   type        = string
 }
+
+variable "key_pair_name" {
+  description = "Name of the AWS key pair for SSH access"
+  type        = string
+  default     = "default-layered-key" # Replace with your key pair name
+}
