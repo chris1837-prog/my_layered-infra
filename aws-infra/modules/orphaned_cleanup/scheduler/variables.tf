@@ -9,6 +9,6 @@ variable "lambda_function_arn" {
 }
 
 variable "rule_name" {
-  type        = string
-  default     = "daily-orphaned-cleanup"
+  type    = string
+  default = "daily-orphaned-cleanup"
 }

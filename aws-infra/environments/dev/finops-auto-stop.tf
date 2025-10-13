@@ -9,10 +9,10 @@ module "e1_auto_stop_lambda" {
   description = "Stops QA EC2 instances that exceed run threshold"
 
   environment_variables = {
-    ENV_TAG_KEY      = "Environment"
-    ENV_TAG_VALUE    = "QA"
-    THRESHOLD_MINUTES = "5"       # For test. Use 120 for prod.
-    DRY_RUN          = "true"     # Start in safe mode
+    ENV_TAG_KEY       = "Environment"
+    ENV_TAG_VALUE     = "QA"
+    THRESHOLD_MINUTES = "5"    # For test. Use 120 for prod.
+    DRY_RUN           = "true" # Start in safe mode
   }
 
   policy_json = file("${path.module}/../../functions/e1-auto-stop/policy.json")

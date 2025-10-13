@@ -25,7 +25,7 @@ module "network" {
     Module      = "Network"
   }
 
-  vpc_cidr           = "10.0.0.0/16"
+  vpc_cidr            = "10.0.0.0/16"
   allowed_admin_cidrs = ["10.0.0.0/8"] # Example: wider range for testing
 
   # Single AZ configuration matching the architecture diagram
