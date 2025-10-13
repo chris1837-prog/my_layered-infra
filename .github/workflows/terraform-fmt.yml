@@ -1,6 +1,7 @@
 name: Terraform Format Check
 
-on: pull_request:
+on:
+  pull_request:
 
 jobs:
   terraform-fmt:
