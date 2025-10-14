@@ -32,8 +32,7 @@ jobs:
         with:
           working_directory: aws-infra
           format: sarif
-          output_file: tfsec.sarif
-
+          additional_args: --out=tfsec.sarif
 
       - name: Upload SARIF to Code Scanning
         uses: github/codeql-action/upload-sarif@v3
