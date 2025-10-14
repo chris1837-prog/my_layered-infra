@@ -164,5 +164,4 @@ variable "ssm_registry_password_path" {
 variable "key_pair_name" {
   description = "Name of the AWS key pair for SSH access"
   type        = string
-  default     = "default-layered-key" # Replace with your key pair name
 }
