@@ -70,18 +70,18 @@ jobs:
             -p 3000:3000 \
             layered-app
 
-            - name: Wait for application to be healthy
-            run: |
-              echo "Waiting for app to start..."
-              for i in {1..30}; do
-                curl -f http://localhost:3000/health && break
-                echo -n "."
-                sleep 2
-              done
-              echo "App is healthy!"
-    
-          - name: Install dev dependencies for testing
-            run: docker exec layered-app npm install
-    
-          - name: Run Jest unit and integration tests
-            run: docker exec layered-app npm test
+      - name: Wait for application to be healthy
+        run: |
+          echo "Waiting for app to start..."
+          for i in {1..30}; do
+            curl -f http://localhost:3000/health && break
+            echo -n "."
+            sleep 2
+          done
+          echo "App is healthy!"
+
+      - name: Install dev dependencies for testing
+        run: docker exec layered-app npm install
+
+      - name: Run Jest unit and integration tests
+        run: docker exec layered-app npm test
