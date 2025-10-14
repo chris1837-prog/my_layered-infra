@@ -1,14 +1,16 @@
-# Database Migration System Implementation
+# Database Migration System Implementation (K2)
 
 ## Summary
 Introduce a version-controlled, repeatable migration workflow using `node-pg-migrate`. Migrations run from a dedicated migrator container before the app starts; schema ownership stays with the existing `myuser` account.
 
+**Current Status**: This PR implements the complete migration infrastructure as outlined in the acceptance criteria below.
+
 **Key Changes**
-- ✅ `node-pg-migrate` already added as a dev dependency
-- ✅ Migration helper scripts already added to `package.json`
+- 🔄 Add `node-pg-migrate` as a dev dependency
+- 🔄 Add migration helper scripts to `package.json`
 - 🔄 Create first migration covering the schema previously in `init-db/01-init.sql`
-- 🔄 Add `pg-migrate-config.js` and ensure all migration scripts share the app’s DB env settings
-- 🔄 Replace the init SQL’s table creation with the new migration, leaving only DB/user bootstrap
+- 🔄 Add `pg-migrate-config.js` and ensure all migration scripts share the app's DB env settings
+- 🔄 Replace the init SQL's table creation with the new migration, leaving only DB/user bootstrap
 - 🔄 Add a `Dockerfile.migrate` and migrator service in `docker-compose.yml` that blocks app startup until migrations succeed
 - 🔄 Document the migration workflow and fresh-start expectation
 
@@ -31,9 +33,9 @@ curl -i http://localhost:3000/health
 
 ## Acceptance Criteria
 
-### Phase 1: Dependency Setup ✅
-- [x] `node-pg-migrate` in devDependencies
-- [x] `migrate:create`, `migrate:up`, `migrate:down`, `migrate:list`, `migrate` scripts in `package.json`
+### Phase 1: Dependency Setup 🔄
+- [ ] `node-pg-migrate` in devDependencies
+- [ ] `migrate:create`, `migrate:up`, `migrate:down`, `migrate:list`, `migrate` scripts in `package.json`
 
 ### Phase 2: Migration Infrastructure 🔄
 - [ ] Add `migrations/` directory with initial migration that recreates the original schema
