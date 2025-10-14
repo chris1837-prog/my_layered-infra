@@ -22,17 +22,18 @@ jobs:
         ports:
           - 5432:5432
       pgbouncer:
-        image: edoburu/pgbouncer:1.24.1
+        image: bitnami-legacy/pgbouncer:1.22.0
         env:
-          DB_HOST: postgres
-          DB_USER: myuser
-          DB_PASSWORD: mypassword
-          DB_NAME: myapp
-          POOL_MODE: transaction
-          LISTEN_PORT: 6432
-          AUTH_TYPE: md5
+          # Bitnami images use these variable names
+          POSTGRESQL_HOST: postgres
+          POSTGRESQL_PORT: 5432
+          POSTGRESQL_USERNAME: myuser
+          POSTGRESQL_PASSWORD: mypassword
+          POSTGRESQL_DATABASE: myapp
+          PGBOUNCER_POOL_MODE: transaction
         ports:
           - 6432:6432
+
 
     steps:
       - name: Checkout repository
