@@ -18,6 +18,24 @@ Monorepo for the MVP platform. This repo hosts:
 
 ---
 
+## 🧩 Local Development Makefile
+
+A **Makefile** has been added at the repository root to simplify local development.  
+It provides a single interface for starting, stopping, and inspecting local Docker services.
+
+### 🧱 Commands
+
+| Command | Description |
+|----------|-------------|
+| `make up` | Starts all Docker containers defined in the `mvp-compose` folder. |
+| `make down` | Stops and removes containers, networks, and volumes. |
+| `make logs` | Displays container logs. |
+| `make psql` | Opens a PostgreSQL session inside the DB container. |
+| `make test` | Placeholder for future app tests defined in `mvp-compose/app/package.json`. |
+
+This Makefile helps developers quickly set up and test the local environment using the `mvp-compose` setup.
+
+
 ## Backup & Restore (local)
 
 This repo ships a helper script that performs consistent backups and safe restores **via PgBouncer**. It also validates app health before/after.
@@ -167,3 +185,19 @@ To ensure the dashboard shows correct and complete data:
 - `outputs.tf` – Exposes Lambda name, rule names, and IAM role ARN.
 - `variables.tf` – Input variables like `tag_key`, `tag_value`, and `function_name`.
 - `versions.tf` – Required Terraform and provider versions.
+## Local Development — Using the Makefile
+
+To simplify local development, use the Makefile located in the repository root.
+
+| Command       | Description                  |
+|---------------|------------------------------|
+| `make up`     | Start all containers         |
+| `make down`   | Stop and remove containers   |
+| `make logs`   | Show logs from main service  |
+| `make test`   | Run tests (change command if needed) |
+| `make psql`   | Open PostgreSQL shell        |
+
+**Notes**
+- If your docker-compose service names differ, update `APP_SERVICE` and `DB_SERVICE` in the Makefile.
+- To run tests for Node.js projects, run `make test TEST_CMD="npm test"`.
+- Use the Makefile as the primary local development interface to avoid environment issues.
