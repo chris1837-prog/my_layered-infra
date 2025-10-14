@@ -22,15 +22,18 @@ jobs:
         ports:
           - 5432:5432
       pgbouncer:
-        image: bitnami-legacy/pgbouncer:1.22.0
+        # Use the EXACT image from docker-compose.yml
+        image: edoburu/pgbouncer:v1.24.1-p1
         env:
-          # Bitnami images use these variable names
-          POSTGRESQL_HOST: postgres
-          POSTGRESQL_PORT: 5432
-          POSTGRESQL_USERNAME: myuser
-          POSTGRESQL_PASSWORD: mypassword
-          POSTGRESQL_DATABASE: myapp
-          PGBOUNCER_POOL_MODE: transaction
+          # Use the env vars this image expects
+          DB_HOST: postgres
+          DB_PORT: 5432
+          DB_USER: myuser
+          DB_PASSWORD: mypassword
+          DB_NAME: myapp
+          POOL_MODE: transaction
+          LISTEN_PORT: 6432
+          AUTH_TYPE: md5
         ports:
           - 6432:6432
 
