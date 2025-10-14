@@ -54,9 +54,10 @@ jobs:
           done
           echo "Postgres is healthy!"
 
-      - name: Build and run application container
+      - name: Build and run application container for testing
         run: |
-          docker build -t layered-app ./mvp-compose/app
+          # Use the new Dockerfile.test to build the image
+          docker build -t layered-app-test -f ./mvp-compose/app/Dockerfile.test ./mvp-compose/app
           docker run \
             -d \
             --name layered-app \
@@ -68,7 +69,7 @@ jobs:
             -e DB_PASSWORD=mypassword \
             -e DB_NAME=myapp \
             -p 3000:3000 \
-            layered-app
+            layered-app-test
 
       - name: Wait for application to be healthy
         run: |
@@ -79,9 +80,6 @@ jobs:
             sleep 2
           done
           echo "App is healthy!"
-
-      - name: Install dev dependencies for testing
-        run: docker exec -u root layered-app npm install
 
       - name: Run Jest unit and integration tests
         run: docker exec layered-app npm test
