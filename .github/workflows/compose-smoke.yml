@@ -80,6 +80,9 @@ jobs:
           done
           echo "App is healthy!"
 
+      - name: Fix permissions in container
+        run: docker exec layered-app chown -R node:node 
+
       - name: Install dev dependencies for testing
         run: docker exec layered-app npm install
 
