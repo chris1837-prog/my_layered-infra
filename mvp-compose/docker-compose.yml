@@ -72,18 +72,22 @@ services:
       context: ./app
       dockerfile: Dockerfile.migrate
     container_name: layered-migrator
-    restart: "no"   # one-shot container
+    restart: "no"
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_NAME: ${POSTGRES_DB:-myapp}
-      DB_USER: ${POSTGRES_USER:-myuser}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+      DB_HOST: "postgres"
+      DB_PORT: "5432"
+      DB_NAME: "myapp"
+      DB_USER: "myuser"
+      DB_PASSWORD: "mypassword"
+      DATABASE_URL: "postgresql://myuser:mypassword@postgres:5432/myapp"
     depends_on:
       postgres:
         condition: service_healthy
       pgbouncer:
         condition: service_healthy
+    networks:
+      - app-network
+
 
   # ===========================
   # App (Node.js)
