@@ -21,7 +21,6 @@ resource "aws_internet_gateway" "public" {
   }
 }
 
-# Public Subnet
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.test_vpc.id
   cidr_block              = var.public_subnet_cidr_block
@@ -33,7 +32,6 @@ resource "aws_subnet" "public_subnet" {
   }
 }
 
-# Private Subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = aws_vpc.test_vpc.id
   cidr_block              = var.private_subnet_cidr_block
@@ -45,7 +43,6 @@ resource "aws_subnet" "private_subnet" {
   }
 }
 
-# Elastic IP for NAT Gateway
 resource "aws_eip" "nat" {
   domain = "vpc"
   tags = {
@@ -54,7 +51,6 @@ resource "aws_eip" "nat" {
   }
 }
 
-# NAT Gateway in Public Subnet
 resource "aws_nat_gateway" "nat" {
   allocation_id = aws_eip.nat.id
   subnet_id     = aws_subnet.public_subnet.id
@@ -65,7 +61,6 @@ resource "aws_nat_gateway" "nat" {
   depends_on = [aws_internet_gateway.public]
 }
 
-# Public Route Table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.test_vpc.id
   route {
@@ -78,7 +73,6 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Private Route Table
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.test_vpc.id
   route {
@@ -91,7 +85,6 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Route Table Associations
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public_subnet.id
   route_table_id = aws_route_table.public.id
@@ -110,28 +103,24 @@ resource "aws_security_group" "app" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
   tags = {
     Name        = "${var.environment}-app-sg"
     Environment = var.environment
   }
 }
 
-# Generate SSH key pair inside Terraform
 resource "tls_private_key" "test_key" {
   algorithm = "RSA"
   rsa_bits  = 2048
@@ -149,8 +138,8 @@ resource "local_file" "ssh_private_key" {
 }
 
 resource "aws_ec2_instance_connect_endpoint" "eic_endpoint" {
-  subnet_id           = aws_subnet.private_subnet.id
-  security_group_ids  = [aws_security_group.app.id]
+  subnet_id          = aws_subnet.private_subnet.id
+  security_group_ids = [aws_security_group.app.id]
   tags = {
     Name        = "${var.environment}-eic-endpoint"
     Environment = var.environment
@@ -158,19 +147,17 @@ resource "aws_ec2_instance_connect_endpoint" "eic_endpoint" {
 }
 
 module "appdb" {
-  source = "../../"
-
-  environment  = var.environment
-
+  source                        = "../../"
+  environment                   = var.environment
   ssm_registry_password_path    = "/app/registry/password"
-  ssm_postgres_user_path       = "/app/db/user"
-  ssm_app_image_tag_path       = "/app/image/tag"
-  ssm_registry_user_path       = "/app/registry/user"
+  ssm_postgres_user_path        = "/app/db/user"
+  ssm_app_image_tag_path        = "/app/image/tag"
+  ssm_registry_user_path        = "/app/registry/user"
   ssm_internal_registry_url_path = "/app/registry/url"
-  ssm_postgres_db_path         = "/app/db/name"
-  private_subnet_id            = aws_subnet.private_subnet.id
-  ssm_postgres_password_path   = "/app/db/password"
-  ssm_app_image_name_path      = "/app/image/name"
-  sg_app_id                    = aws_security_group.app.id
-  key_pair_name                = aws_key_pair.this.key_name
+  ssm_postgres_db_path          = "/app/db/name"
+  private_subnet_id             = aws_subnet.private_subnet.id
+  ssm_postgres_password_path    = "/app/db/password"
+  ssm_app_image_name_path       = "/app/image/name"
+  sg_app_id                     = aws_security_group.app.id
+  key_pair_name                 = aws_key_pair.this.key_name
 }
