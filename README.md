@@ -167,3 +167,19 @@ To ensure the dashboard shows correct and complete data:
 - `outputs.tf` – Exposes Lambda name, rule names, and IAM role ARN.
 - `variables.tf` – Input variables like `tag_key`, `tag_value`, and `function_name`.
 - `versions.tf` – Required Terraform and provider versions.
+## Local Development — Using the Makefile
+
+To simplify local development, use the Makefile located in the repository root.
+
+| Command       | Description                  |
+|---------------|------------------------------|
+| `make up`     | Start all containers         |
+| `make down`   | Stop and remove containers   |
+| `make logs`   | Show logs from main service  |
+| `make test`   | Run tests (change command if needed) |
+| `make psql`   | Open PostgreSQL shell        |
+
+**Notes**
+- If your docker-compose service names differ, update `APP_SERVICE` and `DB_SERVICE` in the Makefile.
+- To run tests for Node.js projects, run `make test TEST_CMD="npm test"`.
+- Use the Makefile as the primary local development interface to avoid environment issues.
