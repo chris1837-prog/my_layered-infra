@@ -12,15 +12,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create test-specific Dockerfile
+        run: |
+          sed 's/npm ci --omit=dev/npm ci/' mvp-compose/app/Dockerfile > mvp-compose/app/Dockerfile.test
+
+      - name: Create CI override for Docker Compose
+        run: |
+          echo "services:" > mvp-compose/docker-compose.ci.yml
+          echo "  app:" >> mvp-compose/docker-compose.ci.yml
+          echo "    build:" >> mvp-compose/docker-compose.ci.yml
+          echo "      context: ./app" >> mvp-compose/docker-compose.ci.yml
+          echo "      dockerfile: Dockerfile.test" >> mvp-compose/docker-compose.ci.yml
+
       - name: Start services with Docker Compose
-        # Run the command from the root but specify the compose file location
-        run: docker compose -f mvp-compose/docker-compose.yml up -d --build
+        run: docker compose -f mvp-compose/docker-compose.yml -f mvp-compose/docker-compose.ci.yml up -d --build
 
       - name: Wait for application to be healthy
         run: |
           echo "Waiting for app to start..."
           for i in {1..30}; do
-            # Use the healthcheck from the compose file's app service
             docker inspect --format='{{.State.Health.Status}}' layered-app | grep 'healthy' && break
             echo -n "."
             sleep 5
@@ -31,5 +41,5 @@ jobs:
         run: docker compose -f mvp-compose/docker-compose.yml exec -T app npm test
 
       - name: Stop services
-        if: always() # This step runs even if the tests fail
+        if: always()
         run: docker compose -f mvp-compose/docker-compose.yml down
