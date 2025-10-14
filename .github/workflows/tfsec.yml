@@ -1,0 +1,39 @@
+name: Terraform Security (tfsec)
+
+on:
+  pull_request:
+    branches: [ development ]
+    paths:
+      - '**/*.tf'
+      - '.github/workflows/tfsec.yml'
+  workflow_dispatch:
+
+jobs:
+  tfsec:
+    name: Run tfsec security scan
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      security-events: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.6
+
+      - name: Run tfsec (generate SARIF)
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          format: sarif
+          output_file: tfsec.sarif
+
+      - name: Upload SARIF to Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: tfsec.sarif
