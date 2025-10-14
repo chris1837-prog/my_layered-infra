@@ -147,17 +147,17 @@ resource "aws_ec2_instance_connect_endpoint" "eic_endpoint" {
 }
 
 module "appdb" {
-  source                        = "../../"
-  environment                   = var.environment
-  ssm_registry_password_path    = "/app/registry/password"
-  ssm_postgres_user_path        = "/app/db/user"
-  ssm_app_image_tag_path        = "/app/image/tag"
-  ssm_registry_user_path        = "/app/registry/user"
+  source                         = "../../"
+  environment                    = var.environment
+  ssm_registry_password_path     = "/app/registry/password"
+  ssm_postgres_user_path         = "/app/db/user"
+  ssm_app_image_tag_path         = "/app/image/tag"
+  ssm_registry_user_path         = "/app/registry/user"
   ssm_internal_registry_url_path = "/app/registry/url"
-  ssm_postgres_db_path          = "/app/db/name"
-  private_subnet_id             = aws_subnet.private_subnet.id
-  ssm_postgres_password_path    = "/app/db/password"
-  ssm_app_image_name_path       = "/app/image/name"
-  sg_app_id                     = aws_security_group.app.id
-  key_pair_name                 = aws_key_pair.this.key_name
+  ssm_postgres_db_path           = "/app/db/name"
+  private_subnet_id              = aws_subnet.private_subnet.id
+  ssm_postgres_password_path     = "/app/db/password"
+  ssm_app_image_name_path        = "/app/image/name"
+  sg_app_id                      = aws_security_group.app.id
+  key_pair_name                  = aws_key_pair.this.key_name
 }
