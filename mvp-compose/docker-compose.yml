@@ -65,6 +65,27 @@ services:
       - app-network
 
   # ===========================
+  # Migrator (one-shot for migrations)
+  # ===========================
+  migrator:
+    build:
+      context: ./app
+      dockerfile: Dockerfile.migrate
+    container_name: layered-migrator
+    restart: "no"   # one-shot container
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-myapp}
+      DB_USER: ${POSTGRES_USER:-myuser}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+
+  # ===========================
   # App (Node.js)
   # ===========================
   app:
