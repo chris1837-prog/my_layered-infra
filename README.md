@@ -18,6 +18,24 @@ Monorepo for the MVP platform. This repo hosts:
 
 ---
 
+## 🧩 Local Development Makefile
+
+A **Makefile** has been added at the repository root to simplify local development.  
+It provides a single interface for starting, stopping, and inspecting local Docker services.
+
+### 🧱 Commands
+
+| Command | Description |
+|----------|-------------|
+| `make up` | Starts all Docker containers defined in the `mvp-compose` folder. |
+| `make down` | Stops and removes containers, networks, and volumes. |
+| `make logs` | Displays container logs. |
+| `make psql` | Opens a PostgreSQL session inside the DB container. |
+| `make test` | Placeholder for future app tests defined in `mvp-compose/app/package.json`. |
+
+This Makefile helps developers quickly set up and test the local environment using the `mvp-compose` setup.
+
+
 ## Backup & Restore (local)
 
 This repo ships a helper script that performs consistent backups and safe restores **via PgBouncer**. It also validates app health before/after.
