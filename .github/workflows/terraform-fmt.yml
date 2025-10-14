@@ -1,0 +1,20 @@
+name: Terraform Format Check
+
+on:
+  pull_request:
+
+jobs:
+  terraform-fmt:
+    name: Terraform Format Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.7.5
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive

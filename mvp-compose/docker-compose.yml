@@ -10,9 +10,12 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-myapp}
       POSTGRES_USER: ${POSTGRES_USER:-myuser}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword}
+      PGDATA: /var/lib/postgresql/data
     command: ["postgres", "-c", "password_encryption=md5"]
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - type: bind
+        source: ${POSTGRES_DATA_SOURCE:-/var/lib/postgresql/data}
+        target: /var/lib/postgresql/data
       - ./init-db:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myuser} -d ${POSTGRES_DB:-myapp}"]
@@ -102,12 +105,8 @@ services:
       - app-network
 
 # ===========================
-# Volumes & Networks
+# Networks
 # ===========================
-volumes:
-  postgres_data:
-    driver: local
-
 networks:
   app-network:
     driver: bridge

@@ -12,3 +12,13 @@ output "appdb_subnet_id" {
   description = "Subnet ID where appdb is deployed"
   value       = aws_instance.app.subnet_id
 }
+
+output "db_volume_id" {
+  description = "ID of the dedicated Postgres data volume"
+  value       = module.db_data_volume.volume_id
+}
+
+output "db_volume_arn" {
+  description = "ARN of the dedicated Postgres data volume"
+  value       = module.db_data_volume.volume_arn
+}
