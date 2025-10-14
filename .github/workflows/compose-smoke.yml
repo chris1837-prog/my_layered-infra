@@ -1,7 +1,6 @@
 name: Compose Smoke Test
 on:
   pull_request:
-    # Updated to target the correct main branch
     branches: [ development ]
 
 jobs:
@@ -9,53 +8,66 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: myapp
-          POSTGRES_USER: myuser
-          POSTGRES_PASSWORD: mypassword
-        options: >-
-          --health-cmd="pg_isready -U myuser -d myapp"
-          --health-interval=10s --health-timeout=5s --health-retries=5
-          --entrypoint-opt='-c' --entrypoint-opt='password_encryption=md5'
-        ports:
-          - 5432:5432
-      pgbouncer:
-        image: edoburu/pgbouncer:v1.24.1-p1
-        env:
-          DB_HOST: postgres
-          DB_PORT: 5432
-          DB_USER: myuser
-          DB_PASSWORD: mypassword
-          DB_NAME: myapp
-          POOL_MODE: transaction
-          LISTEN_PORT: 6432
-          AUTH_TYPE: md5
-        ports:
-          - 6432:6432
-
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build the application Docker image
-        run: docker build -t layered-app ./mvp-compose/app
+      - name: Create Docker network
+        run: docker network create layered-network
 
-      - name: Run the application container
+      - name: Run Postgres container
         run: |
           docker run \
             -d \
+            --name postgres \
+            --network layered-network \
+            -e POSTGRES_DB=myapp \
+            -e POSTGRES_USER=myuser \
+            -e POSTGRES_PASSWORD=mypassword \
+            -p 5432:5432 \
+            --health-cmd="pg_isready -U myuser -d myapp" \
+            --health-interval=10s --health-timeout=5s --health-retries=5 \
+            postgres:16 \
+            postgres -c password_encryption=md5
+
+      - name: Run PgBouncer container
+        run: |
+          docker run \
+            -d \
+            --name pgbouncer \
+            --network layered-network \
+            -e DB_HOST=postgres \
+            -e DB_PORT=5432 \
+            -e DB_USER=myuser \
+            -e DB_PASSWORD=mypassword \
+            -e DB_NAME=myapp \
+            -e POOL_MODE=transaction \
+            -e AUTH_TYPE=md5 \
+            -p 6432:6432 \
+            edoburu/pgbouncer:v1.24.1-p1
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for Postgres..."
+          while ! docker inspect --format='{{.State.Health.Status}}' postgres | grep 'healthy'; do
+            sleep 5;
+          done
+          echo "Postgres is healthy!"
+
+      - name: Build and run application container
+        run: |
+          docker build -t layered-app ./mvp-compose/app
+          docker run \
+            -d \
             --name layered-app \
-            --network host \
+            --network layered-network \
             -e PORT=3000 \
-            -e DB_HOST=localhost \
+            -e DB_HOST=pgbouncer \
             -e DB_PORT=6432 \
             -e DB_USER=myuser \
             -e DB_PASSWORD=mypassword \
             -e DB_NAME=myapp \
+            -p 3000:3000 \
             layered-app
 
       - name: Wait for application to be healthy
