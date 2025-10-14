@@ -30,7 +30,7 @@ jobs:
       - name: Run tfsec (generate SARIF)
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          working_directory: layered-infra/aws-infra
+          working_directory: aws-infra
           format: sarif
           additional_args: --out=tfsec.sarif
 
