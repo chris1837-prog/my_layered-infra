@@ -11,7 +11,7 @@ jobs:
 
     services:
       postgres:
-        image: postgres:16 # Using a more general tag
+        image: postgres:16
         env:
           POSTGRES_DB: myapp
           POSTGRES_USER: myuser
@@ -19,13 +19,12 @@ jobs:
         options: >-
           --health-cmd="pg_isready -U myuser -d myapp"
           --health-interval=10s --health-timeout=5s --health-retries=5
+          --entrypoint-opt='-c' --entrypoint-opt='password_encryption=md5'
         ports:
           - 5432:5432
       pgbouncer:
-        # Use the EXACT image from docker-compose.yml
         image: edoburu/pgbouncer:v1.24.1-p1
         env:
-          # Use the env vars this image expects
           DB_HOST: postgres
           DB_PORT: 5432
           DB_USER: myuser
