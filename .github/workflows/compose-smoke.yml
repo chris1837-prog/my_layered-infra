@@ -12,74 +12,24 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create Docker network
-        run: docker network create layered-network
-
-      - name: Run Postgres container
-        run: |
-          docker run \
-            -d \
-            --name postgres \
-            --network layered-network \
-            -e POSTGRES_DB=myapp \
-            -e POSTGRES_USER=myuser \
-            -e POSTGRES_PASSWORD=mypassword \
-            -p 5432:5432 \
-            --health-cmd="pg_isready -U myuser -d myapp" \
-            --health-interval=10s --health-timeout=5s --health-retries=5 \
-            postgres:16 \
-            postgres -c password_encryption=md5
-
-      - name: Run PgBouncer container
-        run: |
-          docker run \
-            -d \
-            --name pgbouncer \
-            --network layered-network \
-            -e DB_HOST=postgres \
-            -e DB_PORT=5432 \
-            -e DB_USER=myuser \
-            -e DB_PASSWORD=mypassword \
-            -e DB_NAME=myapp \
-            -e POOL_MODE=transaction \
-            -e AUTH_TYPE=md5 \
-            -p 6432:6432 \
-            edoburu/pgbouncer:v1.24.1-p1
-
-      - name: Wait for services to be healthy
-        run: |
-          echo "Waiting for Postgres..."
-          while ! docker inspect --format='{{.State.Health.Status}}' postgres | grep 'healthy'; do
-            sleep 5;
-          done
-          echo "Postgres is healthy!"
-
-      - name: Build and run application container for testing
-        run: |
-          # Use the new Dockerfile.test to build the image
-          docker build -t layered-app-test -f ./mvp-compose/app/Dockerfile.test ./mvp-compose/app
-          docker run \
-            -d \
-            --name layered-app \
-            --network layered-network \
-            -e PORT=3000 \
-            -e DB_HOST=pgbouncer \
-            -e DB_PORT=6432 \
-            -e DB_USER=myuser \
-            -e DB_PASSWORD=mypassword \
-            -e DB_NAME=myapp \
-            -p 3000:3000 \
-            layered-app-test
+      - name: Start services with Docker Compose
+        # Run the command from the root but specify the compose file location
+        run: docker compose -f mvp-compose/docker-compose.yml up -d --build
 
       - name: Wait for application to be healthy
         run: |
           echo "Waiting for app to start..."
           for i in {1..30}; do
-            curl -f http://localhost:3000/health && break
+            # Use the healthcheck from the compose file's app service
+            docker inspect --format='{{.State.Health.Status}}' layered-app | grep 'healthy' && break
             echo -n "."
-            sleep 2
+            sleep 5
           done
           echo "App is healthy!"
 
       - name: Run Jest unit and integration tests
-        run: docker exec layered-app npm test
+        run: docker compose -f mvp-compose/docker-compose.yml exec -T app npm test
+
+      - name: Stop services
+        if: always() # This step runs even if the tests fail
+        run: docker compose -f mvp-compose/docker-compose.yml down
