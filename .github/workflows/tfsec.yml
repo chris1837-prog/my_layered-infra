@@ -30,8 +30,10 @@ jobs:
       - name: Run tfsec (generate SARIF)
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
+          working_directory: aws-infra
           format: sarif
           output_file: tfsec.sarif
+
 
       - name: Upload SARIF to Code Scanning
         uses: github/codeql-action/upload-sarif@v3
