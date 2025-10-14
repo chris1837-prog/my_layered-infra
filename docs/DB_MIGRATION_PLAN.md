@@ -34,13 +34,13 @@ curl -i http://localhost:3000/health
 ## Acceptance Criteria
 
 ### Phase 1: Dependency Setup 🔄
-- [ ] `node-pg-migrate` in devDependencies
-- [ ] `migrate:create`, `migrate:up`, `migrate:down`, `migrate:list`, `migrate` scripts in `package.json`
+- [x] `node-pg-migrate` in devDependencies
+- [x] `migrate:create`, `migrate:up`, `migrate:down`, `migrate:list`, `migrate` scripts in `package.json`
 
 ### Phase 2: Migration Infrastructure 🔄
-- [ ] Add `migrations/` directory with initial migration that recreates the original schema
-- [ ] Create `pg-migrate-config.js` that reads shared DB env vars
-- [ ] Update `init-db/01-init.sql` so it only handles DB/user bootstrap
+- [x] Add `migrations/` directory with initial migration that recreates the original schema
+- [x] Create `pg-migrate-config.js` that reads shared DB env vars
+- [x] Update `init-db/01-init.sql` so it only handles DB/user bootstrap
 - [ ] Ensure `init-db/02-force-md5-password.sh` and PgBouncer configs still function unchanged
 
 ### Phase 3: Docker Integration 🔄
