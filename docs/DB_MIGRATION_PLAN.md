@@ -41,12 +41,21 @@ curl -i http://localhost:3000/health
 - [x] Add `migrations/` directory with initial migration that recreates the original schema
 - [x] Create `pg-migrate-config.js` that reads shared DB env vars
 - [x] Update `init-db/01-init.sql` so it only handles DB/user bootstrap
-- [ ] Ensure `init-db/02-force-md5-password.sh` and PgBouncer configs still function unchanged
+- [x] Ensure `init-db/02-force-md5-password.sh` and PgBouncer configs still function unchanged
 
 ### Phase 3: Docker Integration 🔄
 - [ ] Add `Dockerfile.migrate`
 - [ ] Add `migrator` one-shot service to `docker-compose.yml`
 - [ ] Make `app` depend on successful migrator completion and healthy PgBouncer/Postgres
+
+> Suggested flow:
+> 1. Scaffold `Dockerfile.migrate` that installs dev deps (full `npm ci`), copies `package*.json`, `pg-migrate-config.js`, and `migrations/`, with default CMD `npm run migrate:up`.
+> 2. Extend `docker-compose.yml`:
+>    - introduce `migrator` service using the new Dockerfile, reusing the app env vars and mounting `./app` where needed;
+>    - set `depends_on` so `migrator` waits for healthy `postgres`, and `app` waits for `migrator` success plus `pgbouncer` health.
+> 3. Ensure logs are visible (no tty) and the service exits on completion (no restart).
+> 4. Update local helper scripts (`test-stack.sh`, etc.) to wait on migrator before health checks.
+> 5. Validate with `docker compose down -v && docker compose up -d --build`, confirm migrator runs once and app reaches 200 /health.
 
 ### Phase 4: Documentation & Process 🔄
 - [ ] Document migration creation/execution/rollback workflow and the fresh-DB expectation for the cutover
