@@ -11,7 +11,6 @@ permissions:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION || 'eu-central-1' }}    # Fallback: Secret or eu-central-1
   TF_DIR: aws-infra/environments/dev           
-  APP_DOMAIN: dev.example.com                                # TODO (team): set real dev domain
 
 jobs:
   deploy:
@@ -38,17 +37,12 @@ jobs:
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
         # with:
-        #   terraform_version: 1.12.2                        # TODO (team): pin if required
+        #   terraform_version: <team-agreed-version>
 
       # Init backend/providers in the dev environment dir
       - name: Terraform Init
         working-directory: ${{ env.TF_DIR }}
-        run: terraform init -input=false -upgrade            # TODO (team): decide whether you want to have -upgrade or not
-
-      # Read app domain from TF outputs
-      - name: Read app domain from TF outputs
-        working-directory: ${{ env.TF_DIR }}
-        run: echo "APP_DOMAIN=$(terraform output -raw app_domain)" >> "$GITHUB_ENV"
+        run: terraform init -input=false -upgrade
 
       # Create a plan for reproducible apply (clear logs, easier review)
       - name: Terraform Plan
@@ -60,6 +54,11 @@ jobs:
         if: ${{ github.ref == 'refs/heads/development' }}
         working-directory: ${{ env.TF_DIR }}
         run: terraform apply -auto-approve tfplan
+
+      # Read app domain from TF outputs 
+      - name: Read app domain from TF outputs
+        working-directory: ${{ env.TF_DIR }}
+        run: echo "APP_DOMAIN=$(terraform output -raw app_domain)" >> "$GITHUB_ENV"
 
       # Give ALB/DNS/app a short window to become ready (≤ ~3 min)
       - name: Wait until app is reachable (simple retry)
