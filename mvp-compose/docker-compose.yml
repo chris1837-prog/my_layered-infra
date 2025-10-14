@@ -83,11 +83,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      pgbouncer:
-        condition: service_healthy
     networks:
       - app-network
-
 
   # ===========================
   # App (Node.js)
@@ -118,6 +115,8 @@ services:
     depends_on:
       pgbouncer:
         condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${PORT:-3000}${HEALTH_PATH:-/health}"]
       interval: 10s
