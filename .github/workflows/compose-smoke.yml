@@ -12,10 +12,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Create test-specific Dockerfile
-        run: |
-          sed 's/npm ci --omit=dev/npm ci/' mvp-compose/app/Dockerfile > mvp-compose/app/Dockerfile.test
-
       - name: Create CI override for Docker Compose
         run: |
           echo "services:" > mvp-compose/docker-compose.ci.yml

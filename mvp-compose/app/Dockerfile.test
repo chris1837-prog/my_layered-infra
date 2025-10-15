@@ -1,16 +1,13 @@
 # Use the same base image
 FROM node:20-alpine
 
-# Set the working directory
 WORKDIR /usr/src/app
 
 # Copy package files
 COPY package*.json ./
 
-# CRITICAL CHANGE: Install ALL dependencies, including devDependencies
 RUN npm ci
 
-# Copy the rest of the application source code
 COPY . .
 
 # Expose the application port
