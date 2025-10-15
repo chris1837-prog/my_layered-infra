@@ -3,6 +3,13 @@ provider "aws" {
   profile = "AdministratorAccess-694816839566"
 }
 
+# Locals for edge module
+locals {
+  instance_type  = "t3.micro"  # Adjust as needed
+  ubuntu_version = "20.04"     # Adjust as needed
+}
+
+# VPC
 resource "aws_vpc" "test_vpc" {
   cidr_block           = var.vpc_cidr_block
   enable_dns_hostnames = true
@@ -13,6 +20,7 @@ resource "aws_vpc" "test_vpc" {
   }
 }
 
+# Internet Gateway
 resource "aws_internet_gateway" "public" {
   vpc_id = aws_vpc.test_vpc.id
   tags = {
@@ -21,6 +29,7 @@ resource "aws_internet_gateway" "public" {
   }
 }
 
+# Public Subnet
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.test_vpc.id
   cidr_block              = var.public_subnet_cidr_block
@@ -32,6 +41,7 @@ resource "aws_subnet" "public_subnet" {
   }
 }
 
+# Private Subnet
 resource "aws_subnet" "private_subnet" {
   vpc_id                  = aws_vpc.test_vpc.id
   cidr_block              = var.private_subnet_cidr_block
@@ -43,24 +53,7 @@ resource "aws_subnet" "private_subnet" {
   }
 }
 
-resource "aws_eip" "nat" {
-  domain = "vpc"
-  tags = {
-    Name        = "${var.environment}-nat-eip"
-    Environment = var.environment
-  }
-}
-
-resource "aws_nat_gateway" "nat" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public_subnet.id
-  tags = {
-    Name        = "${var.environment}-nat-gateway"
-    Environment = var.environment
-  }
-  depends_on = [aws_internet_gateway.public]
-}
-
+# Public Route Table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.test_vpc.id
   route {
@@ -73,11 +66,12 @@ resource "aws_route_table" "public" {
   }
 }
 
+# Private Route Table (routes to edge instance)
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.test_vpc.id
   route {
-    cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.nat.id
+    cidr_block         = "0.0.0.0/0"
+    network_interface_id = module.edge.primary_network_interface_id
   }
   tags = {
     Name        = "${var.environment}-private-route-table"
@@ -85,6 +79,7 @@ resource "aws_route_table" "private" {
   }
 }
 
+# Route Table Associations
 resource "aws_route_table_association" "public" {
   subnet_id      = aws_subnet.public_subnet.id
   route_table_id = aws_route_table.public.id
@@ -95,6 +90,7 @@ resource "aws_route_table_association" "private" {
   route_table_id = aws_route_table.private.id
 }
 
+# Security Group for App
 resource "aws_security_group" "app" {
   vpc_id = aws_vpc.test_vpc.id
   ingress {
@@ -121,13 +117,53 @@ resource "aws_security_group" "app" {
   }
 }
 
+# Security Group for Edge
+resource "aws_security_group" "edge" {
+  vpc_id = aws_vpc.test_vpc.id
+  ingress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["10.0.2.0/24"]
+  }
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name        = "${var.environment}-edge-sg"
+    Environment = var.environment
+  }
+}
+
+# Key Pair for App
 resource "tls_private_key" "test_key" {
   algorithm = "RSA"
   rsa_bits  = 2048
 }
 
 resource "aws_key_pair" "this" {
-  key_name   = "appdb_test_key.pem"
+  key_name   = "appdb_test_key"
   public_key = tls_private_key.test_key.public_key_openssh
 }
 
@@ -137,6 +173,55 @@ resource "local_file" "ssh_private_key" {
   file_permission = "0600"
 }
 
+# Key Pair for Edge
+resource "tls_private_key" "edge" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+
+resource "aws_key_pair" "edge" {
+  key_name   = "edge_test_key"
+  public_key = tls_private_key.edge.public_key_openssh
+}
+
+resource "local_file" "edge_ssh_private_key" {
+  content         = tls_private_key.edge.private_key_pem
+  filename        = "edge_test_key.pem"
+  file_permission = "0600"
+}
+
+# IAM Role and Instance Profile for Edge
+resource "aws_iam_role" "ec2_role" {
+  name = "${var.environment}-ec2-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "ec2_instance_profile" {
+  name = "${var.environment}-ec2-instance-profile"
+  role = aws_iam_role.ec2_role.name
+}
+
+# Elastic IP for Edge
+resource "aws_eip" "edge" {
+  domain = "vpc"
+  tags = {
+    Name        = "${var.environment}-edge-eip"
+    Environment = var.environment
+  }
+}
+
+# EC2 Instance Connect Endpoint
 resource "aws_ec2_instance_connect_endpoint" "eic_endpoint" {
   subnet_id          = aws_subnet.private_subnet.id
   security_group_ids = [aws_security_group.app.id]
@@ -146,6 +231,35 @@ resource "aws_ec2_instance_connect_endpoint" "eic_endpoint" {
   }
 }
 
+# Edge Module
+module "edge" {
+  source = "../../../edge"
+
+  project_name             = "layered-infra"
+  environment              = var.environment
+  vpc_id                   = aws_vpc.test_vpc.id
+  edge_private_ip          = "10.0.1.130"
+  registry_user            = "registry"
+  registry_password        = "registry"
+  registry_external_url    = "https://registry.dev.uselayered.com"
+  registry_internal_url    = "https://registry.internal.dev.uselayered.com"
+  instance_type            = local.instance_type
+  sg_edge_id               = aws_security_group.edge.id
+  ubuntu_version           = local.ubuntu_version
+  key_name                 = aws_key_pair.edge.key_name
+  admin_ssh_keys           = [tls_private_key.edge.public_key_openssh]
+  iam_instance_profile_name = aws_iam_instance_profile.ec2_instance_profile.name
+  public_subnet_id         = aws_subnet.public_subnet.id
+  admin_cidrs              = ["0.0.0.0/0"]
+  domain_name              = "edge.dev.uselayered.com"
+  backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
+  enable_domain_tls        = true
+  enable_domain_acme       = true
+  enable_eip_association   = true
+  eip_allocation_id        = aws_eip.edge.id
+}
+
+# AppDB Module
 module "appdb" {
   source                         = "../../"
   environment                    = var.environment
