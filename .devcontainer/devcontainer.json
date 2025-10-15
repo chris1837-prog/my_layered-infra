@@ -1,0 +1,19 @@
+{
+  "name": "Layered Infra Devcontainer",
+  "dockerComposeFile": "../mvp-compose/docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/usr/src/app",
+  "remoteUser": "root",
+  "postCreateCommand": "apk add --no-cache bash curl unzip python3 py3-pip aws-cli && curl -fsSL https://releases.hashicorp.com/terraform/1.6.3/terraform_1.6.3_linux_amd64.zip -o terraform.zip && unzip terraform.zip -d /usr/local/bin && rm terraform.zip",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "AmazonWebServices.aws-toolkit-vscode",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}
+
+
