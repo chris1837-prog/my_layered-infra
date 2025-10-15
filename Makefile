@@ -43,7 +43,7 @@ logs:
 
 ## Run tests inside the app container
 test:
-	$(COMPOSE) run --rm $(SERVICE_APP) npm test
+	$(COMPOSE) exec $(SERVICE_APP) npm test
 
 ## Open a PostgreSQL shell in the database container
 psql:
