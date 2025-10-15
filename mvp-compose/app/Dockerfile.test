@@ -1,0 +1,17 @@
+# Use the same base image
+FROM node:20-alpine
+
+WORKDIR /usr/src/app
+
+# Copy package files
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+# Expose the application port
+EXPOSE 3000
+
+# The command to start the app
+CMD [ "node", "src/server.js" ]
