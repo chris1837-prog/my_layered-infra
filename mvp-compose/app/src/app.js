@@ -43,7 +43,7 @@ if (DATABASE_URL) {
 function backoffDelay(i) {
   return Math.min(BASE_DELAY_MS * Math.pow(2, i), 30000);
 }
-
+if (process.env.JEST_WORKER_ID === undefined) {
 (async function primeDbConnectivity() {
   if (!pool) return;
   let attempt = 0;
@@ -70,6 +70,7 @@ function backoffDelay(i) {
     await new Promise(res => setTimeout(res, 10000));
   }
 })().catch((e) => console.error('[app] Unexpected DB init error:', e));
+}
 
 app.get('/', (_req, res) => res.status(200).send('ok'));
 app.get('/healthz', (_req, res) => res.status(200).json({ ok: true }));
