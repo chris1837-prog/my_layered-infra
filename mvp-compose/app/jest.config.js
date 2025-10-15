@@ -1,6 +1,5 @@
 module.exports = {
-    // Tell Jest to collect coverage information from all .js files
-    // inside the src directory
+    setupFilesAfterEnv: ['./jest.setup.js'],
     collectCoverageFrom: [
       'src/**/*.js',
     ],
