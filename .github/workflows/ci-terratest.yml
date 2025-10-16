@@ -1,0 +1,46 @@
+name: Terraform Terratest
+
+on:
+  pull_request:
+    branches: [ development ]
+    paths:
+      - '**/*.tf'
+      - '**/*.go'
+      - '.github/workflows/ci-terratest.yml'
+  workflow_dispatch:
+
+jobs:
+  terratest:
+    name: Run Terratest for Terraform modules
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
+          aws-region: eu-central-1
+
+      - name: Run Terratest
+        working-directory: tests
+        run: |
+          echo "🧪 Running Terratest..."
+          go test -v ./... -timeout 30m
+
