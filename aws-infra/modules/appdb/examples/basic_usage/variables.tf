@@ -35,3 +35,13 @@ variable "key_pair_name" {
   type        = string
   default     = "default-layered-key"
 }
+
+variable "docker_compose_content" {
+  description = "Content of the Docker Compose file"
+  type        = string
+}
+
+variable "db_volume_id" {
+  description = "ID of the EBS volume for the database (if applicable)"
+  type        = string
+}

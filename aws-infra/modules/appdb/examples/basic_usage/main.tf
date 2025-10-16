@@ -5,8 +5,8 @@ provider "aws" {
 
 # Locals for edge module
 locals {
-  instance_type  = "t3.micro"  # Adjust as needed
-  ubuntu_version = "20.04"     # Adjust as needed
+  instance_type  = "t3.micro"
+  ubuntu_version = "20.04"
 }
 
 # VPC
@@ -173,23 +173,6 @@ resource "local_file" "ssh_private_key" {
   file_permission = "0600"
 }
 
-# Key Pair for Edge
-resource "tls_private_key" "edge" {
-  algorithm = "RSA"
-  rsa_bits  = 2048
-}
-
-resource "aws_key_pair" "edge" {
-  key_name   = "edge_test_key"
-  public_key = tls_private_key.edge.public_key_openssh
-}
-
-resource "local_file" "edge_ssh_private_key" {
-  content         = tls_private_key.edge.private_key_pem
-  filename        = "edge_test_key.pem"
-  file_permission = "0600"
-}
-
 # IAM Role and Instance Profile for Edge
 resource "aws_iam_role" "ec2_role" {
   name = "${var.environment}-ec2-role"
@@ -246,8 +229,8 @@ module "edge" {
   instance_type            = local.instance_type
   sg_edge_id               = aws_security_group.edge.id
   ubuntu_version           = local.ubuntu_version
-  key_name                 = aws_key_pair.edge.key_name
-  admin_ssh_keys           = [tls_private_key.edge.public_key_openssh]
+  key_name                 = aws_key_pair.this.key_name
+  admin_ssh_keys           = [tls_private_key.test_key.public_key_openssh]
   iam_instance_profile_name = aws_iam_instance_profile.ec2_instance_profile.name
   public_subnet_id         = aws_subnet.public_subnet.id
   admin_cidrs              = ["0.0.0.0/0"]
@@ -263,6 +246,8 @@ module "edge" {
 module "appdb" {
   source                         = "../../"
   environment                    = var.environment
+  docker_compose_content         = var.docker_compose_content
+  db_volume_id                   = var.db_volume_id
   ssm_registry_password_path     = "/app/registry/password"
   ssm_postgres_user_path         = "/app/db/user"
   ssm_app_image_tag_path         = "/app/image/tag"
