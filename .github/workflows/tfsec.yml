@@ -15,8 +15,6 @@ jobs:
 
     permissions:
       contents: read
-      security-events: write
-      actions: read
 
     steps:
       - name: Checkout repository
@@ -27,16 +25,9 @@ jobs:
         with:
           terraform_version: 1.6.6
 
-      - name: Run tfsec (generate SARIF)
+      - name: Run tfsec (scan Terraform code)
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: aws-infra
-          format: sarif
-          additional_args: --out=tfsec.sarif
+          format: default
           soft_fail: true
-
-
-      - name: Upload SARIF to Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: tfsec.sarif
