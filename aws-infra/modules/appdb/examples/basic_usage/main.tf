@@ -70,7 +70,7 @@ resource "aws_route_table" "public" {
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.test_vpc.id
   route {
-    cidr_block         = "0.0.0.0/0"
+    cidr_block           = "0.0.0.0/0"
     network_interface_id = module.edge.primary_network_interface_id
   }
   tags = {
@@ -218,28 +218,28 @@ resource "aws_ec2_instance_connect_endpoint" "eic_endpoint" {
 module "edge" {
   source = "../../../edge"
 
-  project_name             = "layered-infra"
-  environment              = var.environment
-  vpc_id                   = aws_vpc.test_vpc.id
-  edge_private_ip          = "10.0.1.130"
-  registry_user            = "registry"
-  registry_password        = "registry"
-  registry_external_url    = "https://registry.dev.uselayered.com"
-  registry_internal_url    = "https://registry.internal.dev.uselayered.com"
-  instance_type            = local.instance_type
-  sg_edge_id               = aws_security_group.edge.id
-  ubuntu_version           = local.ubuntu_version
-  key_name                 = aws_key_pair.this.key_name
-  admin_ssh_keys           = [tls_private_key.test_key.public_key_openssh]
+  project_name              = "layered-infra"
+  environment               = var.environment
+  vpc_id                    = aws_vpc.test_vpc.id
+  edge_private_ip           = "10.0.1.130"
+  registry_user             = "registry"
+  registry_password         = "registry"
+  registry_external_url     = "https://registry.dev.uselayered.com"
+  registry_internal_url     = "https://registry.internal.dev.uselayered.com"
+  instance_type             = local.instance_type
+  sg_edge_id                = aws_security_group.edge.id
+  ubuntu_version            = local.ubuntu_version
+  key_name                  = aws_key_pair.this.key_name
+  admin_ssh_keys            = [tls_private_key.test_key.public_key_openssh]
   iam_instance_profile_name = aws_iam_instance_profile.ec2_instance_profile.name
-  public_subnet_id         = aws_subnet.public_subnet.id
-  admin_cidrs              = ["0.0.0.0/0"]
-  domain_name              = "edge.dev.uselayered.com"
+  public_subnet_id          = aws_subnet.public_subnet.id
+  admin_cidrs               = ["0.0.0.0/0"]
+  domain_name               = "edge.dev.uselayered.com"
   backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
-  enable_domain_tls        = true
-  enable_domain_acme       = true
-  enable_eip_association   = true
-  eip_allocation_id        = aws_eip.edge.id
+  enable_domain_tls         = true
+  enable_domain_acme        = true
+  enable_eip_association    = true
+  eip_allocation_id         = aws_eip.edge.id
 }
 
 # AppDB Module
