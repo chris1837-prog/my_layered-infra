@@ -1,8 +1,8 @@
 resource "aws_cloudwatch_event_rule" "daily_cleanup" {
-  name        = var.rule_name
-  description = "Triggers orphaned resource cleanup Lambda daily"
+  name                = var.rule_name
+  description         = "Triggers orphaned resource cleanup Lambda daily"
   schedule_expression = "cron(0 3 * * ? *)" # jeden Tag um 03:00 Uhr UTC
-  state = "ENABLED"
+  state               = "ENABLED"
 }
 
 resource "aws_cloudwatch_event_target" "target" {
