@@ -19,6 +19,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-myapp}      # a database named POSTGRES_DB
       POSTGRES_USER: ${POSTGRES_USER:-myuser} # a role/user POSTGRES_USER
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mypassword} # with password POSTGRES_PASSWORD
+      PGDATA: /var/lib/postgresql/data        # Explicitly set; matches the host bind path
 # Take e.g. POSTGRES_DB from .env (or shell). If not set, fallback to myapp.
 # On subsequent starts (existing volume), Postgres ignores changes here—DB already exists. To change later, alter in DB or recreate the volume.
 
@@ -26,7 +27,9 @@ services:
     # Force Postgres to use MD5 password hashing (works with PgBouncer — the default since PG14 is SCRAM-SHA-256)
 
     volumes:
-      - postgres_data:/var/lib/postgresql/data     # Named volume: persistent DB data
+      - type: bind
+        source: ${POSTGRES_DATA_SOURCE:-/var/lib/postgresql/data}     # Host path (EBS mount in prod; override to /tmp/pgdata locally)
+        target: /var/lib/postgresql/data                             # Inside-container PGDATA
       - ./init-db:/docker-entrypoint-initdb.d      # SQL/scripts here run only on first init
 
     healthcheck:
@@ -150,12 +153,8 @@ services:
       - app-network
 
 # ---------------------------
-# Volumes & Networks
+# Network
 # ---------------------------
-volumes:
-  postgres_data:
-    driver: local    # Named volume for Postgres persistence
-
 networks:
   app-network:
     driver: bridge   # Default bridge network so services can talk via names
