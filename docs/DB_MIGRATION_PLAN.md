@@ -24,18 +24,20 @@ curl -i http://localhost:3000/health
 
 # After migration infrastructure lands
 cd mvp-compose/app
-npm run migrate:list
+npm run migrate:status
 npm run migrate:create test-migration
-docker compose down -v   # fresh DB for first migration
+docker compose down -v   # fresh DB for first migration (also remove or override POSTGRES_DATA_SOURCE bind mount)
 docker compose up -d --build
 curl -i http://localhost:3000/health
 ```
+
+> **Note:** Postgres stores its data in the host path referenced by `POSTGRES_DATA_SOURCE`. Remove that directory (or point the env var at a new empty location) before rerunning the stack; `docker compose down -v` alone will not wipe bind-mounted data.
 
 ## Acceptance Criteria
 
 ### Phase 1: Dependency Setup 🔄
 - [x] `node-pg-migrate` in devDependencies
-- [x] `migrate:create`, `migrate:up`, `migrate:down`, `migrate:list`, `migrate` scripts in `package.json`
+- [x] `migrate:create`, `migrate:up`, `migrate:down`, `migrate:status`, `migrate` scripts in `package.json`
 
 ### Phase 2: Migration Infrastructure 🔄
 - [x] Add `migrations/` directory with initial migration that recreates the original schema
@@ -63,12 +65,12 @@ curl -i http://localhost:3000/health
 - [ ] Update helper scripts (e.g., `test-stack.sh`) to reflect the migration-first flow
 
 ## Technical Notes
-- First migration assumes a clean database; devs should run `docker compose down -v` when switching over.
+- First migration assumes a clean database; devs should run `docker compose down -v` and clear or override the host directory bound to `POSTGRES_DATA_SOURCE` when switching over.
 - `pg-migrate-config.js` lives in `mvp-compose/app/` and builds its connection string from `DB_HOST`, `DB_USER`, `DB_PASSWORD`, etc.
-- `node-pg-migrate` commands are run via `npm run migrate` (plus `:up/:down/:list/:create`).
+- `node-pg-migrate` commands are run via `npm run migrate` (plus `:up/:down/:status/:create`).
 
 ## Testing Strategy
-- CLI: `npm run migrate:list`, `npm run migrate:create add-table`, `npm run migrate:up`, `npm run migrate:down`
+- CLI: `npm run migrate:status`, `npm run migrate:create add-table`, `npm run migrate:up`, `npm run migrate:down`
 - Compose: `docker compose down -v`, `docker compose up -d --build`, confirm migrator exits 0 and app health is 200.
 - Optional: Validate that backup/restore scripts still operate after migrations run.
 
