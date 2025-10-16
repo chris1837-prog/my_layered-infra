@@ -46,9 +46,9 @@ curl -i http://localhost:3000/health
 - [x] Ensure `init-db/02-force-md5-password.sh` and PgBouncer configs still function unchanged
 
 ### Phase 3: Docker Integration 🔄
-- [ ] Add `Dockerfile.migrate`
-- [ ] Add `migrator` one-shot service to `docker-compose.yml`
-- [ ] Make `app` depend on successful migrator completion and healthy PgBouncer/Postgres
+- [x] Add `Dockerfile.migrate`
+- [x] Add `migrator` one-shot service to `docker-compose.yml`
+- [x] Make `app` depend on successful migrator completion and healthy PgBouncer/Postgres
 
 > Suggested flow:
 > 1. Scaffold `Dockerfile.migrate` that installs dev deps (full `npm ci`), copies `package*.json`, `pg-migrate-config.js`, and `migrations/`, with default CMD `npm run migrate:up`.
