@@ -12,17 +12,42 @@
 - Isolate the Edge VM using a dedicated **Quarantine Security Group** in AWS (no ingress/egress).
 - Stop public access via AWS Console → EC2 → Networking → Change Security Groups → select *quarantine-no-egress*.
 - Do **not** reboot or terminate until evidence is captured.
+> **Note:** The `quarantine-no-egress` Security Group does not currently exist.  
+> Coordinate with the networking team to create this group as part of a future task.
 
-### 2. Collection
-- From AWS Console: **EC2 → Volumes → Create Snapshot** for each attached EBS volume.
-- Tag snapshots with `IncidentID`, `Timestamp`, and `Owner`.
-- Export CloudWatch and Caddy logs to S3 for retention.
-- Record instance metadata (ID, AMI, SGs, IPs) in case notes.
+## 2. Collection
+- From your terminal, use the AWS CLI to create snapshots for all attached EBS volumes.
 
-### 3. Correction
+```bash
+# Identify volumes attached to the compromised instance
+aws ec2 describe-volumes --filters Name=attachment.instance-id,Values=<INSTANCE_ID> --query "Volumes[*].VolumeId" --output text
+
+# Create snapshots for each attached volume
+aws ec2 create-snapshot --volume-id <VOLUME_ID> --description "Forensic snapshot from Edge VM incident"
+```
+
+> **Note:**  
+> Replace `<INSTANCE_ID>` and `<VOLUME_ID>` with the actual IDs from your AWS environment.  
+> You can find these by running `aws ec2 describe-instances` (for instance IDs) and `aws ec2 describe-volumes` (for volume IDs), or by checking the **EC2 → Instances → Storage** tab in the AWS Console.  
+> Tag each snapshot with the relevant `IncidentID`, `Timestamp`, and `Owner`, and retain them per your organization’s evidence policy.
+
+## 3. Correction
 - After evidence is preserved, **terminate** the compromised instance.
-- **Redeploy** a clean instance through the Terraform Cloud workspace.
-- Reattach standard Security Groups and rotate all secrets and credentials.
+
+- **Re-deploy a clean instance via GitHub Actions CI/CD**  
+  1) In GitHub → **Actions** tab → select the infra deploy workflow (e.g., **“Deploy Edge Infra”**).  
+  2) Click **Run workflow** → choose the correct **branch** (usually `development`) and **environment** (e.g., `dev`/`staging`/`prod`).  
+  3) Click **Run workflow** and wait for the job to complete.  
+  4) Verify in AWS **EC2 → Instances** that the new Edge VM is **running** and healthy.
+
+- **Post-deploy steps**  
+  - Attach standard **Security Groups** (remove quarantine).  
+  - **Rotate** any secrets/keys used by the compromised VM.  
+  - Validate app health checks and logging/metrics.  
+  - Record the new **Instance ID** and AMI in the incident notes.
+
+> **Note:** This project uses **GitHub Actions** (not Terraform Cloud) to build an
+
 
 ### 4. Communication
 - Notify on-call and leadership via Slack channel `#incidents`.
