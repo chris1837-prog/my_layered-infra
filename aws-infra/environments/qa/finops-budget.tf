@@ -5,10 +5,10 @@
 module "budget_qa" {
   source = "../../modules/budget"
 
-  name        = "qa-monthly-budget"
-  amount_usd  = var.qa_budget_amount_usd
-  emails      = var.qa_alert_emails
-  topic_name  = "qa-budget-alerts"
+  name       = "qa-monthly-budget"
+  amount_usd = var.qa_budget_amount_usd
+  emails     = var.qa_alert_emails
+  topic_name = "qa-budget-alerts"
 
   thresholds        = [50, 75, 90]
   notification_type = "FORECASTED"

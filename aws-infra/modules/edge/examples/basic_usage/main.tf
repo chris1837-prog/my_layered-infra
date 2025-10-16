@@ -297,12 +297,12 @@ module "edge" {
   public_subnet_id          = aws_subnet.public_subnet.id
   admin_cidrs               = ["0.0.0.0/0"]
   # Use a hostname within the delegated subdomain for automatic HTTPS instead of the parent apex
-  domain_name               = "edge.dev.uselayered.com"
-  backend_servers           = ["10.0.2.10:3000", "10.0.2.11:3000"]
+  domain_name     = "edge.dev.uselayered.com"
+  backend_servers = ["10.0.2.10:3000", "10.0.2.11:3000"]
   # Primary domain TLS controls
-  enable_domain_tls         = true          # set false to test HTTP-only bootstrap
-  enable_domain_acme        = true          # if true (and TLS enabled) use public ACME cert, else internal CA
+  enable_domain_tls  = true # set false to test HTTP-only bootstrap
+  enable_domain_acme = true # if true (and TLS enabled) use public ACME cert, else internal CA
   # Ensure the Edge instance gets a public IP via the created Elastic IP
-  enable_eip_association    = true
-  eip_allocation_id         = aws_eip.edge.id
+  enable_eip_association = true
+  eip_allocation_id      = aws_eip.edge.id
 }

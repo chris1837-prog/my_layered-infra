@@ -4,11 +4,11 @@
 # =============================================================================
 
 provider "aws" {
-  region  = "eu-central-1"
+  region = "eu-central-1"
 }
 
 module "iam" {
-  source             = "../.." # Points to the root IAM module directory
+  source = "../.." # Points to the root IAM module directory
   # Remote state backend IAM role
   tf_state_bucket    = "example-terraform-state-bucket"
   lock_table         = "example-terraform-lock-table"
