@@ -38,21 +38,21 @@ data "cloudinit_config" "edge" {
     # When you want to call this module, you must resolve SSM parameters to values first or change the template config to accept paths
     content_type = "text/cloud-config"
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-      admin_user               = var.admin_user,
-      admin_ssh_keys           = var.admin_ssh_keys,
-      domain_name              = var.domain_name,
-      backend_servers          = var.backend_servers,
-      admin_cidrs              = var.admin_cidrs,
-      wireguard_port           = var.wireguard_port,
-      registry_external_url    = var.registry_external_url,
-      registry_internal_url    = var.registry_internal_url,
-      registry_user            = var.registry_user,
-      registry_password        = var.registry_password,
-      enable_acme_external     = var.enable_acme_external,
-      acme_email               = var.acme_email,
-      enable_wireguard         = var.enable_wireguard,
-      enable_domain_tls        = var.enable_domain_tls,
-      enable_domain_acme       = var.enable_domain_acme,
+      admin_user            = var.admin_user,
+      admin_ssh_keys        = var.admin_ssh_keys,
+      domain_name           = var.domain_name,
+      backend_servers       = var.backend_servers,
+      admin_cidrs           = var.admin_cidrs,
+      wireguard_port        = var.wireguard_port,
+      registry_external_url = var.registry_external_url,
+      registry_internal_url = var.registry_internal_url,
+      registry_user         = var.registry_user,
+      registry_password     = var.registry_password,
+      enable_acme_external  = var.enable_acme_external,
+      acme_email            = var.acme_email,
+      enable_wireguard      = var.enable_wireguard,
+      enable_domain_tls     = var.enable_domain_tls,
+      enable_domain_acme    = var.enable_domain_acme,
     })
   }
 }

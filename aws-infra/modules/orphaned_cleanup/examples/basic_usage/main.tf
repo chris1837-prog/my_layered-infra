@@ -3,6 +3,6 @@ provider "aws" {
 }
 
 module "orphaned_cleanup" {
-  source = "../.."
+  source        = "../.."
   function_name = "qa-orphaned-ebs-cleanup"
 }
