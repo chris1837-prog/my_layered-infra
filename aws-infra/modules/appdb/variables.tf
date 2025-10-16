@@ -165,3 +165,13 @@ variable "key_pair_name" {
   description = "Name of the AWS key pair for SSH access"
   type        = string
 }
+
+variable "docker_compose_content" {
+  description = "Content of the Docker Compose file"
+  type        = string
+}
+
+variable "db_volume_id" {
+  description = "ID of the EBS volume for the database (if applicable)"
+  type        = string
+}
