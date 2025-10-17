@@ -39,9 +39,11 @@ variable "key_pair_name" {
 variable "docker_compose_content" {
   description = "Content of the Docker Compose file"
   type        = string
+  default     = "default docker content"
 }
 
 variable "db_volume_id" {
   description = "ID of the EBS volume for the database (if applicable)"
   type        = string
+  default     = "default db_volume_id"
 }
