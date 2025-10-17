@@ -60,9 +60,34 @@ curl -i http://localhost:3000/health
 > 5. Validate with `docker compose down -v && docker compose up -d --build`, confirm migrator runs once and app reaches 200 /health.
 
 ### Phase 4: Documentation & Process 🔄
-- [ ] Document migration creation/execution/rollback workflow and the fresh-DB expectation for the cutover
-- [ ] Update README / docs / `.env.example`
-- [ ] Update helper scripts (e.g., `test-stack.sh`) to reflect the migration-first flow
+- [x] Document migration creation/execution/rollback workflow and the fresh-DB expectation for the cutover
+- [x] Update README / docs / `.env.example`
+- [x] Update helper scripts (e.g., `test-stack.sh`) to reflect the migration-first flow
+
+## Migration Workflow
+
+### Creating a migration
+1. Ensure you are inside `mvp-compose/app`.
+2. Run `npm run migrate:create <name>` to scaffold a timestamped migration file under `mvp-compose/app/migrations/`.
+3. Implement the `up`/`down` functions; keep DDL idempotent wherever possible.
+
+### Applying migrations locally
+1. Bring the stack up once to ensure dependencies are built: `cd mvp-compose && docker compose up -d --build`.
+2. Run pending migrations via the migrator service (preferred) or directly:  
+   - Docker Compose handles this automatically when `docker compose up` starts and the `migrator` container exits successfully.  
+   - For manual execution without Compose, use `npm run migrate:up` inside `mvp-compose/app`.
+3. Confirm status with `npm run migrate:status`.
+
+### Rolling back
+- To undo the latest migration, run `npm run migrate:down`.  
+- For iterative testing, pair `npm run migrate:down` with targeted `npm run migrate:up` commands.  
+- Rollbacks should be immediately followed by `npm run migrate:status` to verify the stack state.
+
+### Fresh database expectation for cutover
+- The first migration run assumes an empty database: drop bind-mounted data before enabling the migrator.
+- Use `docker compose down -v` and remove (or point to a new) `POSTGRES_DATA_SOURCE` directory to guarantee a clean slate.  
+- Communicate the cutover window so no writes happen between wiping old data and running the first migration.
+- After cutover, all schema changes must go through migrations; the legacy `init-db` SQL should only contain bootstrap logic (users/roles).
 
 ## Technical Notes
 - First migration assumes a clean database; devs should run `docker compose down -v` and clear or override the host directory bound to `POSTGRES_DATA_SOURCE` when switching over.
