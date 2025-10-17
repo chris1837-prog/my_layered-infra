@@ -87,6 +87,16 @@ Restores are validated by checking both the presence and correctness of database
 
 ---
 
+## Database migrations
+
+- Migrations live under `mvp-compose/app/migrations/` and are executed by the one-shot `migrator` service before the app starts.
+- Create new migrations from `mvp-compose/app`: `npm run migrate:create add-users-table` (generates timestamped file). Follow with `npm run migrate:up` or `npm run migrate:down` to test locally.
+- The Compose flow (`docker compose up`) automatically waits for Postgres → runs the migrator → starts PgBouncer/app once migrations exit with code 0.
+- First-time cutover requires a fresh database: run `docker compose down -v` **and** clear the host path referenced by `POSTGRES_DATA_SOURCE` (defaults to `./docker-data/postgres` in `.env.example`) before starting the stack with migrations enabled.
+- Check pending state anytime with `npm run migrate:status`. All schema changes after cutover must go through migrations; keep `init-db/` for bootstrap-only tasks (roles/users).
+
+---
+
 ## QA Auto-Stop Lambda
 
 The repo includes a Lambda function that automatically stops long-running QA-tagged EC2 instances to save cost.

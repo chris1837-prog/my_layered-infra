@@ -20,6 +20,7 @@
 - `app/` — Node.js application source code.  
   - Includes graceful shutdown handling and PgBouncer-safe queries.
 - `docker-compose.yml` — Compose file defining services and volumes.
+- `Dockerfile.migrate` / `migrator` service — runs `npm run migrate:up` before the app starts.
 - `init-db/` — SQL scripts to initialize the Postgres database.
 - `pgbouncer/` — Configuration files for PgBouncer connection pooler.  
   - `pgbouncer.ini` — corrected `log_disconnections` key.  
@@ -77,6 +78,16 @@ We provide a script `backup-restore.sh` inside `mvp-compose/` to manage database
   docker compose up -d
   ```  
 - Always keep real dumps out of version control; the backups folder is already excluded via `.gitignore`.
+
+---
+
+## Migration flow (local)
+
+- The Compose stack now includes a `migrator` container that runs once, applies pending migrations (`npm run migrate:up`), and must exit successfully before the app starts.
+- Create migrations from `mvp-compose/app`: `npm run migrate:create feature-name`. Implement the `up`/`down` blocks and validate locally with `npm run migrate:up` / `npm run migrate:down`.
+- To inspect state, run `npm run migrate:status` while inside `mvp-compose/app`.
+- The initial cutover requires a clean data directory. Run `docker compose down -v` and delete (or point `POSTGRES_DATA_SOURCE` at) the existing bind-mounted path before starting the stack so the first migration runs against an empty database.
+- After cutover, all schema changes must go through migrations; keep the legacy `init-db` scripts limited to bootstrap tasks (database + role creation).
 
 ---
 
