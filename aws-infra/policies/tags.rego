@@ -1,20 +1,22 @@
-package policies
-import rego.v1
+package terraform.tags
 
-deny[msg] if {
-  some rc in input.resource_changes
+deny[msg] {
+  rc := input.resource_changes[_]
   rc.type == "aws_ebs_volume"
-  not contains(rc.change.actions, "delete")
-  rc.change.after != null
-
-  tags := object.get(rc.change.after, "tags", {})
-  not has_nonempty_backup(tags)
-
+  non_delete(rc.change)
+  not has_backup_tag(rc.change)
   msg := sprintf("aws_ebs_volume.%s is missing the required Backup tag", [rc.name])
 }
 
-has_nonempty_backup(tags) if {
+non_delete(ch) {
+  not contains(ch.actions, "delete")
+}
+
+has_backup_tag(ch) {
+  after := ch.after
+  after != null
+  tags := object.get(after, "tags", {})
   v := tags["Backup"]
-  is_string(v)
+  v != null
   trim(v) != ""
 }
