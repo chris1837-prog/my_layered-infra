@@ -160,3 +160,18 @@ variable "ssm_registry_password_path" {
   description = "SSM parameter path for the registry password (optional, only used if login is required)"
   type        = string
 }
+
+variable "key_pair_name" {
+  description = "Name of the AWS key pair for SSH access"
+  type        = string
+}
+
+variable "docker_compose_content" {
+  description = "Content of the Docker Compose file"
+  type        = string
+}
+
+variable "db_volume_id" {
+  description = "ID of the EBS volume for the database (if applicable)"
+  type        = string
+}

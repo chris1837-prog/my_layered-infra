@@ -13,6 +13,7 @@ resource "aws_instance" "app" {
   subnet_id              = var.private_subnet_id
   vpc_security_group_ids = [var.sg_app_id]
   iam_instance_profile   = try(var.appdb_instance_profile_name, null)
+  key_name               = var.key_pair_name
 
   # Ensure user_data is re-run on changes (important for cloud-init/docker updates)
   user_data_replace_on_change = true
@@ -41,29 +42,6 @@ resource "aws_instance" "app" {
   )
 }
 
-module "db_data_volume" {
-  source = "../ebs_data_volume"
-
-  name              = "${var.project_name}-${var.environment}-appdb-db-data"
-  project           = var.project_name
-  env               = var.environment
-  availability_zone = data.aws_subnet.private.availability_zone
-
-  size_gb    = var.db_volume_size
-  type       = var.db_volume_type
-  encrypted  = var.db_volume_encrypted
-  kms_key_id = var.db_volume_kms_key_id
-  iops       = var.db_volume_iops
-  throughput = var.db_volume_throughput
-
-  device_name = var.db_volume_device_name
-  attach_to_instances = {
-    primary = aws_instance.app.id
-  }
-
-  tags = local.merged_tags
-}
-
 data "cloudinit_config" "app" {
   gzip          = true
   base64_encode = true
@@ -73,18 +51,18 @@ data "cloudinit_config" "app" {
     content = templatefile("${path.module}/templates/cloud-init.yaml.tftpl", {
       project_name               = var.project_name
       environment                = var.environment
-      docker_compose_content     = file("${path.module}/../../../mvp-compose/docker-compose.yml")
-      app_image_name_path        = var.ssm_app_image_name_path # e.g. "myorg/myapp" or just "myapp"
+      docker_compose_content     = var.docker_compose_content
+      app_image_name_path        = var.ssm_app_image_name_path
       internal_registry_url_path = var.ssm_internal_registry_url_path
       app_image_tag_path         = var.ssm_app_image_tag_path
       postgres_user_path         = var.ssm_postgres_user_path
       postgres_password_path     = var.ssm_postgres_password_path
       postgres_db_path           = var.ssm_postgres_db_path
-      registry_user_path         = var.ssm_registry_user_path     # used if login required, comment out if not
-      registry_password_path     = var.ssm_registry_password_path # used if login required, comment out if not
+      registry_user_path         = var.ssm_registry_user_path
+      registry_password_path     = var.ssm_registry_password_path
       db_volume_device_name      = var.db_volume_device_name
       db_volume_mount_path       = var.db_volume_mount_path
-      db_volume_id               = module.db_data_volume.volume_id
+      db_volume_id               = var.db_volume_id
     })
   }
 }
