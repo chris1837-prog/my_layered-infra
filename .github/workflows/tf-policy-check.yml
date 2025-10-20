@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - development
+      - '*'
 
 jobs:
   tf-policy:
@@ -27,19 +28,9 @@ jobs:
           tar xzf conftest_0.48.0_Linux_x86_64.tar.gz
           sudo mv conftest /usr/local/bin/
 
-      - name: Initialize Terraform
-        working-directory: aws-infra/environments/dev
-        run: terraform init -input=false
 
-      - name: Create Terraform Plan
-        working-directory: aws-infra/environments/dev
-        run: |
-          terraform plan -out=tfplan.binary
-          terraform show -json tfplan.binary > tfplan.json
+      - name: Run Terraform Policy Check 
+        run: make test-tf-policy ENV=dev
 
-      - name: Run Policy Check with Conftest
-        run: conftest test aws-infra/environments/dev/tfplan.json -p aws-infra/policies/
-
-      - name: Done
-        run: echo "All policy checks completed successfully."
+      
 
