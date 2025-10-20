@@ -3,10 +3,15 @@ set -euo pipefail
 
 # Resolve paths so the script works from anywhere
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE_DIR="${SCRIPT_DIR}/mvp-compose"
+COMPOSE_DIR="$SCRIPT_DIR"
 
-if [[ ! -d "$COMPOSE_DIR" ]]; then
-  echo "❌ Can't find mvp-compose directory at: $COMPOSE_DIR"
+# Allow running the script from the repo root (./mvp-compose/test-stack.sh)
+if [[ ! -f "$COMPOSE_DIR/docker-compose.yml" && -f "$COMPOSE_DIR/mvp-compose/docker-compose.yml" ]]; then
+  COMPOSE_DIR="${COMPOSE_DIR}/mvp-compose"
+fi
+
+if [[ ! -f "$COMPOSE_DIR/docker-compose.yml" ]]; then
+  echo "❌ Can't find docker-compose.yml near $COMPOSE_DIR"
   exit 1
 fi
 
@@ -28,6 +33,32 @@ wait_for_pgbouncer() {
     sleep 2
   done
   echo "❌ PgBouncer did not become healthy in time"
+  return 1
+}
+
+wait_for_migrator() {
+  echo "⏳ Waiting for migrator (container: layered-migrator) to finish..."
+  for i in {1..30}; do
+    state="$(docker inspect -f '{{.State.Status}}' layered-migrator 2>/dev/null || echo 'missing')"
+    if [[ "$state" == "exited" ]]; then
+      exit_code="$(docker inspect -f '{{.State.ExitCode}}' layered-migrator 2>/dev/null || echo '1')"
+      if [[ "$exit_code" == "0" ]]; then
+        echo "✅ Migrations applied successfully"
+        return 0
+      fi
+      echo "❌ Migrator exited with code ${exit_code}"
+      docker compose logs migrator || true
+      return 1
+    fi
+    if [[ "$state" == "running" || "$state" == "created" ]]; then
+      sleep 2
+      continue
+    fi
+    # Container not created yet; give compose time to spin it up
+    sleep 2
+  done
+  echo "❌ Migrator did not complete in time"
+  docker compose logs migrator || true
   return 1
 }
 
@@ -64,7 +95,7 @@ pgb_admin() {
 # then brings it back and verifies /health is 200 again.
 if [[ "${1:-}" == "graceful" ]]; then
   echo "🧪 Running graceful shutdown test..."
-  wait_for_app_200 "$@"
+  wait_for_app_200
 
   echo "🧹 Clearing recent app logs window (for clean assertions)..."
   docker compose logs --since=0 app >/dev/null 2>&1 || true
@@ -89,7 +120,7 @@ if [[ "${1:-}" == "graceful" ]]; then
   echo "▶️  Starting app again..."
   docker compose up -d app
 
-  wait_for_app_200 "$@"
+  wait_for_app_200
 
   echo "🔎 Checking logs for graceful shutdown markers..."
   logs="$(docker compose logs --since=2m app | tail -n 200 || true)"
@@ -107,10 +138,11 @@ echo "🚀 Compose MVP smoke test"
 # 0) Bring up (or refresh) the stack
 echo "▶️  Starting (or rebuilding) containers..."
 docker compose up -d --build
+wait_for_migrator
 
 # --- Quick SMOKE target (opt-in) -----------------------------------------
 # Usage: ./test-stack.sh smoke
-# Does a minimal check:
+# Does a minimal check after confirming migrations have run:
 #   1) wait for PgBouncer to become healthy,
 #   2) run SELECT 1 via PgBouncer,
 #   3) ensure /health returns 200,
@@ -128,7 +160,7 @@ if [[ "${1:-}" == "smoke" ]]; then
 
   # 3) Ensure app /health returns 200
   echo "🩺 Checking app health..."
-  wait_for_app_200 "$@"
+  wait_for_app_200
 
   echo "🧾 PgBouncer admin visibility (SHOW POOLS; SHOW STATS;)..."
   pgb_admin "SHOW POOLS;" 1>/dev/null
@@ -141,7 +173,7 @@ fi
 # -------------------------------------------------------------------------
 
 # 1) Wait/poll until the app reports healthy (200 on /health)
-wait_for_app_200 "$@"
+wait_for_app_200
 
 # 2) Verify DB connectivity THROUGH PgBouncer using psql (no local install required)
 # We run a one-off postgres container INSIDE the compose network, so service DNS works.
