@@ -1,4 +1,4 @@
-name: Terraform Terratest
+name: Terraform Terratest (G2)
 
 on:
   pull_request:
@@ -35,12 +35,18 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-oidc-role
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/layered-infra-dev-terraform-github-actions-role
           aws-region: eu-central-1
 
-      - name: Run Terratest
-        working-directory: tests
+      - name: Run Terratest for each Terraform module
         run: |
-          echo "🧪 Running Terratest..."
-          go test -v ./... -timeout 30m
-
+          echo "🧪 Searching for Terratest directories..."
+          for dir in aws-infra/modules/*/test; do
+            if [ -d "$dir" ]; then
+              echo "➡️ Running tests in $dir"
+              cd "$dir"
+              go test -v -timeout 30m || exit 1
+              cd - >/dev/null
+            fi
+          done
+          echo "✅ Terratest run complete."
