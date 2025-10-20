@@ -25,6 +25,7 @@ scrape_configs:
       - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
         target_label: 'compose_project'
 
+<<<<<<< HEAD
     pipeline_stages:
       - docker: {}
 
@@ -46,3 +47,8 @@ scrape_configs:
           source: timestamp
           format: RFC3339
 
+=======
+    # Docker-JSON-Logs korrekt dekodieren (Zeitstempel/Message)
+    pipeline_stages:
+      - docker: {}
+>>>>>>> 2dad19a (N1: Local observability stack (Grafana, Loki, Promtail, Prometheus) using Docker logs)
