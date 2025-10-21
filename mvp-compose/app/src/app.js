@@ -1,3 +1,4 @@
+const logger = require('./logger');
 const express = require('express');
 const { Pool } = require('pg');
 
@@ -32,44 +33,46 @@ if (DATABASE_URL) {
       try {
         await client.query('SET statement_timeout TO $1', [st]);
       } catch (e) {
-        console.warn('[app] Failed to SET statement_timeout on connect:', e.message);
+        logger.warn({ err: e.message }, 'Failed to SET statement_timeout on connect');
       }
     }
   });
 } else {
-  console.warn('[app] No DB config. /health and /readyz will return 503.');
+  logger.warn('No DB config. /health and /readyz will return 503.');
 }
 
 function backoffDelay(i) {
   return Math.min(BASE_DELAY_MS * Math.pow(2, i), 30000);
 }
+
 if (process.env.JEST_WORKER_ID === undefined) {
-(async function primeDbConnectivity() {
-  if (!pool) return;
-  let attempt = 0;
-  while (attempt < MAX_RETRIES) {
-    try {
-      const client = await pool.connect();
-      await client.query('SELECT 1');
-      client.release();
-      console.log('[app] Initial DB connectivity established.');
-      break;
-    } catch (err) {
-      const delay = backoffDelay(attempt);
-      console.warn(`[app] DB connect failed (try ${attempt + 1}/${MAX_RETRIES}): ${err.message}. Retrying in ${delay}ms`);
-      await new Promise(res => setTimeout(res, delay));
-      attempt++;
+  (async function primeDbConnectivity() {
+    if (!pool) return;
+    let attempt = 0;
+    while (attempt < MAX_RETRIES) {
+      try {
+        const client = await pool.connect();
+        await client.query('SELECT 1');
+        client.release();
+        logger.info('Initial DB connectivity established.');
+        break;
+      } catch (err) {
+        const delay = backoffDelay(attempt);
+        logger.warn({ err: err.message, attempt: attempt + 1, max: MAX_RETRIES, delay }, 'DB connect failed, retrying');
+        await new Promise((res) => setTimeout(res, delay));
+        attempt++;
+      }
     }
-  }
-  while (true) {
-    try {
-      await pool.query('SELECT 1');
-    } catch (err) {
-      console.warn(`[app] Periodic DB probe failed: ${err.message}`);
+    // periodic probe
+    while (true) {
+      try {
+        await pool.query('SELECT 1');
+      } catch (err) {
+        logger.warn({ err: err.message }, 'Periodic DB probe failed');
+      }
+      await new Promise((res) => setTimeout(res, 10000));
     }
-    await new Promise(res => setTimeout(res, 10000));
-  }
-})().catch((e) => console.error('[app] Unexpected DB init error:', e));
+  })().catch((e) => logger.error({ err: e.message }, 'Unexpected DB init error'));
 }
 
 app.get('/', (_req, res) => res.status(200).send('ok'));
