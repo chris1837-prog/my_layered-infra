@@ -1,5 +1,5 @@
 const { app, pool} = require('./app');
-const { logger } = require('./logger')
+const logger = require('./logger');
 
 const PORT = Number(process.env.PORT || 3000);
 
