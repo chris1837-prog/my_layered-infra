@@ -23,7 +23,7 @@ mvp-compose/docker-compose.yml
 | Node.js | 20.x |
 | Terraform | ~> 1.12.0 (1.12.2) |
 | AWS CLI | 2.31.18 |
-| Python | 3.11.x |
+| Python | 3.12.x |
 | Terraform VS Code Extension | latest |
 | AWS Toolkit VS Code Extension | latest |
 

@@ -5,10 +5,8 @@ WORKDIR /usr/src/app
 RUN apt-get update && apt-get install -y \
     bash \
     curl \
-    unzip \
-    # Clean up APT cache to reduce image size
-    && rm -rf /var/lib/apt/lists/*
-
+    unzip
+    
 COPY package*.json ./
 RUN npm ci --omit=dev
 
