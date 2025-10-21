@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('./logger');
 const { Pool } = require('pg');
 
 const app = express();
@@ -32,12 +33,12 @@ if (DATABASE_URL) {
       try {
         await client.query('SET statement_timeout TO $1', [st]);
       } catch (e) {
-        console.warn('[app] Failed to SET statement_timeout on connect:', e.message);
+        logger.warn({ err: e }, 'Failed to SET statement_timeout on connect');
       }
     }
   });
 } else {
-  console.warn('[app] No DB config. /health and /readyz will return 503.');
+  logger.warn('No DB config. /health and /readyz will return 503.');
 }
 
 function backoffDelay(i) {
@@ -52,11 +53,11 @@ if (process.env.JEST_WORKER_ID === undefined) {
       const client = await pool.connect();
       await client.query('SELECT 1');
       client.release();
-      console.log('[app] Initial DB connectivity established.');
+      logger.info('Initial DB connectivity established.');
       break;
     } catch (err) {
       const delay = backoffDelay(attempt);
-      console.warn(`[app] DB connect failed (try ${attempt + 1}/${MAX_RETRIES}): ${err.message}. Retrying in ${delay}ms`);
+      logger.warn({ attempt: attempt + 1, max_retries: MAX_RETRIES, error: err.message, retry_in_ms: delay }, 'DB connect failed, retrying...');
       await new Promise(res => setTimeout(res, delay));
       attempt++;
     }
@@ -65,11 +66,11 @@ if (process.env.JEST_WORKER_ID === undefined) {
     try {
       await pool.query('SELECT 1');
     } catch (err) {
-      console.warn(`[app] Periodic DB probe failed: ${err.message}`);
+      logger.warn({ err }, 'Periodic DB probe failed');
     }
     await new Promise(res => setTimeout(res, 10000));
   }
-})().catch((e) => console.error('[app] Unexpected DB init error:', e));
+})().catch((e) => logger.error({ err: e }, 'Unexpected DB init error'));
 }
 
 app.get('/', (_req, res) => res.status(200).send('ok'));
@@ -79,7 +80,8 @@ app.get('/readyz', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
     return res.status(200).json({ ready: true });
-  } catch {
+  } catch (err) {
+    logger.error({ err }, 'Readiness check database query failed');
     return res.status(503).json({ ready: false });
   }
 });
@@ -88,7 +90,8 @@ app.get('/health', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
     return res.status(200).json({ status: 'ok' });
-  } catch {
+  } catch (err) {
+    logger.error({ err }, 'Health check database query failed');
     return res.status(503).json({ status: 'unhealthy' });
   }
 });
