@@ -1,0 +1,18 @@
+DNS DELEGATION SETUP FOR DEV
+=================================================
+Please log in to the registrar for 'uselayered.com' (e.g., Namecheap) and navigate to the Advanced DNS settings.
+
+Create FOUR (4) new NS records with the following details:
+
+Type: NS
+Host: dev
+Value: Use one of the four values below (include the trailing dot).
+TTL: Automatic / 1 hour
+
+REQUIRED VALUES:
+- ns-1360.awsdns-42.org.
+- ns-1726.awsdns-23.co.uk.
+- ns-485.awsdns-60.com.
+- ns-944.awsdns-54.net.
+
+After saving these records, DNS delegation for *.dev.uselayered.com will be managed by AWS.
