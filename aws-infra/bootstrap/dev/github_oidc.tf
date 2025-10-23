@@ -12,9 +12,14 @@ resource "aws_iam_role" "github_actions" {
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
-          StringEquals = {
+          "StringEquals" = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-            "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/${var.github_branch}"
+          }
+          "StringLike" = {
+            "token.actions.githubusercontent.com:sub" = [
+              "repo:${var.github_org}/${var.github_repo}:ref:refs/heads/${var.github_branch}",
+              "repo:${var.github_org}/${var.github_repo}:pull_request"
+            ]
           }
         }
       }
@@ -61,6 +66,14 @@ resource "aws_iam_policy" "github_actions_policy" {
     { Name = "${var.project_name}-${var.environment}-terraform-github-actions-policy" },
     local.merged_tags
   )
+}
+
+resource "aws_iam_openid_connect_provider" "github" {
+  url = "https://token.actions.githubusercontent.com"
+
+  client_id_list = [
+    "sts.amazonaws.com"
+  ]
 }
 
 # Attach the managed policy to the role
