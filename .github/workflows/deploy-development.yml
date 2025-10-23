@@ -10,7 +10,8 @@ permissions:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION || 'eu-central-1' }}    # Fallback: Secret or eu-central-1
-  TF_DIR: aws-infra/environments/dev           
+  TF_DIR: aws-infra/environments/dev
+  BOOTSTRAP: aws-infra/bootstrap/dev
 
 jobs:
   deploy:
@@ -25,12 +26,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Read OIDC role ARN dynamically from bootstrap outputs
+      - name: Read AWS OIDC role ARN
+        working-directory: ${{ env.BOOTSTRAP }}
+        run: echo "AWS_OIDC_ROLE_ARN=$(terraform output -raw github_actions_role_arn)" >> "$GITHUB_ENV"
+
       # Authenticate to AWS via OIDC (no long-lived keys)
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}   # TODO (team): final IAM role
-          aws-region: ${{ env.AWS_REGION }}                  
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
           role-session-name: gh-deploy-dev
 
       # Install Terraform on the runner
@@ -55,7 +61,7 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: terraform apply -auto-approve tfplan
 
-      # Read app domain from TF outputs 
+      # Read app domain from TF outputs
       - name: Read app domain from TF outputs
         working-directory: ${{ env.TF_DIR }}
         run: echo "APP_DOMAIN=$(terraform output -raw app_domain)" >> "$GITHUB_ENV"
