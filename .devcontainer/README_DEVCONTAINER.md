@@ -24,6 +24,7 @@ mvp-compose/docker-compose.yml
 | Terraform | ~> 1.12.0 (1.12.2) |
 | AWS CLI | 2.31.18 |
 | Python | 3.12.x |
+| Prettier | 3.6.x |
 | Terraform VS Code Extension | latest |
 | AWS Toolkit VS Code Extension | latest |
 
