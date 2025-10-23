@@ -36,6 +36,11 @@ It provides a single interface for starting, stopping, and inspecting local Dock
 This Makefile helps developers quickly set up and test the local environment using the `mvp-compose` setup.
 
 
+## 🧱 Devcontainer Setup 
+
+For details about the Devcontainer setup, see the [Devcontainer README](./devcontainer/README_DEVCONTAINER.md).
+
+
 ## Backup & Restore (local)
 
 This repo ships a helper script that performs consistent backups and safe restores **via PgBouncer**. It also validates app health before/after.
