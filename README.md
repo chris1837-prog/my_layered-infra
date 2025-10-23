@@ -38,7 +38,7 @@ This Makefile helps developers quickly set up and test the local environment usi
 
 ## 🧱 Devcontainer Setup 
 
-For details about the Devcontainer setup, see the [Devcontainer README](./devcontainer/README_DEVCONTAINER.md).
+For details about the Devcontainer setup, see the [Devcontainer README](./.devcontainer/README_DEVCONTAINER.md).
 
 
 ## Backup & Restore (local)
