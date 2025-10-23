@@ -1,0 +1,28 @@
+ {
+  "name": "Layered Infra Devcontainer",
+  "dockerComposeFile": "../mvp-compose/docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/usr/src/app",
+  "remoteUser": "node",
+  "runServices": ["app"],
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/aws-cli:1": {},
+    "ghcr.io/devcontainers/features/terraform:1": {
+      "version": "1.12.2"
+    }
+  },
+  "postCreateCommand": "npm install -g prettier",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "hashicorp.terraform",
+        "AmazonWebServices.aws-toolkit-vscode",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  }
+}
+
