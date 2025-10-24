@@ -49,7 +49,6 @@ if (DATABASE_URL) {
 function backoffDelay(i) {
   return Math.min(BASE_DELAY_MS * Math.pow(2, i), 30000);
 }
-
 if (process.env.JEST_WORKER_ID === undefined) {
 
   (async function primeDbConnectivity() {
