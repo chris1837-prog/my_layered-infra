@@ -96,7 +96,7 @@ services:
     container_name: layered-app
     restart: unless-stopped
     ports:
-      - "3001:3000"
+      - "3000:3000"
     environment:
       - DB_HOST=pgbouncer
       - DB_PORT=6432
