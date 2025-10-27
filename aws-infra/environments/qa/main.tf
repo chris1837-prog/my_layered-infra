@@ -69,22 +69,22 @@ module "edge" {
   public_subnet_id = module.network.public_subnet_ids[0]
   sg_edge_id       = module.network.sg_edge_id
 
-  instance_type   = "t3.micro"
-  edge_private_ip = local.edge_config.edge_private_ip
-  key_name = aws_key_pair.generated_key.key_name
-  admin_ssh_keys = [tls_private_key.instance_key.public_key_openssh]
+  instance_type             = "t3.micro"
+  edge_private_ip           = local.edge_config.edge_private_ip
+  key_name                  = aws_key_pair.generated_key.key_name
+  admin_ssh_keys            = [tls_private_key.instance_key.public_key_openssh]
   enable_eip_association    = true
-  eip_allocation_id       = local.edge_config.eip_allocation_id
+  eip_allocation_id         = local.edge_config.eip_allocation_id
   iam_instance_profile_name = module.iam.ec2_instance_profile_name
-  admin_user            = "ubuntu"
-  domain_name           = local.edge_config.parameter_paths.edge_primary_url
-  backend_servers = ["${module.appdb.appdb_private_ip}:3000"]
-  admin_cidrs           = var.allowed_admin_cidrs
-  wireguard_port        = 51820
-  registry_external_url = "https://${data.aws_ssm_parameter.external_registry_url_value.value}"
-  registry_internal_url = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
-  registry_user         = local.edge_config.parameter_paths.registry_user
-  registry_password     = local.edge_config.parameter_paths.registry_password
+  admin_user                = "ubuntu"
+  domain_name               = local.edge_config.parameter_paths.edge_primary_url
+  backend_servers           = ["${module.appdb.appdb_private_ip}:3000"]
+  admin_cidrs               = var.allowed_admin_cidrs
+  wireguard_port            = 51820
+  registry_external_url     = "https://${data.aws_ssm_parameter.external_registry_url_value.value}"
+  registry_internal_url     = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
+  registry_user             = local.edge_config.parameter_paths.registry_user
+  registry_password         = local.edge_config.parameter_paths.registry_password
   # acme_email            = var.acme_email
 
   enable_acme_external = false
@@ -107,7 +107,7 @@ module "appdb" {
   instance_type               = "t3.micro"
   key_pair_name               = aws_key_pair.generated_key.key_name
   appdb_instance_profile_name = module.iam.ec2_instance_profile_name
-  db_volume_id = module.db_volume.volume_id
+  db_volume_id                = module.db_volume.volume_id
 
   # Cloud-init SSM Parameter Paths
   ssm_internal_registry_url_path = local.appdb_config.parameter_paths.internal_registry_url
