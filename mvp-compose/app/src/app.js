@@ -2,7 +2,6 @@
 const client = require('prom-client');
 client.collectDefaultMetrics();
 const express = require('express');
-const logger = require('./logger');
 const { Pool } = require('pg');
 
 const app = express();
