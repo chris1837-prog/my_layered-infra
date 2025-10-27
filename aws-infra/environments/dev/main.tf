@@ -10,18 +10,17 @@ resource "tls_private_key" "instance_key" {
 }
 
 resource "aws_key_pair" "generated_key" {
-  key_name   = "${var.project_name}-${var.environment}-instance-key" # e.g., layered-infra-qa-instance-key
+  key_name   = "${var.project_name}-${var.environment}-instance-key" # e.g., layered-infra-dev-instance-key
   public_key = tls_private_key.instance_key.public_key_openssh
 }
 
 resource "local_file" "ssh_private_key" {
   content         = tls_private_key.instance_key.private_key_pem
-  filename        = "${path.module}/${aws_key_pair.generated_key.key_name}.pem" # Saves the private key locally
+  filename        = "${path.module}/${aws_key_pair.generated_key.key_name}.pem"
   file_permission = "0600"
 }
 
 # --- IAM Module ---
-# Call the IAM module to create roles needed by EC2 instances
 module "iam" {
   source = "../../modules/iam"
 
@@ -32,8 +31,6 @@ module "iam" {
   # Add required backend info
   tf_state_bucket = "layered-infra-dev-tf-state-c4b038b9"
   lock_table      = "layered-infra-dev-tf-locks"
-
-  # Add any other required inputs for the IAM module
 }
 
 # --- Network Module ---
