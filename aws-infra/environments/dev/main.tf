@@ -41,7 +41,7 @@ module "network" {
   source = "../../modules/network"
 
   vpc_cidr            = "10.0.0.0/16" #
-  allowed_admin_cidrs = var.allowed_admin_cidrs 
+  allowed_admin_cidrs = var.allowed_admin_cidrs
 
   az_configurations = {
     (data.aws_availability_zones.available.names[0]) = {
