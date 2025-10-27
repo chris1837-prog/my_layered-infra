@@ -1,3 +1,5 @@
+# layered-infra/aws-infra/environments/dev/main.tf
+
 # Get available AZs in the region
 data "aws_availability_zones" "available" {
   state = "available"
@@ -80,9 +82,9 @@ module "edge" {
   wireguard_port            = 51820
   registry_external_url     = "https://${data.aws_ssm_parameter.external_registry_url_value.value}"
   registry_internal_url     = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
-  registry_user             = local.edge_config.parameter_paths.registry_user
-  registry_password         = local.edge_config.parameter_paths.registry_password
-  # acme_email            = var.acme_email
+  registry_user             = data.aws_ssm_parameter.registry_user_value.value
+  registry_password         = data.aws_ssm_parameter.registry_password_value.value
+  # acme_email              = var.acme_email
 
   enable_acme_external = false
   enable_wireguard     = true
