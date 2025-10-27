@@ -53,6 +53,9 @@ data "cloudinit_config" "edge" {
       enable_wireguard      = var.enable_wireguard,
       enable_domain_tls     = var.enable_domain_tls,
       enable_domain_acme    = var.enable_domain_acme,
+      # Extract hostnames from URLs for cloud-init template
+      REGISTRY_EXTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_external_url)[0],
+      REGISTRY_INTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_internal_url)[0],
     })
   }
 }
