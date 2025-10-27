@@ -29,4 +29,3 @@ test-tf-policy: ## Run Terraform plan and conftest policy validation
 	terraform -chdir=$(TF_DIR) show -json tfplan.binary > $(TF_DIR)/tfplan.json; \
 	conftest test $(TF_DIR)/tfplan.json -p $(POLICY_DIR); \
 	echo " Policy validation passed successfully for environment: $(ENV)"
-
