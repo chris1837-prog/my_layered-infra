@@ -124,6 +124,20 @@ Dependencies are pinned in `requirements.txt`:
 
 See `README.md` inside `functions/e1AutoStop/` for detailed IAM, Terraform module, and config examples.
 
+---
+
+## 🧠 Architecture Decision Records (ADR)
+
+To document key infrastructure decisions, see the following ADRs under [`docs/ADRs/`](docs/ADRs):
+
+| ID | Title | Summary |
+|----|--------|----------|
+| [ADR-0001](docs/ADRs/0001-caddy-over-nginx.md) | Why Caddy over Nginx for Reverse Proxy | Chosen for simplicity, automatic HTTPS, and easy config |
+| [ADR-0002](docs/ADRs/0002-self-hosted-nat.md) | Why a Self-Hosted NAT Instance over AWS NAT Gateway | Cost-efficient alternative with more control |
+| [ADR-0003](docs/ADRs/0003-wireguard-vpn.md) | Why WireGuard for VPN Access | Lightweight, secure, and fast VPN option |
+   
+---
+
 ## Contributing
 - Keep PRs **small and focused** (one concern per PR).
 - Pin external images/dependencies to **stable versions**.
