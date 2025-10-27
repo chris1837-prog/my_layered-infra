@@ -32,7 +32,7 @@ variable "qa_budget_amount_usd" {
 variable "qa_alert_emails" {
   description = "Recipients for budget alerts (QA)"
   type        = list(string)
-  default     = ["siebert.acer@googlemail.com"] # Replace with appropriate QA alert emails
+  default     = ["siebert.acer@googlemail.com"]
 }
 
 # --- Office Hours Scheduler Vars ---
@@ -63,7 +63,7 @@ variable "tag_key" {
 variable "tag_value" {
   description = "EC2 tag value to match instances for scheduler"
   type        = string
-  default     = "qa" # Changed default to 'qa'
+  default     = "qa"
 }
 
 # --- EC2 Key Pair ---

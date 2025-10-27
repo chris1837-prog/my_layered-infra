@@ -17,14 +17,14 @@ variable "environment" {
 
 # --- AWS Provider Vars ---
 variable "aws_region" {
-  description = "AWS region for DEV" # Updated description
+  description = "AWS region for DEV"
   type        = string
   default     = "eu-central-1"
 }
 
 # --- Budget Vars ---
 variable "dev_budget_amount_usd" {
-  description = "Monthly budget amount for DEV (USD)" # Updated description
+  description = "Monthly budget amount for DEV (USD)"
   type        = number
   default     = 500 # Adjust if DEV budget is different
 }
