@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     unzip
     
 COPY package*.json ./
-RUN npm ci --omit=dev
+RUN npm ci
 
 COPY src ./src
 
