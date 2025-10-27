@@ -31,5 +31,3 @@ jobs:
 
       - name: Run Terraform Policy Check 
         run: make test-tf-policy ENV=dev
-
-      
