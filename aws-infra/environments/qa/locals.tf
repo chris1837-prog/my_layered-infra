@@ -3,12 +3,10 @@
 # --- Data Sources ---
 # Fetch the actual URL values from SSM using the paths defined in the artifacts JSON below
 data "aws_ssm_parameter" "external_registry_url_value" {
-  # Note: Uses local.ssm_parameters defined below
   name = local.ssm_parameters.parameter_paths.external_registry_url
 }
 
 data "aws_ssm_parameter" "internal_registry_url_value" {
-  # Note: Uses local.ssm_parameters defined below
   name = local.ssm_parameters.parameter_paths.internal_registry_url
 }
 
@@ -24,7 +22,7 @@ locals {
     environment       = local.bootstrap_outputs.environment
     aws_region        = local.bootstrap_outputs.aws_region
     eip_allocation_id = local.bootstrap_outputs.edge_eip_allocation_id
-    edge_private_ip   = var.edge_private_ip # Use variable defined in qa/terraform.tfvars
+    edge_private_ip   = var.edge_private_ip
 
     parameter_paths = {
       external_registry_url = local.ssm_parameters.parameter_paths.external_registry_url
@@ -33,7 +31,6 @@ locals {
       registry_user         = local.ssm_parameters.parameter_paths.registry_user
       registry_password     = local.ssm_parameters.parameter_paths.registry_password
     }
-    # Note: We reference the actual VALUES fetched by the data blocks in main.tf now
   }
 
   appdb_config = {
@@ -48,12 +45,12 @@ locals {
       postgres_password     = local.ssm_parameters.parameter_paths.postgres_password
       app_image_name        = local.ssm_parameters.parameter_paths.app_image_name
       app_image_tag         = local.ssm_parameters.parameter_paths.app_image_tag
-      registry_user         = local.ssm_parameters.parameter_paths.registry_user # Needed for login?
-      registry_password     = local.ssm_parameters.parameter_paths.registry_password # Needed for login?
+      registry_user         = local.ssm_parameters.parameter_paths.registry_user
+      registry_password     = local.ssm_parameters.parameter_paths.registry_password
     }
   }
 
-  # Define common tags here using variables from terraform.tfvars
+  # Define common tags
   common_tags = {
     Project     = var.project_name
     Environment = var.environment

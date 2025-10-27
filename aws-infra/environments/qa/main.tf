@@ -30,8 +30,8 @@ module "iam" {
   common_tags  = local.common_tags
 
   # Add required backend info
-  tf_state_bucket = "layered-infra-qa-tf-state-1e23675c" # The S3 bucket for QA state
-  lock_table      = "layered-infra-qa-tf-locks"      # The DynamoDB table for QA locks
+  tf_state_bucket = "layered-infra-qa-tf-state-1e23675c"
+  lock_table      = "layered-infra-qa-tf-locks"
 
   # Add any other required inputs for the IAM module
 }
@@ -40,7 +40,7 @@ module "iam" {
 module "network" {
   source = "../../modules/network"
 
-  vpc_cidr            = "10.0.0.0/16" # Or use a variable
+  vpc_cidr            = "10.0.0.0/16" #
   allowed_admin_cidrs = ["0.0.0.0/0"] # WARNING: Insecure, replace or use variable
 
   az_configurations = {
@@ -75,8 +75,7 @@ module "edge" {
   admin_ssh_keys = [tls_private_key.instance_key.public_key_openssh]
   enable_eip_association    = true
   eip_allocation_id       = local.edge_config.eip_allocation_id
-  iam_instance_profile_name = module.iam.ec2_instance_profile_name # Get profile name from IAM module output
-
+  iam_instance_profile_name = module.iam.ec2_instance_profile_name
   admin_user            = "ubuntu"
   domain_name           = local.edge_config.parameter_paths.edge_primary_url
   backend_servers = ["${module.appdb.appdb_private_ip}:3000"]
@@ -93,10 +92,9 @@ module "edge" {
   enable_domain_tls    = false
   enable_domain_acme   = false
 
-  # Note: Edge module likely doesn't need common_tags passed directly
 }
 
-# --- AppDB Module --- (Ensure this whole block is correct)
+# --- AppDB Module ---
 module "appdb" {
   source = "../../modules/appdb"
 
@@ -108,10 +106,10 @@ module "appdb" {
 
   instance_type               = "t3.micro"
   key_pair_name               = aws_key_pair.generated_key.key_name
-  appdb_instance_profile_name = module.iam.ec2_instance_profile_name # Get profile name from IAM module output
+  appdb_instance_profile_name = module.iam.ec2_instance_profile_name
   db_volume_id = module.db_volume.volume_id
 
-  # Cloud-init SSM Parameter Paths (from locals.tf)
+  # Cloud-init SSM Parameter Paths
   ssm_internal_registry_url_path = local.appdb_config.parameter_paths.internal_registry_url
   ssm_registry_user_path         = local.appdb_config.parameter_paths.registry_user
   ssm_registry_password_path     = local.appdb_config.parameter_paths.registry_password
@@ -121,7 +119,7 @@ module "appdb" {
   ssm_app_image_name_path        = local.appdb_config.parameter_paths.app_image_name
   ssm_app_image_tag_path         = local.appdb_config.parameter_paths.app_image_tag
 
-  docker_compose_content = file("../../../mvp-compose/docker-compose.yml") # Correct path relative to qa env
+  docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
 
   common_tags = local.common_tags
 }
@@ -130,7 +128,6 @@ module "appdb" {
 module "db_volume" {
   source = "../../modules/ebs_data_volume"
 
-  # Corrected argument names
   project = var.project_name
   env     = var.environment
   # Pass additional specific tags if needed via the 'tags' argument

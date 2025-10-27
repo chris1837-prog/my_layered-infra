@@ -78,3 +78,4 @@ coverage/
 *.swp
 *.swo
 .DS_Store
+/mvp-compose/pgdata/

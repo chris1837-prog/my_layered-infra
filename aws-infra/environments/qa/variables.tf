@@ -73,9 +73,6 @@ variable "ec2_key_pair_name" {
   # No default - must be set in terraform.tfvars
 }
 
-# Note: docker_compose_content variable was removed.
-# It's now read directly in main.tf using file().
-
 variable "edge_private_ip" {
   description = "Private IP address for the Edge instance"
   type        = string
