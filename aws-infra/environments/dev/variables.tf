@@ -1,5 +1,5 @@
 ########################################
-# Variables (QA Environment)
+# Variables (DEV Environment)
 ########################################
 
 # --- Core Project Vars ---
@@ -17,29 +17,29 @@ variable "environment" {
 
 # --- AWS Provider Vars ---
 variable "aws_region" {
-  description = "AWS region for QA"
+  description = "AWS region for DEV" # Updated description
   type        = string
   default     = "eu-central-1"
 }
 
 # --- Budget Vars ---
-variable "qa_budget_amount_usd" {
-  description = "Monthly budget amount for QA (USD)"
+variable "dev_budget_amount_usd" {
+  description = "Monthly budget amount for DEV (USD)" # Updated description
   type        = number
-  default     = 500
+  default     = 500 # Adjust if DEV budget is different
 }
 
-variable "qa_alert_emails" {
-  description = "Recipients for budget alerts (QA)"
+variable "dev_alert_emails" {
+  description = "Recipients for budget alerts (DEV)"
   type        = list(string)
-  default     = ["siebert.acer@googlemail.com"] # Replace with appropriate QA alert emails
+  default     = ["siebert.acer@googlemail.com"]
 }
 
 # --- Office Hours Scheduler Vars ---
 variable "function_name" {
   description = "Name of the Lambda function for office hours"
   type        = string
-  default     = "qa-office-hours-scheduler"
+  default     = "dev-office-hours-scheduler"
 }
 
 variable "start_schedule_expression" {
@@ -63,7 +63,7 @@ variable "tag_key" {
 variable "tag_value" {
   description = "EC2 tag value to match instances for scheduler"
   type        = string
-  default     = "qa" # Changed default to 'qa'
+  default     = "dev"
 }
 
 # --- EC2 Key Pair ---
@@ -73,14 +73,14 @@ variable "ec2_key_pair_name" {
   # No default - must be set in terraform.tfvars
 }
 
+# --- Networking Vars ---
 variable "edge_private_ip" {
   description = "Private IP address for the Edge instance"
   type        = string
-  # Value comes from terraform.tfvars
 }
 
 variable "allowed_admin_cidrs" {
   description = "List of CIDR blocks allowed SSH/Admin access to Edge"
   type        = list(string)
-  default     = ["0.0.0.0/0"] # WARNING: Insecure default
+  default     = ["0.0.0.0/0"] # WARNING: Insecure default - Override in terraform.tfvars
 }
