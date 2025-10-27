@@ -23,7 +23,6 @@ mvp-compose/docker-compose.yml
 | Node.js | 20.x |
 | Terraform | ~> 1.12.0 (1.12.2) |
 | AWS CLI | 2.31.18 |
-| Python | 3.12.x |
 | Prettier | 3.6.x |
 | Terraform VS Code Extension | latest |
 | AWS Toolkit VS Code Extension | latest |
@@ -51,7 +50,7 @@ The Devcontainer uses Debian Slim as the base image (from node:20-slim) to provi
 
 4. **VS Code will prompt you:**
 ```  
-> “Reopen in Container”  
+> “Reopen in Container”  or "Rebuild and Reopen in Container"
 ```
 Click **Yes** or **Reopen in Container**.
 
@@ -62,7 +61,19 @@ node -v
 terraform -v
 aws --version
 ```
+ **Check Prettier installation**
+
+Prettier is installed as a local development dependency and will be automatically available inside the Dev Container after running `npm ci`.
+
+To verify that Prettier is correctly installed and available, run the following command inside the Dev Container terminal:
+
+```bash
+npx prettier --version
+```
+Expected ouput (exemple): 3.6.2
+
 You now have a complete, reproducible local environment running inside Docker! 🐳
+
 
 ### 🧹 Cleanup (optional)
 

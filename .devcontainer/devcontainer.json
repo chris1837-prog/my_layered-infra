@@ -6,15 +6,11 @@
   "remoteUser": "node",
   "runServices": ["app"],
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {
-      "version": "20"
-    },
     "ghcr.io/devcontainers/features/aws-cli:1": {},
     "ghcr.io/devcontainers/features/terraform:1": {
       "version": "1.12.2"
     }
   },
-  "postCreateCommand": "npm install -g prettier",
   "customizations": {
     "vscode": {
       "extensions": [
