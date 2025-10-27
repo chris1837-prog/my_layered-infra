@@ -26,7 +26,7 @@ variable "aws_region" {
 variable "dev_budget_amount_usd" {
   description = "Monthly budget amount for DEV (USD)"
   type        = number
-  default     = 500 # Adjust if DEV budget is different
+  default     = 5
 }
 
 variable "dev_alert_emails" {

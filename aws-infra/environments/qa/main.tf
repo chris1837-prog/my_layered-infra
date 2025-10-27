@@ -16,7 +16,7 @@ resource "aws_key_pair" "generated_key" {
 
 resource "local_file" "ssh_private_key" {
   content         = tls_private_key.instance_key.private_key_pem
-  filename        = "${path.module}/${aws_key_pair.generated_key.key_name}.pem" # Saves the private key locally
+  filename        = "${path.module}/${aws_key_pair.generated_key.key_name}.pem"
   file_permission = "0600"
 }
 
@@ -41,7 +41,7 @@ module "network" {
   source = "../../modules/network"
 
   vpc_cidr            = "10.0.0.0/16" #
-  allowed_admin_cidrs = ["0.0.0.0/0"] # WARNING: Insecure, replace or use variable
+  allowed_admin_cidrs = var.allowed_admin_cidrs
 
   az_configurations = {
     (data.aws_availability_zones.available.names[0]) = {
