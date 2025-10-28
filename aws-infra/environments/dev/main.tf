@@ -31,8 +31,8 @@ module "iam" {
   common_tags  = local.common_tags
 
   # Add required backend info
-  tf_state_bucket = "layered-infra-dev-tf-state-c4b038b9"
-  lock_table      = "layered-infra-dev-tf-locks"
+  tf_state_bucket = local.bootstrap_outputs.tf_state_bucket_name
+  lock_table      = local.bootstrap_outputs.tf_state_lock_table
 }
 
 # --- Network Module ---
@@ -69,7 +69,7 @@ module "edge" {
   sg_edge_id       = module.network.sg_edge_id
 
   instance_type             = "t3.micro"
-  edge_private_ip           = local.edge_config.edge_private_ip
+  edge_private_ip           = local.bootstrap_outputs.edge_private_ip
   key_name                  = aws_key_pair.generated_key.key_name
   admin_ssh_keys            = [tls_private_key.instance_key.public_key_openssh]
   enable_eip_association    = true

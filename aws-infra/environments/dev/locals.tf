@@ -10,7 +10,7 @@ data "aws_ssm_parameter" "internal_registry_url_value" {
   name = local.ssm_parameters.parameter_paths.internal_registry_url
 }
 
-# --- Fetch registry user and password VALUES ---
+
 data "aws_ssm_parameter" "registry_user_value" {
   name = local.ssm_parameters.parameter_paths.registry_user
 }
@@ -31,7 +31,7 @@ locals {
     environment       = local.bootstrap_outputs.environment
     aws_region        = local.bootstrap_outputs.aws_region
     eip_allocation_id = local.bootstrap_outputs.edge_eip_allocation_id
-    edge_private_ip   = var.edge_private_ip
+    edge_private_ip   = local.bootstrap_outputs.edge_private_ip
 
     parameter_paths = {
       external_registry_url = local.ssm_parameters.parameter_paths.external_registry_url

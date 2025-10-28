@@ -1,0 +1,10 @@
+# aws-infra/environments/qa/terraform.tfvars
+
+project_name = "layered-infra"
+environment  = "dev"
+
+ec2_key_pair_name = "layered-infra-dev-instance-key"
+
+# --- Add other variables as needed by main.tf ---
+# Example (more secure admin access):
+edge_private_ip = "10.0.1.10"

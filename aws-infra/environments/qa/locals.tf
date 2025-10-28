@@ -1,7 +1,7 @@
 # aws-infra/environments/qa/locals.tf
 
 # --- Data Sources ---
-# Fetch values from SSM using the paths defined below
+# Fetch values from SSM
 data "aws_ssm_parameter" "external_registry_url_value" {
   name = local.ssm_parameters.parameter_paths.external_registry_url
 }
@@ -30,7 +30,7 @@ locals {
     environment       = local.bootstrap_outputs.environment
     aws_region        = local.bootstrap_outputs.aws_region
     eip_allocation_id = local.bootstrap_outputs.edge_eip_allocation_id
-    edge_private_ip   = var.edge_private_ip
+    edge_private_ip   = local.bootstrap_outputs.edge_private_ip
 
     parameter_paths = {
       external_registry_url = local.ssm_parameters.parameter_paths.external_registry_url

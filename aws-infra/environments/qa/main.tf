@@ -32,8 +32,8 @@ module "iam" {
   common_tags  = local.common_tags
 
   # Get backend info dynamically from the backend configuration
-  tf_state_bucket = terraform.backend.s3.bucket
-  lock_table      = terraform.backend.s3.dynamodb_table
+  tf_state_bucket = local.bootstrap_outputs.tf_state_bucket_name
+  lock_table      = local.bootstrap_outputs.tf_state_lock_table
 
   # Add any other required inputs for the IAM module
 }
@@ -73,7 +73,7 @@ module "edge" {
   public_subnet_id = module.network.public_subnet_ids[0]
   sg_edge_id       = module.network.sg_edge_id
   instance_type    = "t3.micro"
-  edge_private_ip  = var.edge_private_ip # From tfvars
+  edge_private_ip  = local.bootstrap_outputs.edge_private_ip
   key_name         = aws_key_pair.generated_key.key_name
   admin_ssh_keys   = [tls_private_key.instance_key.public_key_openssh]
 
