@@ -9,7 +9,10 @@ environment  = "qa"
 
 # --- Networking & Security ---
 edge_private_ip       = "10.0.1.10"
-allowed_admin_cidrs   = ["YOUR_PUBLIC_IP/32"]           # REQUIRED: Your public IP for SSH/VPN access. DO NOT use 0.0.0.0/0.
+
+# REQUIRED FOR SSH/VPN ACCESS: The default is insecure ("0.0.0.0/0").
+# UNCOMMENT AND REPLACE with your public IP in the format ["X.X.X.X/32"]
+# allowed_admin_cidrs   = ["YOUR_PUBLIC_IP/32"]
 
 # --- Instance Key Pair ---
 ec2_key_pair_name     = "layered-infra-qa-instance-key" 
