@@ -69,7 +69,7 @@ module "edge" {
   sg_edge_id       = module.network.sg_edge_id
 
   instance_type             = "t3.micro"
-  edge_private_ip           = local.bootstrap_outputs.edge_private_ip
+  edge_private_ip           = var.edge_private_ip
   key_name                  = aws_key_pair.generated_key.key_name
   admin_ssh_keys            = [tls_private_key.instance_key.public_key_openssh]
   enable_eip_association    = true
