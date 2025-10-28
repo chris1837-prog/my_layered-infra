@@ -50,3 +50,39 @@ runcmd:
 
   # Log success for debugging
   - echo "Cloud-init completed successfully" >> /var/log/cloud-init-output.log
+
+  # Install and config promtail
+  - |
+    set -euxo pipefail
+    echo "[RUNCMD] Setting up Promtail on App VM" >> /var/log/appdb-init.log
+
+    mkdir -p /etc/promtail
+
+    # Deploy Promtail config
+    cat > /etc/promtail/promtail-config-app.yml <<EOF
+    ${file("${path.module}/templates/promtail-config-appdb.yml")}
+    EOF
+
+    # Install Promtail binary
+    PROMTAIL_VERSION="2.9.4"
+    curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v${PROMTAIL_VERSION}/promtail-linux-amd64.zip
+    unzip /tmp/promtail.zip -d /usr/local/bin/
+    chmod +x /usr/local/bin/promtail
+
+    # Create systemd service
+    cat > /etc/systemd/system/promtail.service <<EOF
+    [Unit]
+    Description=Promtail Service (App VM)
+    After=network.target
+
+    [Service]
+    ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config-appdb.yml
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    EOF
+
+    systemctl daemon-reload
+    systemctl enable --now promtail
+    echo "[RUNCMD] Promtail setup complete" >> /var/log/appdb-init.log
