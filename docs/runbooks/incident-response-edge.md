@@ -81,10 +81,15 @@ aws ec2 create-snapshot --volume-id <VOLUME_ID> --description "Forensic snapshot
 - **CloudWatch Logs → Log Groups** → export relevant log streams to the incident S3 bucket.
 - **EC2 → Actions → Monitor and troubleshoot → Get system log** → download.
 
-### D. Redeploy from Terraform Cloud
-1. In GitHub, merge or trigger the Terraform Cloud workflow.
-2. Open **Terraform Cloud → Workspaces → Edge VM Infra → Start Run → Apply**.
-3. Verify new instance deployed and healthy.
+### D. Redeploy from Terraform Cloud (Directory-Based Environments)
+
+In GitHub, merge or trigger the Terraform Cloud workflow for the Edge VM.
+
+1. In Terraform Cloud, open the **Environments** tab.
+2. Locate the **Directory-Based Environment** for the Edge VM (for example, `edge-prod`).
+3. Trigger a **Run** to redeploy the instance from the latest configuration.
+4. Monitor the run until it reaches **Apply complete**.
+5. Verify in AWS EC2 → Instances that the new Edge VM is deployed and healthy.
 
 ---
 
