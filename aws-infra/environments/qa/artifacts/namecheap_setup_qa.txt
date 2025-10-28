@@ -10,9 +10,9 @@ Value: Use one of the four values below (include the trailing dot).
 TTL: Automatic / 1 hour
 
 REQUIRED VALUES:
-- ns-1367.awsdns-42.org.
-- ns-2030.awsdns-61.co.uk.
-- ns-413.awsdns-51.com.
-- ns-803.awsdns-36.net.
+- ns-1510.awsdns-60.org.
+- ns-1790.awsdns-31.co.uk.
+- ns-407.awsdns-50.com.
+- ns-936.awsdns-53.net.
 
 After saving these records, DNS delegation for *.qa.uselayered.com will be managed by AWS.

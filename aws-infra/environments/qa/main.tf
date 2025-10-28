@@ -1,4 +1,4 @@
-# layered-infra/aws-infra/environments/dev/main.tf
+# layered-infra/aws-infra/environments/qa/main.tf
 
 # Get available AZs in the region
 data "aws_availability_zones" "available" {
@@ -12,7 +12,7 @@ resource "tls_private_key" "instance_key" {
 }
 
 resource "aws_key_pair" "generated_key" {
-  key_name   = "${var.project_name}-${var.environment}-instance-key" # e.g., layered-infra-dev-instance-key
+  key_name   = "${var.project_name}-${var.environment}-instance-key" # e.g., layered-infra-qa-instance-key
   public_key = tls_private_key.instance_key.public_key_openssh
 }
 
@@ -23,6 +23,7 @@ resource "local_file" "ssh_private_key" {
 }
 
 # --- IAM Module ---
+# Call the IAM module to create roles needed by EC2 instances
 module "iam" {
   source = "../../modules/iam"
 
@@ -30,16 +31,18 @@ module "iam" {
   environment  = var.environment
   common_tags  = local.common_tags
 
-  # Add required backend info
+  # Get backend info dynamically from the backend configuration
   tf_state_bucket = local.bootstrap_outputs.tf_state_bucket_name
   lock_table      = local.bootstrap_outputs.tf_state_lock_table
+
+  # Add any other required inputs for the IAM module
 }
 
 # --- Network Module ---
 module "network" {
   source = "../../modules/network"
 
-  vpc_cidr            = "10.0.0.0/16" #
+  vpc_cidr            = "10.0.0.0/16" # Or use a variable
   allowed_admin_cidrs = var.allowed_admin_cidrs
 
   az_configurations = {
@@ -61,36 +64,41 @@ module "network" {
 module "edge" {
   source = "../../modules/edge"
 
-  project_name = local.edge_config.project_name
-  environment  = local.edge_config.environment
+  # Pass project/environment directly from variables
+  project_name = var.project_name
+  environment  = var.environment
 
+  # Network/Instance config
   vpc_id           = module.network.vpc_id
   public_subnet_id = module.network.public_subnet_ids[0]
   sg_edge_id       = module.network.sg_edge_id
+  instance_type    = "t3.micro"
+  edge_private_ip  = var.edge_private_ip
+  key_name         = aws_key_pair.generated_key.key_name
+  admin_ssh_keys   = [tls_private_key.instance_key.public_key_openssh]
 
-  instance_type             = "t3.micro"
-  edge_private_ip           = var.edge_private_ip
-  key_name                  = aws_key_pair.generated_key.key_name
-  admin_ssh_keys            = [tls_private_key.instance_key.public_key_openssh]
+  # EIP/IAM config
   enable_eip_association    = true
-  eip_allocation_id         = local.edge_config.eip_allocation_id
+  eip_allocation_id         = local.bootstrap_outputs.edge_eip_allocation_id
   iam_instance_profile_name = module.iam.ec2_instance_profile_name
-  admin_user                = "ubuntu"
-  domain_name               = local.edge_config.parameter_paths.edge_primary_url
-  backend_servers           = ["${module.appdb.appdb_private_ip}:3000"]
-  admin_cidrs               = var.allowed_admin_cidrs
-  wireguard_port            = 51820
-  registry_external_url     = "https://${data.aws_ssm_parameter.external_registry_url_value.value}"
-  registry_internal_url     = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
-  registry_user             = data.aws_ssm_parameter.registry_user_value.value
-  registry_password         = data.aws_ssm_parameter.registry_password_value.value
-  # acme_email              = var.acme_email
 
+  # Cloud-init arguments - Fetch VALUES using data blocks
+  admin_user            = "ubuntu"
+  domain_name           = data.aws_ssm_parameter.edge_primary_url.value
+  backend_servers       = ["${module.appdb.appdb_private_ip}:3000"]
+  admin_cidrs           = var.allowed_admin_cidrs
+  wireguard_port        = 51820
+  registry_external_url = "https://${data.aws_ssm_parameter.external_registry_url_value.value}"
+  registry_internal_url = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
+  registry_user         = data.aws_ssm_parameter.registry_user_value.value
+  registry_password     = data.aws_ssm_parameter.registry_password_value.value
+  # acme_email          = var.acme_email
+
+  # Feature flags
   enable_acme_external = false
   enable_wireguard     = true
   enable_domain_tls    = false
   enable_domain_acme   = false
-
 }
 
 # --- AppDB Module ---
