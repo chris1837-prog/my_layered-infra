@@ -1,0 +1,21 @@
+# aws-infra/environments/dev/terraform.tfvars.example
+
+# =======================================================
+# Core Environment Variables
+# =======================================================
+
+project_name = "layered-infra"
+environment  = "dev"
+
+# --- Networking & Security ---
+edge_private_ip       = "10.0.1.10"
+
+# REQUIRED FOR SSH/VPN ACCESS: The default is insecure ("0.0.0.0/0").
+# UNCOMMENT AND REPLACE with your public IP in the format ["X.X.X.X/32"]
+# allowed_admin_cidrs   = ["YOUR_PUBLIC_IP/32"]
+
+# --- Instance Key Pair ---
+ec2_key_pair_name     = "layered-infra-dev-instance-key" 
+
+# --- Application Configuration ---
+docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
