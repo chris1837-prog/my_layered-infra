@@ -1,3 +1,6 @@
+const client = require('prom-client');
+client.collectDefaultMetrics();
+
 const express = require('express');
 const logger = require('./logger');
 const { Pool } = require('pg');
@@ -73,6 +76,10 @@ if (process.env.JEST_WORKER_ID === undefined) {
 })().catch((e) => logger.error({ err: e }, 'Unexpected DB init error'));
 }
 
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
 app.get('/', (_req, res) => res.status(200).send('ok'));
 app.get('/healthz', (_req, res) => res.status(200).json({ ok: true }));
 app.get('/readyz', async (_req, res) => {
