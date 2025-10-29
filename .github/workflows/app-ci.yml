@@ -12,8 +12,6 @@ jobs:
   audit:
     name: Run NPM Audit
     runs-on: ubuntu-latest
-    env:
-      APP_DIR: $GITHUB_WORKSPACE/mvp-compose/app
 
     steps:
       - name: Checkout repository
@@ -25,7 +23,7 @@ jobs:
           node-version: "lts/*"
 
       - name: Run NPM Audit
-        working-directory: $APP_DIR
+        working-directory: ./mvp-compose/app
         run: |
           if [ -f package-lock.json ]; then
             npm audit --audit-level=high
