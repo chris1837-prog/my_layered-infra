@@ -94,6 +94,12 @@ write_files:
         tls internal
       }
 
+      loki.dev.uselayered.com {
+      # Observability: expose Loki through the edge
+      reverse_proxy http://loki:3100
+      tls internal
+      }
+
   - path: /etc/fail2ban/jail.local
     owner: root:root
     permissions: "0644"
