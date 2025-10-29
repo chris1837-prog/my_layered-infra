@@ -11,7 +11,6 @@ permissions:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION || 'eu-central-1' }}    # Fallback: Secret or eu-central-1
   TF_DIR: aws-infra/environments/dev
-  BOOTSTRAP: aws-infra/bootstrap/dev
 
 jobs:
   deploy:
@@ -26,10 +25,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Read OIDC role ARN dynamically from bootstrap outputs
-      - name: Read AWS OIDC role ARN
-        working-directory: ${{ env.BOOTSTRAP }}
-        run: echo "AWS_OIDC_ROLE_ARN=$(terraform output -raw github_actions_role_arn)" >> "$GITHUB_ENV"
+      # Set OIDC role ARN from secrets
+      - name: Set AWS OIDC role ARN from secrets
+        run: echo "AWS_OIDC_ROLE_ARN=${{ secrets.AWS_OIDC_ROLE_ARN_DEV }}" >> "$GITHUB_ENV"
 
       # Authenticate to AWS via OIDC (no long-lived keys)
       - name: Configure AWS credentials via OIDC
@@ -61,10 +59,9 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: terraform apply -auto-approve tfplan
 
-      # Read app domain from TF outputs
-      - name: Read app domain from TF outputs
-        working-directory: ${{ env.TF_DIR }}
-        run: echo "APP_DOMAIN=$(terraform output -raw app_domain)" >> "$GITHUB_ENV"
+      # Set app domain from secrets
+      - name: Set app domain from secrets
+        run: echo "APP_DOMAIN=${{ secrets.APP_DOMAIN_DEV }}" >> "$GITHUB_ENV"
 
       # Give ALB/DNS/app a short window to become ready (≤ ~3 min)
       - name: Wait until app is reachable (simple retry)
