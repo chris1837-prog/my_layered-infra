@@ -101,3 +101,21 @@ resource "aws_ssm_parameter" "postgres_user" {
 
   tags = local.merged_tags
 }
+
+resource "aws_ssm_parameter" "grafana_url_qa" {
+  name  = "/layered-infra/qa/grafana_url"
+  type  = "String"
+  value = "https://grafana.qa.uselayered.com"
+}
+
+resource "aws_ssm_parameter" "prometheus_url_qa" {
+  name  = "/layered-infra/qa/prometheus_url"
+  type  = "String"
+  value = "https://prometheus.qa.uselayered.com"
+}
+
+resource "aws_ssm_parameter" "loki_url_qa" {
+  name  = "/layered-infra/qa/loki_url"
+  type  = "String"
+  value = "https://loki.qa.uselayered.com"
+}
