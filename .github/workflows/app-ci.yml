@@ -2,14 +2,18 @@ name: Security Related Tasks
 
 on:
   pull_request:
-    branches: ["*"]
+    branches:
+      - development
   push:
-    branches: ["*"]
+    branches:
+      - "**"
 
 jobs:
   audit:
     name: Run NPM Audit
     runs-on: ubuntu-latest
+    env:
+      APP_DIR: $GITHUB_WORKSPACE/mvp-compose/app
 
     steps:
       - name: Checkout repository
@@ -20,25 +24,13 @@ jobs:
         with:
           node-version: "lts/*"
 
-      # this is from L2 task 
       - name: Run NPM Audit
+        working-directory: $APP_DIR
         run: |
           if [ -f package-lock.json ]; then
             npm audit --audit-level=high
           else
-            echo "Warning: package-lock.json not found — skipping audit"
-            exit 0
+            echo "Warning: package-lock.json not found in $APP_DIR — skipping audit"
+            exit 1
           fi
 
-      # This is really not from any task but I guess it will be consistent with checks in local branch
-      # install and run TruffleHog
-      - name: Install TruffleHog
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | \
-          sh -s -- -b /usr/local/bin
-
-      - name: Run TruffleHog scan
-        run: |
-          trufflehog filesystem . 
-      # here must be code to parse output and if conditions are not met reject.
-      # What to check? verified obviously, how about unverified?
