@@ -13,10 +13,5 @@ COPY . .
 # Expose the application port
 EXPOSE 3000
 
-# Healthcheck: ensures the container is marked "healthy" once the app is reachable on port 3000.
-# This allows the CI smoke test to wait until the app is ready before running tests.
-HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
-  CMD wget -qO- http://localhost:3000 || exit 1
-
 # The command to start the app
 CMD [ "node", "src/server.js" ]
