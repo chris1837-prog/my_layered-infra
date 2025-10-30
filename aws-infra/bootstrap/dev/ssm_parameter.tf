@@ -102,7 +102,26 @@ resource "aws_ssm_parameter" "postgres_user" {
   tags = local.merged_tags
 }
 
-## Add Kibana URL Parameter to store FQDN as SSM parameter
+resource "aws_ssm_parameter" "grafana_url" {
+  name  = "/layered-infra/${var.environment}/grafana_url"
+  type  = "String"
+  value = "https://grafana.${var.environment}.${var.domain_name}"
+  tags  = local.merged_tags
+}
+
+resource "aws_ssm_parameter" "prometheus_url" {
+  name  = "/layered-infra/${var.environment}/prometheus_url"
+  type  = "String"
+  value = "https://prometheus.${var.environment}.${var.domain_name}"
+  tags  = local.merged_tags
+}
+
+resource "aws_ssm_parameter" "loki_url" {
+  name  = "/layered-infra/${var.environment}/loki_url"
+  type  = "String"
+  value = "https://loki.${var.environment}.${var.domain_name}"
+  tags  = local.merged_tags
+}
 
 resource "aws_ssm_parameter" "kibana_url" {
   name        = "/${var.project_name}/${var.environment}/kibana_url"

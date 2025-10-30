@@ -33,6 +33,37 @@ resource "aws_route53_record" "edge_primary" {
 }
 
 ##################################
+# Observability public records (DEV)
+##################################
+
+# grafana.dev.uselayered.com -> Edge-EIP
+resource "aws_route53_record" "grafana_dev_a" {
+  zone_id = aws_route53_zone.environment.zone_id
+  name    = "grafana.${aws_route53_zone.environment.name}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.edge.public_ip]
+}
+
+# prometheus.dev.uselayered.com -> Edge-EIP
+resource "aws_route53_record" "prometheus_dev_a" {
+  zone_id = aws_route53_zone.environment.zone_id
+  name    = "prometheus.${aws_route53_zone.environment.name}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.edge.public_ip]
+}
+
+# loki.dev.uselayered.com -> Edge-EIP
+resource "aws_route53_record" "loki_dev_a" {
+  zone_id = aws_route53_zone.environment.zone_id
+  name    = "loki.${aws_route53_zone.environment.name}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.edge.public_ip]
+}
+
+##################################
 # PUBLIC record for GitHub Actions to push images
 ##################################
 
