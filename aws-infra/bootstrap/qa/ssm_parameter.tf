@@ -101,3 +101,14 @@ resource "aws_ssm_parameter" "postgres_user" {
 
   tags = local.merged_tags
 }
+
+## Add Kibana URL Parameter to store FQDN as SSM parameter
+
+resource "aws_ssm_parameter" "kibana_url" {
+  name        = "/${var.project_name}/${var.environment}/kibana_url"
+  type        = "String"
+  value       = aws_route53_record.kibana.fqdn # uses the actual FQDN from DNS record
+  description = "URL for Kibana UI"
+
+  tags = local.merged_tags
+}
