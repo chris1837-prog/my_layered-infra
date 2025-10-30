@@ -134,6 +134,10 @@ module "appdb" {
   docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
 
   common_tags = local.common_tags
+
+  # Observability
+  promtail_config_content = file("../../modules/appdb/templates/promtail-config-app.yml")
+  PROMTAIL_VERSION        = var.PROMTAIL_VERSION
 }
 
 # --- EBS Volume for AppDB ---
