@@ -119,3 +119,12 @@ resource "aws_ssm_parameter" "loki_url_qa" {
   type  = "String"
   value = "https://loki.qa.uselayered.com"
 }
+
+resource "aws_ssm_parameter" "kibana_url" {
+  name        = "/${var.project_name}/${var.environment}/kibana_url"
+  type        = "String"
+  value       = aws_route53_record.kibana.fqdn # uses the actual FQDN from DNS record
+  description = "URL for Kibana UI"
+
+  tags = local.merged_tags
+}

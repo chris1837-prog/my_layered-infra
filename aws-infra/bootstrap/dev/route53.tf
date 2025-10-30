@@ -87,4 +87,14 @@ resource "aws_route53_record" "registry_private" {
   records = [var.edge_private_ip]
 }
 
+##################################
+# PUBLIC record for Kibana UI (accessed via Caddy on Edge VM)
+##################################
 
+resource "aws_route53_record" "kibana" {
+  zone_id = aws_route53_zone.environment.zone_id
+  name    = "kibana.${aws_route53_zone.environment.name}" # kibana.dev.uselayered.com
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.edge.public_ip]
+}

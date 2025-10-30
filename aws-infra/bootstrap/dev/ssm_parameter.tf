@@ -122,3 +122,12 @@ resource "aws_ssm_parameter" "loki_url" {
   value = "https://loki.${var.environment}.${var.domain_name}"
   tags  = local.merged_tags
 }
+
+resource "aws_ssm_parameter" "kibana_url" {
+  name        = "/${var.project_name}/${var.environment}/kibana_url"
+  type        = "String"
+  value       = aws_route53_record.kibana.fqdn # uses the actual FQDN from DNS record
+  description = "URL for Kibana UI"
+
+  tags = local.merged_tags
+}
