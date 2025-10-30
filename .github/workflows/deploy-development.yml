@@ -59,9 +59,10 @@ jobs:
         working-directory: ${{ env.TF_DIR }}
         run: terraform apply -auto-approve tfplan
 
-      # Set app domain from secrets
-      - name: Set app domain from secrets
-        run: echo "APP_DOMAIN=${{ secrets.APP_DOMAIN_DEV }}" >> "$GITHUB_ENV"
+      # Read app domain from TF outputs
+      - name: Read app domain from TF outputs
+        working-directory: ${{ env.TF_DIR }}
+        run: echo "APP_DOMAIN=$(terraform output -raw app_domain)" >> "$GITHUB_ENV"
 
       # Give ALB/DNS/app a short window to become ready (≤ ~3 min)
       - name: Wait until app is reachable (simple retry)
