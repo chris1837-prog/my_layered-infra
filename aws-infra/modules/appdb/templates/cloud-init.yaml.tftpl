@@ -60,11 +60,11 @@ runcmd:
 
     # Deploy Promtail config
     cat > /etc/promtail/promtail-config-app.yml <<EOF
-    ${file("${path.module}/templates/promtail-config-appdb.yml")}
+    ${promtail_config_content}
     EOF
 
     # Install Promtail binary
-    PROMTAIL_VERSION="2.9.4"
+    PROMTAIL_VERSION="${PROMTAIL_VERSION}"
     curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v${PROMTAIL_VERSION}/promtail-linux-amd64.zip
     unzip /tmp/promtail.zip -d /usr/local/bin/
     chmod +x /usr/local/bin/promtail
