@@ -283,19 +283,19 @@ write_files:
 
       # Write docker-compose observability file (Terraform template injects content)
       cat > /opt/observability/docker-compose.observability.yml <<EOF
-      ${file("${path.module}/templates/docker-compose.observability.yml")}
+      ${docker_compose_observability_content}
       EOF
 
       # Write Promtail config file
       cat > /etc/promtail/promtail-config.yml <<EOF
-      ${file("${path.module}/templates/promtail-config-edge.yml")}
+      ${promtail_config_edge_content}
       EOF
 
       # Launch observability containers
       docker compose -f /opt/observability/docker-compose.observability.yml up -d
 
       # Install Promtail binary
-      PROMTAIL_VERSION="2.9.4"
+      PROMTAIL_VERSION="${PROMTAIL_VERSION}"
       curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v${PROMTAIL_VERSION}/promtail-linux-amd64.zip
       unzip /tmp/promtail.zip -d /usr/local/bin/
       chmod +x /usr/local/bin/promtail

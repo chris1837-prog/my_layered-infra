@@ -170,3 +170,19 @@ variable "acme_email" {
     error_message = "acme_email must be non-empty when enable_acme_external is true."
   }
 }
+
+variable "docker_compose_observability_content" {
+  description = "Rendered content of docker-compose.observability.yml, injected into the edge VM for launching Prometheus, Loki, and Grafana."
+  type = string
+}
+
+variable "promtail_config_edge_content" {
+  description = "Rendered content of promtail-config-edge.yml, defining log scraping for system and Caddy logs on the edge VM."
+  type = string
+}
+
+variable "PROMTAIL_VERSION" {
+  description = "Promtail binary version to install on the edge VM (e.g., 2.9.4)."
+  type = string
+  default = "2.9.4"
+}
