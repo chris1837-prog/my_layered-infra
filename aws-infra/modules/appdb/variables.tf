@@ -178,11 +178,11 @@ variable "db_volume_id" {
 
 variable "PROMTAIL_VERSION" {
   description = "Version of Promtail to install"
-  type = string
-  default = "2.9.4"
+  type        = string
+  default     = "2.9.4"
 }
 
 variable "promtail_config_content" {
   description = "Content of the Promtail configuration file"
-  type = string
+  type        = string
 }
