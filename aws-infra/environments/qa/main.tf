@@ -99,6 +99,11 @@ module "edge" {
   enable_wireguard     = true
   enable_domain_tls    = false
   enable_domain_acme   = false
+
+  # Observability
+  docker_compose_observability_content = file("../../modules/edge/templates/docker-compose.observability.yml")
+  promtail_config_edge_content         = file("../../modules/edge/templates/promtail-config-edge.yml")
+  PROMTAIL_VERSION                     = var.PROMTAIL_VERSION
 }
 
 # --- AppDB Module ---

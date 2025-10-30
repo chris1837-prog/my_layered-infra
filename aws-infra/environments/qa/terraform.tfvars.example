@@ -19,3 +19,6 @@ ec2_key_pair_name     = "layered-infra-qa-instance-key"
 
 # --- Application Configuration ---
 docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
+
+# --- Observability ---
+PROMTAIL_VERSION = "2.9.4"
