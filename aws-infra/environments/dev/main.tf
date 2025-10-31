@@ -91,6 +91,11 @@ module "edge" {
   enable_domain_tls    = false
   enable_domain_acme   = false
 
+  # Observability
+  docker_compose_observability_content = file("../../modules/edge/templates/docker-compose.observability.yml")
+  promtail_config_edge_content         = file("../../modules/edge/templates/promtail-config-edge.yml")
+  PROMTAIL_VERSION                     = var.PROMTAIL_VERSION
+
 }
 
 # --- AppDB Module ---
@@ -121,6 +126,10 @@ module "appdb" {
   docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
 
   common_tags = local.common_tags
+
+  # Observability
+  promtail_config_content = file("../../modules/appdb/templates/promtail-config-app.yml")
+  PROMTAIL_VERSION        = var.PROMTAIL_VERSION
 }
 
 # --- EBS Volume for AppDB ---
