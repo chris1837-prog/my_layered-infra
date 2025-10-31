@@ -59,9 +59,37 @@ resource "aws_iam_policy" "github_actions_policy" {
         Action    = "*"
         Resource  = "*"
         Condition = local.tag_conditions
+      },
+
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",    # Read objects from the bucket
+          "s3:PutObject",    # Write objects to the bucket
+          "s3:DeleteObject", # Delete objects in the bucket
+          "s3:ListBucket"    # List contents of the bucket
+        ]
+        Resource = [
+          module.remote_backend.tf_state_bucket_arn, 
+          "${module.remote_backend.tf_state_bucket_arn}/*" 
+        ]
+      },
+
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",    # Read lock items
+          "dynamodb:PutItem",    # Create lock items
+          "dynamodb:DeleteItem", # Delete lock items
+          "dynamodb:UpdateItem"  # Update lock items
+        ]
+        Resource = [
+          module.remote_backend.tf_state_lock_table_arn 
+        ]
       }
     ]
   })
+
   tags = merge(
     { Name = "${var.project_name}-${var.environment}-terraform-github-actions-policy" },
     local.merged_tags
