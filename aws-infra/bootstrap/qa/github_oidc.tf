@@ -54,6 +54,32 @@ resource "aws_iam_policy" "github_actions_policy" {
         Action    = "*"
         Resource  = "*"
         Condition = local.tag_conditions
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket",
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject"
+        ]
+        Resource = [
+          module.remote_backend.tf_state_bucket_arn,
+          "${module.remote_backend.tf_state_bucket_arn}/*"
+        ]
+      },
+
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:UpdateItem"
+        ]
+        Resource = [
+          module.remote_backend.tf_state_lock_table_arn
+        ]
       }
     ]
   })
