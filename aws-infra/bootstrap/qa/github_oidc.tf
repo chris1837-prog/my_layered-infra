@@ -46,7 +46,7 @@ resource "aws_iam_policy" "github_actions_policy" {
   description = "Permissions for GitHub Actions to execute Terraform commands"
   path        = "/"
 
-policy = jsonencode({
+  policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
@@ -64,7 +64,7 @@ policy = jsonencode({
           "s3:DeleteObject"
         ]
         Resource = [
-          module.remote_backend.tf_state_bucket_arn, 
+          module.remote_backend.tf_state_bucket_arn,
           "${module.remote_backend.tf_state_bucket_arn}/*"
         ]
       },

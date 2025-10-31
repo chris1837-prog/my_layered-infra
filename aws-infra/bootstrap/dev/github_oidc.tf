@@ -70,8 +70,8 @@ resource "aws_iam_policy" "github_actions_policy" {
           "s3:ListBucket"    # List contents of the bucket
         ]
         Resource = [
-          module.remote_backend.tf_state_bucket_arn, 
-          "${module.remote_backend.tf_state_bucket_arn}/*" 
+          module.remote_backend.tf_state_bucket_arn,
+          "${module.remote_backend.tf_state_bucket_arn}/*"
         ]
       },
 
@@ -84,7 +84,7 @@ resource "aws_iam_policy" "github_actions_policy" {
           "dynamodb:UpdateItem"  # Update lock items
         ]
         Resource = [
-          module.remote_backend.tf_state_lock_table_arn 
+          module.remote_backend.tf_state_lock_table_arn
         ]
       }
     ]
