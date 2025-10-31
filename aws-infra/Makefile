@@ -5,7 +5,7 @@ ENV ?= dev
 
 # Directories
 TF_DIR = environments/$(ENV)
-POLICY_DIR ?= aws-infra/policies
+POLICY_DIR ?= policies
 
 # --- HELP SECTION ---
 help: ## Show available Makefile targets
