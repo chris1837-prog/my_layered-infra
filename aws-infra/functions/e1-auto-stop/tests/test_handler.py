@@ -21,7 +21,7 @@ def fake_instance(instance_id, launch_time):
     }
 
 
-@patch("functions.e1AutoStop.stop_instances.boto3.client")
+@patch("functions.e1-auto-stop.stop_instances.boto3.client")
 def test_lambda_handler_stops_old_instances(mock_boto_client):
     now = datetime.datetime.now(datetime.timezone.utc)
     old_instance = fake_instance("i-old", now - datetime.timedelta(minutes=6))
@@ -41,7 +41,7 @@ def test_lambda_handler_stops_old_instances(mock_boto_client):
     )
 
 
-@patch("functions.e1AutoStop.stop_instances.boto3.client")
+@patch("functions.e1-auto-stop.stop_instances.boto3.client")
 def test_lambda_handler_no_stop_if_none_exceed(mock_boto_client):
     now = datetime.datetime.now(datetime.timezone.utc)
     instances = [
@@ -60,7 +60,7 @@ def test_lambda_handler_no_stop_if_none_exceed(mock_boto_client):
     ec2_mock.stop_instances.assert_not_called()
 
 
-@patch("functions.e1AutoStop.stop_instances.boto3.client")
+@patch("functions.e1-auto-stop.stop_instances.boto3.client")
 def test_lambda_handler_real_stop_success(mock_boto_client):
     now = datetime.datetime.now(datetime.timezone.utc)
     instance = fake_instance("i-real", now - datetime.timedelta(minutes=10))
@@ -82,7 +82,7 @@ def test_lambda_handler_real_stop_success(mock_boto_client):
     )
 
 
-@patch("functions.e1AutoStop.stop_instances.boto3.client")
+@patch("functions.e1-auto-stop.stop_instances.boto3.client")
 def test_lambda_handler_exception_handling(mock_boto_client):
     now = datetime.datetime.now(datetime.timezone.utc)
     instance = fake_instance("i-exception", now - datetime.timedelta(minutes=10))

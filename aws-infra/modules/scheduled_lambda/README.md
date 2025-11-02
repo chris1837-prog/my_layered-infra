@@ -76,7 +76,7 @@ module "auto_stop_lambda" {
     THRESHOLD_MINUTES = "5"
     DRY_RUN         = "true"
   }
-  policy_json = file("${path.module}/../../functions/e1AutoStop/policy.json")
+  policy_json = file("${path.module}/../../functions/e1-auto-stop/policy.json")
 
   tags = {
     Environment = "Dev"

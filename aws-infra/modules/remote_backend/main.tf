@@ -4,7 +4,7 @@ resource "random_id" "suffix" {
 
 # S3 Bucket for Terraform State - With random suffix for uniqueness
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "${var.project_name}-${var.environment}-tf-state-${random_id.suffix.hex}"
+  bucket = "layered-infra-qa-tf-state-1e23675c" ### Is changed to a fixed state to avoid drift with others
 
   tags = merge(local.merged_tags, {
     Name = "Terraform State - ${var.environment}"

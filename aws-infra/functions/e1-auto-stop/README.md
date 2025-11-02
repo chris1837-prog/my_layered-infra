@@ -79,7 +79,7 @@ module "auto_stop" {
   source        = "../../modules/scheduled_lambda"
   name          = "qa-auto-stop"
   schedule      = "rate(5 minutes)"
-  source_dir    = "../../functions/e1AutoStop"
+  source_dir    = "../../functions/e1-auto-stop"
 
   environment_variables = {
     ENV_TAG_KEY      = "Environment"
@@ -88,7 +88,7 @@ module "auto_stop" {
     DRY_RUN          = "true"
   }
 
-  policy_json = file("../../functions/e1AutoStop/policy.json")
+  policy_json = file("../../functions/e1-auto-stop/policy.json")
   enabled     = true
 }
 ```
