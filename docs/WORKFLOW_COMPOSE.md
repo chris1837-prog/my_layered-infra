@@ -112,7 +112,7 @@ aws-infra/functions/e1AutoStop/
 ### 🧪 Testen
 
 ```bash
-pytest functions/e1AutoStop/tests/
+pytest functions/e1-auto-stop/tests/
 ```
 
 - Vollständige Abdeckung:

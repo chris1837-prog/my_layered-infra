@@ -142,7 +142,7 @@ TOTAL                                       81      0     10      0   100%
 ### Directory Layout
 ```bash
 functions/
-└── e1AutoStop/
+└── e1-auto-stop/
     ├── stop_instances.py
     ├── test_handler.py
     ├── requirements.txt

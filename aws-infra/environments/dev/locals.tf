@@ -60,6 +60,9 @@ locals {
       postgres_password = local.ssm_parameters.parameter_paths.postgres_password
       app_image_name    = local.ssm_parameters.parameter_paths.app_image_name
       app_image_tag     = local.ssm_parameters.parameter_paths.app_image_tag
+
+      registry_user     = local.ssm_parameters.parameter_paths.registry_user
+      registry_password = local.ssm_parameters.parameter_paths.registry_password
     }
   }
 
