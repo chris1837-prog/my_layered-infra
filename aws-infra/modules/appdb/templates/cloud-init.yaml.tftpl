@@ -76,7 +76,7 @@ runcmd:
     After=network.target
 
     [Service]
-    ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config-appdb.yml
+    ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config-app.yml
     Restart=always
 
     [Install]
