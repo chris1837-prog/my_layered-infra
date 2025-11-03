@@ -115,3 +115,9 @@ variable "wireguard_port" {
   type        = number
   default     = 51820
 }
+
+variable "loki_port" {
+  description = "The standard port for Loki"
+  type        = number
+  default     = 3100
+}
