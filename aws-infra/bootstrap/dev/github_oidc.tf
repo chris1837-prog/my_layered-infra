@@ -64,6 +64,7 @@ resource "aws_iam_policy" "github_actions_policy" {
       {
         Effect = "Allow"
         Action = [
+          "s3:HeadObject",
           "s3:GetObject",    # Read objects from the bucket
           "s3:PutObject",    # Write objects to the bucket
           "s3:DeleteObject", # Delete objects in the bucket
