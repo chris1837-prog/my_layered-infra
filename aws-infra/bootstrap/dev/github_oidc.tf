@@ -58,7 +58,6 @@ resource "aws_iam_policy" "github_actions_policy" {
         Effect    = "Allow"
         Action    = "*"
         Resource  = "*"
-        Condition = local.tag_conditions
       },
 
       {
