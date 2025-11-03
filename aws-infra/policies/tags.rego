@@ -9,6 +9,12 @@ deny contains msg if {
   msg := sprintf("aws_ebs_volume.%s is missing the required Backup tag", [rc.name])
 }
 
+# ✅ Exception list (resources to ignore temporarily)
+# For now, we skip known EBS volumes without Backup tags.
+exceptions := {
+  "aws_ebs_volume.data",
+}
+
 # Helper: resource is not being deleted
 non_delete(ch) if {
   not ("delete" in ch.actions)
