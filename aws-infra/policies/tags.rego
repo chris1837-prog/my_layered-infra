@@ -1,4 +1,4 @@
-package terraform.tags
+package main
 
 # Rule: every aws_ebs_volume must have a non-empty Backup tag
 deny contains msg if {
