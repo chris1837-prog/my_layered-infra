@@ -20,3 +20,5 @@ crash.log
 **/*.backup
 **/*.bin
 **/*.tfplan
+**/tfplan.json
+**/tfplan.binary

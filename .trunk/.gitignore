@@ -7,6 +7,3 @@ plugins
 user_trunk.yaml
 user.yaml
 tmp
-# Ignore all Terraform plan files
-**/tfplan.json
-**/tfplan.binary
