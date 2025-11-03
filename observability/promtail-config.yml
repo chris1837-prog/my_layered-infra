@@ -45,24 +45,3 @@ scrape_configs:
       - timestamp:
           source: timestamp
           format: RFC3339
-
-    pipeline_stages:
-      - docker: {}
-
-      - json:
-          source: log
-          expressions:
-            msg: msg
-            log_level: log_level
-            service_name: service_name
-            timestamp: timestamp
-            port: port
-            err: err     
-
-      - labels:
-          service_name:
-          log_level:
-
-      - timestamp:
-          source: timestamp
-          format: RFC3339
