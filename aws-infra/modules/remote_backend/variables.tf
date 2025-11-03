@@ -14,3 +14,9 @@ variable "common_tags" {
   default     = {}
 }
 
+variable "bucket_name" {
+  description = "Optional fixed S3 bucket name for the Terraform state"
+  type        = string
+  default     = null
+}
+
