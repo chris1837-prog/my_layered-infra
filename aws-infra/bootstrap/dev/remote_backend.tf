@@ -3,5 +3,5 @@ module "remote_backend" {
   project_name = var.project_name
   environment  = var.environment
   common_tags  = var.common_tags
-  bucket_name = "layered-infra-dev-tf-state-c4b038b9"
+  bucket_name  = "layered-infra-dev-tf-state-c4b038b9"
 }
