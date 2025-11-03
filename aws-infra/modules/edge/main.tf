@@ -57,6 +57,7 @@ data "cloudinit_config" "edge" {
       docker_compose_observability_content = var.docker_compose_observability_content,
       promtail_config_edge_content         = var.promtail_config_edge_content,
       PROMTAIL_VERSION                     = var.PROMTAIL_VERSION,
+      edge_private_ip                      = var.edge_private_ip,
     })
   }
 }
