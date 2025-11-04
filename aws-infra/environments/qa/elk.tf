@@ -35,7 +35,7 @@ resource "aws_security_group" "elk_vm_sg" {
   vpc_id      = module.network.vpc_id
 
   ingress {
-    description     = "Filebeat/Logstash from Edge and App"
+    description     = "Filebeat/Logstash access from Edge and App"
     from_port       = 5044
     to_port         = 5044
     protocol        = "tcp"
@@ -43,8 +43,16 @@ resource "aws_security_group" "elk_vm_sg" {
   }
 
   ingress {
-    description     = "Kibana & Elasticsearch from Edge only"
+    description     = "Kibana access from Edge only"
     from_port       = 5601
+    to_port         = 5601
+    protocol        = "tcp"
+    security_groups = [module.network.sg_edge_id]
+  }
+
+  ingress {
+    description     = "Elasticsearch access from Edge only"
+    from_port       = 9200
     to_port         = 9200
     protocol        = "tcp"
     security_groups = [module.network.sg_edge_id]
