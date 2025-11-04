@@ -1,4 +1,3 @@
-
 # ========================
 # Makefile for Local Development (Squad J)
 # ========================
@@ -48,6 +47,7 @@ test:
 ## Open a PostgreSQL shell in the database container
 psql:
 	$(COMPOSE) exec $(SERVICE_DB) psql -U $(DB_USER) -d $(DB_NAME)
+
 
 
 
