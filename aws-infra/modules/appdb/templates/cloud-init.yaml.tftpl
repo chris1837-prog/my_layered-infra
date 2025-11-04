@@ -60,7 +60,9 @@ runcmd:
 
     # Deploy Promtail config
     cat > /etc/promtail/promtail-config-app.yml <<EOF
-    ${promtail_config_content}
+    ${templatefile("${path.module}/templates/promtail-config-app.yml.tftpl", {
+    edge_private_ip = edge_private_ip
+    })}
     EOF
 
     # Install Promtail binary
