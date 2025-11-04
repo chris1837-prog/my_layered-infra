@@ -72,6 +72,16 @@ resource "aws_vpc_security_group_ingress_rule" "edge_ssh" {
   cidr_ipv4         = each.value
 }
 
+# Allow Promtail on App VM to send logs to Loki on Edge VM
+resource "aws_vpc_security_group_ingress_rule" "edge_allow_loki_ingress_from_app" {
+  security_group_id            = aws_security_group.edge.id
+  referenced_security_group_id = aws_security_group.app.id
+  from_port                    = var.loki_port
+  to_port                      = var.loki_port
+  ip_protocol                  = "tcp"
+  description                  = "Allow Promtail on App VM to send logs to Loki on Edge VM"
+}
+
 # =============================================================================
 # INGRESS RULES for App SG
 # =============================================================================

@@ -1,0 +1,56 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+clients:
+  - url: http://${edge_private_ip}:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_id']
+        target_label: 'container_id'
+
+      - source_labels: ['__meta_docker_container_name']
+        regex: '/(.*)'
+        target_label: 'container'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'service'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: 'compose_project'
+
+    pipeline_stages:
+      - docker: {}
+
+      - json:
+          source: log
+          expressions:
+            msg: msg
+            log_level: log_level
+            service_name: service_name
+            timestamp: timestamp
+            port: port
+            err: err     
+
+      - labels:
+          service_name:
+          log_level:
+
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+
+  - job_name: host-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: host-logs
+          instance: edge-vm
+          __path__: /var/log/syslog, /var/log/caddy/access.log

@@ -84,3 +84,8 @@ variable "allowed_admin_cidrs" {
   type        = list(string)
   default     = ["0.0.0.0/0"] # WARNING: Insecure default - Override in terraform.tfvars
 }
+
+variable "PROMTAIL_VERSION" {
+  description = "The version of Promtail to install."
+  type        = string
+}

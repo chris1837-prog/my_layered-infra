@@ -94,6 +94,12 @@ write_files:
         tls internal
       }
 
+      loki.dev.uselayered.com {
+      # Observability: expose Loki through the edge
+      reverse_proxy http://loki:3100
+      tls internal
+      }
+
   - path: /etc/fail2ban/jail.local
     owner: root:root
     permissions: "0644"
@@ -266,6 +272,53 @@ write_files:
       echo "[INIT] Enabling fail2ban..."
       systemctl enable --now fail2ban
       fail2ban-client status sshd || true
+
+      # -----------------------------
+      # Observability stack setup
+      # -----------------------------
+      echo "[INIT] Setting up observability stack..." >> /var/log/edge-init.log
+
+      # Create directories
+      mkdir -p /opt/observability /etc/promtail
+
+      # Write docker-compose observability file (Terraform template injects content)
+      cat > /opt/observability/docker-compose.observability.yml <<EOF
+      ${templatefile("${path.module}/templates/docker-compose.observability.yml.tftpl", {})}
+      EOF
+
+      # Write Promtail config file
+      cat > /etc/promtail/promtail-config.yml <<EOF
+      ${templatefile("${path.module}/templates/promtail-config-edge.yml.tftpl", {})}
+      EOF
+
+      # Launch observability containers
+      docker compose -f /opt/observability/docker-compose.observability.yml up -d
+
+      # Install Promtail binary
+      PROMTAIL_VERSION="${PROMTAIL_VERSION}"
+      curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v${PROMTAIL_VERSION}/promtail-linux-amd64.zip
+      unzip /tmp/promtail.zip -d /usr/local/bin/
+      chmod +x /usr/local/bin/promtail
+
+      # Create Promtail systemd service
+      cat > /etc/systemd/system/promtail.service <<EOF
+      [Unit]
+      Description=Promtail Service
+      After=network.target
+
+      [Service]
+      ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config.yml
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+      EOF
+
+      # Enable and start Promtail
+      systemctl daemon-reload
+      systemctl enable --now promtail
+
+      echo "[INIT] Observability stack setup complete." >> /var/log/edge-init.log
 
       echo "[INIT] Script finished successfully."
       echo "[MARK] final-success $(date -Is)" >> /var/log/edge-progress.log

@@ -175,3 +175,19 @@ variable "db_volume_id" {
   description = "ID of the EBS volume for the database (if applicable)"
   type        = string
 }
+
+variable "PROMTAIL_VERSION" {
+  description = "Version of Promtail to install"
+  type        = string
+  default     = "2.9.4"
+}
+
+variable "promtail_config_content" {
+  description = "Content of the Promtail configuration file"
+  type        = string
+}
+
+variable "edge_private_ip" {
+  description = "The private IP of the Edge VM for the Loki endpoint."
+  type        = string
+}

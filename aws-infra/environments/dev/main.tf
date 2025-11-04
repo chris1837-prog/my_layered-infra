@@ -69,7 +69,6 @@ module "edge" {
   sg_edge_id       = module.network.sg_edge_id
 
   instance_type             = "t3.micro"
-  edge_private_ip           = var.edge_private_ip
   key_name                  = aws_key_pair.generated_key.key_name
   admin_ssh_keys            = [tls_private_key.instance_key.public_key_openssh]
   enable_eip_association    = true
@@ -91,6 +90,9 @@ module "edge" {
   enable_domain_tls    = false
   enable_domain_acme   = false
 
+  # Observability
+  PROMTAIL_VERSION = var.PROMTAIL_VERSION
+  edge_private_ip  = module.edge.edge_private_ip
 }
 
 # --- AppDB Module ---
@@ -121,6 +123,10 @@ module "appdb" {
   docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
 
   common_tags = local.common_tags
+
+  # Observability
+  edge_private_ip  = module.edge.edge_private_ip
+  PROMTAIL_VERSION = var.PROMTAIL_VERSION
 }
 
 # --- EBS Volume for AppDB ---

@@ -170,3 +170,9 @@ variable "acme_email" {
     error_message = "acme_email must be non-empty when enable_acme_external is true."
   }
 }
+
+variable "PROMTAIL_VERSION" {
+  description = "Promtail binary version to install on the edge VM (e.g., 2.9.4)."
+  type        = string
+  default     = "2.9.4"
+}
