@@ -6,6 +6,7 @@ deny contains msg if {
   rc.type == "aws_ebs_volume"
   non_delete(rc.change)
   not has_backup_tag(rc.change)
+  not is_exception(rc)
   msg := sprintf("aws_ebs_volume.%s is missing the required Backup tag", [rc.name])
 }
 
@@ -13,6 +14,12 @@ deny contains msg if {
 # For now, we skip known EBS volumes without Backup tags.
 exceptions := {
   "aws_ebs_volume.data",
+}
+
+# ✅ Helper: resource is in the exception list
+is_exception(rc) if {
+  full_name := sprintf("%s.%s", [rc.type, rc.name])
+  full_name in exceptions
 }
 
 # Helper: resource is not being deleted
@@ -29,6 +36,7 @@ has_backup_tag(ch) if {
   v != null
   trim(v, " ") != ""
 }
+
 
 
 
