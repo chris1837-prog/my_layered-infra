@@ -176,7 +176,7 @@ module "db_volume" {
 
   # Additional tags for identification and environment tracking
   tags = {
-    Role       = "postgres-data"
+    Role        = "postgres-data"
     Environment = var.environment
   }
 
