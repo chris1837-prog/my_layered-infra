@@ -142,15 +142,24 @@ resource "aws_route" "private_to_edge_nat" {
 # --- EBS Volume for AppDB ---
 module "db_volume" {
   source = "../../modules/ebs_data_volume"
-
-  project = var.project_name
-  env     = var.environment
-  # Pass additional specific tags if needed via the 'tags' argument
-  # tags = { ... }
-
-  # Specify volume details
+  # Basic parameters
+  project           = var.project_name
+  env               = var.environment
   availability_zone = data.aws_availability_zones.available.names[0]
-  size_gb           = 50
+  size_gb           = 20
   type              = "gp3"
   encrypted         = true
+
+  # Additional tags for identification and environment tracking
+  tags = {
+    Role       = "postgres-data"
+    Environment = var.environment
+  }
+
+  # Attach this volume to the AppDB instance
+  attach_to_instances = {
+    appdb = module.appdb.appdb_instance_id
+  }
+
 }
+
