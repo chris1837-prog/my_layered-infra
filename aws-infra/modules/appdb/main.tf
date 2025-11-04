@@ -65,7 +65,7 @@ data "cloudinit_config" "app" {
       db_volume_id               = var.db_volume_id
       promtail_config_content    = var.promtail_config_content
       PROMTAIL_VERSION           = var.PROMTAIL_VERSION
-      edge_private_ip         = var.edge_private_ip
+      edge_private_ip            = var.edge_private_ip
     })
   }
 }
