@@ -22,6 +22,11 @@ output "edge_public_ip" {
   value       = length(aws_eip_association.eip_assoc) > 0 ? aws_eip_association.eip_assoc[0].public_ip : null
 }
 
+output "edge_private_ip" {
+  description = "The private IP address of the Edge VM."
+  value       = aws_instance.edge.private_ip
+}
+
 output "registry_external_url" {
   description = "The external URL of the Docker registry (proxied by Caddy)."
   value       = var.registry_external_url

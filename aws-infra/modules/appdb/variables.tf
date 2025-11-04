@@ -186,3 +186,8 @@ variable "promtail_config_content" {
   description = "Content of the Promtail configuration file"
   type        = string
 }
+
+variable "edge_private_ip" {
+  description = "The private IP of the Edge VM for the Loki endpoint."
+  type        = string
+}
