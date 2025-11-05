@@ -31,3 +31,14 @@ output "office_hours_lambda_role_arn" {
   description = "IAM Role ARN used by the office hours Lambda"
   value       = module.office_hours_scheduler.lambda_role_arn
 }
+
+output "elk_vm_private_ip" {
+  description = "The private IP address of the ELK virtual machine used for Logstash ingestion and Kibana proxying through the Edge."
+  value       = aws_instance.obs_elk_vm.private_ip
+}
+
+
+output "generated_key" {
+  description = "The generated key-pair for main.tf"
+  value       = aws_key_pair.generated_key.key_name
+}
