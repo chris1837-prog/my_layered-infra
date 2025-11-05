@@ -1,0 +1,52 @@
+name: Terraform Terratest (G2)
+
+on:
+  pull_request:
+    branches: [ development ]
+    paths:
+      - '**/*.tf'
+      - '**/*.go'
+      - '.github/workflows/ci-terratest.yml'
+  workflow_dispatch:
+
+jobs:
+  terratest:
+    name: Run Terratest for Terraform modules
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.12.0
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/layered-infra-dev-terraform-github-actions-role
+          aws-region: eu-central-1
+
+      - name: Run Terratest for each Terraform module
+        run: |
+          echo "🧪 Searching for Terratest directories..."
+          for dir in aws-infra/modules/*/test; do
+            if [ -d "$dir" ]; then
+              echo "➡️ Running tests in $dir"
+              cd "$dir"
+              go test -v -timeout 30m || exit 1
+              cd - >/dev/null
+            fi
+          done
+          echo "✅ Terratest run complete."
