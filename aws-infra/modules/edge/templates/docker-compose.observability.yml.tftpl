@@ -1,0 +1,41 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: observability-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks: [obs] # attach to the obs network (see defined at the bottom)
+
+  loki:
+    image: grafana/loki:2.9.4
+    # Use the default config:
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - loki-data:/loki
+    networks: [obs]
+
+  grafana:
+    image: grafana/grafana:10.4.5
+    ports:
+      - "3000:3000"
+    environment:
+      # keep admin/pw as follows
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on: [loki]
+    volumes:
+      - grafana-data:/var/lib/grafana # persistence for login/dashboards
+    networks: [obs]
+
+# create user-defined network called obs
+networks:
+  obs:
+
+# declare named volumes to make them persistent
+volumes:
+  loki-data:
+  grafana-data:
