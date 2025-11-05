@@ -38,6 +38,7 @@ data "cloudinit_config" "edge" {
     content = templatefile("${path.module}/cloud-init.yaml.tftpl", {
       admin_user            = var.admin_user,
       admin_ssh_keys        = var.admin_ssh_keys,
+      app_private_ip        = var.app_private_ip,
       domain_name           = var.domain_name,
       backend_servers       = var.backend_servers,
       admin_cidrs           = var.admin_cidrs,

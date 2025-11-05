@@ -176,3 +176,7 @@ variable "PROMTAIL_VERSION" {
   type        = string
   default     = "2.9.4"
 }
+
+variable "app_private_ip" {
+  type = string
+}

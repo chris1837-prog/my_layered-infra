@@ -5,12 +5,12 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - /opt/observability/prometheus.yml:/etc/prometheus/prometheus.yml
     networks: [obs] # attach to the obs network (see defined at the bottom)
 
   loki:
     image: grafana/loki:2.9.4
-    # Nutze die eingebaute Default-Config:
+    # Use Loki default-config:
     command: -config.file=/etc/loki/local-config.yaml
     ports:
       - "3100:3100"

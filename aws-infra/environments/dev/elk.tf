@@ -18,7 +18,7 @@ data "aws_ami" "ubuntu" {
 #Instance Profile 
 
 module "elk_vm_iam" {
-  source = "../../modules/iam"
+  source       = "../../modules/iam"
   project_name = var.project_name
   environment  = var.environment
   common_tags  = local.common_tags

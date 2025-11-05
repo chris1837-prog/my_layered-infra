@@ -91,6 +91,7 @@ module "edge" {
   registry_internal_url = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
   registry_user         = data.aws_ssm_parameter.registry_user_value.value
   registry_password     = data.aws_ssm_parameter.registry_password_value.value
+  app_private_ip        = module.appdb.appdb_private_ip
   # acme_email          = var.acme_email
 
   # Feature flags
