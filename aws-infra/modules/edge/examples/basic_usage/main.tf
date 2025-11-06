@@ -1,6 +1,5 @@
 provider "aws" {
-  region  = "eu-central-1"
-  profile = "AdministratorAccess-694816839566"
+  region = "eu-central-1"
 }
 
 variable "app_private_ip" {
@@ -17,7 +16,6 @@ variable "node_exporter_version" {
   description = "The version of Node Exporter, passed in from the test."
   type        = string
 }
-
 
 # -----------------------------
 # Get first available AZ
