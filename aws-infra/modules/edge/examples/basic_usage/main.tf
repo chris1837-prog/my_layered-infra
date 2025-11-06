@@ -13,6 +13,11 @@ variable "promtail_version" {
   type        = string
 }
 
+variable "node_exporter_version" {
+  description = "The version of Node Exporter, passed in from the test."
+  type        = string
+}
+
 # -----------------------------
 # Get first available AZ
 # -----------------------------
@@ -307,6 +312,7 @@ module "edge" {
   admin_cidrs               = ["0.0.0.0/0"]
   app_private_ip            = var.app_private_ip
   promtail_version          = var.promtail_version
+  node_exporter_version     = var.node_exporter_version
 
 
   # Use a hostname within the delegated subdomain for automatic HTTPS instead of the parent apex

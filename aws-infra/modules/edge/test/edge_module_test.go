@@ -26,7 +26,8 @@ func TestEdgeModuleIntegration(t *testing.T) {
         NoColor:      true,
         Vars: map[string]interface{}{
             "app_private_ip": "10.0.1.5", // Add a dummy IP for the test
-			"promtail_version": "2.9.4", 
+			"promtail_version": "2.9.4",
+			"node_exporter_version": "1.8.1",
         },
     }
 

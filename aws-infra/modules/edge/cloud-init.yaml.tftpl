@@ -362,12 +362,12 @@ runcmd:
   - [ bash, /opt/startup.sh ]
   - |
     # Install and enable Node Exporter
-    set -euxo pipefail
-    NODE_EXP_VER="1.8.1"
+     set -euxo pipefail
+    node_exp_ver="${node_exporter_version}"
     cd /tmp
-    curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXP_VER}/node_exporter-${NODE_EXP_VER}.linux-amd64.tar.gz
-    tar xzf node_exporter-${NODE_EXP_VER}.linux-amd64.tar.gz
-    mv node_exporter-${NODE_EXP_VER}.linux-amd64/node_exporter /usr/local/bin/
+    curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v$${node_exp_ver}/node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+    tar xzf node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+    mv node_exporter-$${node_exp_ver}.linux-amd64/node_exporter /usr/local/bin/
     id -u nodeexp >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin nodeexp
     chown nodeexp:nodeexp /usr/local/bin/node_exporter
 
