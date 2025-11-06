@@ -45,5 +45,5 @@ output "generated_key" {
 
 output "edge_public_ip" {
   description = "The public IP address of the Edge VM for SSH access."
-  value       = module.edge.edge_public_ip # Assuming the module outputs this
+  value       = module.edge.edge_public_ip
 }

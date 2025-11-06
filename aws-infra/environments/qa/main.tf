@@ -144,14 +144,12 @@ module "appdb" {
 resource "aws_vpc_security_group_ingress_rule" "appdb_from_edge_node_exporter" {
   description = "Allow Prometheus on Edge to scrape Node Exporter on App (port 9100)"
 
-  # This is the security group we're opening (the App/DB)
   security_group_id = module.network.sg_app_id
 
   ip_protocol = "tcp"
   from_port   = 9100
   to_port     = 9100
 
-  # This is the security group we're allowing traffic FROM (the Edge)
   referenced_security_group_id = module.network.sg_edge_id
 }
 

@@ -72,9 +72,9 @@ data "cloudinit_config" "app" {
       db_volume_mount_path       = var.db_volume_mount_path
       db_volume_id               = var.db_volume_id
       path_module                = path.module
-      promtail_config_content    = local.promtail_config_content_resolved # Use the conditional local
+      promtail_config_content    = local.promtail_config_content_resolved
       PROMTAIL_VERSION           = var.promtail_version
-      edge_private_ip            = var.edge_private_ip # KEEP this, as the final template uses it
+      edge_private_ip            = var.edge_private_ip
       NODE_EXP_VER               = var.node_exporter_version
     })
   }
