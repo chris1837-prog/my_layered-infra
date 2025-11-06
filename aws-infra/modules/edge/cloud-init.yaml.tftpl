@@ -308,7 +308,7 @@ write_files:
       docker compose -f /opt/observability/docker-compose.observability.yml up -d
 
       # Install Promtail binary
-      PROMTAIL_VERSION="${promtail_version}"
+      promtail_version ="${promtail_version}"
       curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v${PROMTAIL_VERSION}/promtail-linux-amd64.zip
       unzip /tmp/promtail.zip -d /usr/local/bin/
       chmod +x /usr/local/bin/promtail
