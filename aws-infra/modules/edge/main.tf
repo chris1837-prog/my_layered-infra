@@ -55,6 +55,7 @@ data "cloudinit_config" "edge" {
       # Extract hostnames from URLs for cloud-init template
       REGISTRY_EXTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_external_url)[0],
       REGISTRY_INTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_internal_url)[0],
+      path_module            = path.module
     })
   }
 }
