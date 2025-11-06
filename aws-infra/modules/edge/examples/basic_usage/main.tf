@@ -8,6 +8,11 @@ variable "app_private_ip" {
   type        = string
 }
 
+variable "promtail_version" {
+  description = "The version of Promtail, passed in from the test."
+  type        = string
+}
+
 # -----------------------------
 # Get first available AZ
 # -----------------------------
@@ -301,6 +306,8 @@ module "edge" {
   public_subnet_id          = aws_subnet.public_subnet.id
   admin_cidrs               = ["0.0.0.0/0"]
   app_private_ip            = var.app_private_ip
+  promtail_version          = var.promtail_version
+
 
   # Use a hostname within the delegated subdomain for automatic HTTPS instead of the parent apex
   domain_name     = "edge.dev.uselayered.com"

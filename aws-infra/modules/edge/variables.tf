@@ -171,7 +171,7 @@ variable "acme_email" {
   }
 }
 
-variable "PROMTAIL_VERSION" {
+variable "promtail_version" {
   description = "Promtail binary version to install on the edge VM (e.g., 2.9.4)."
   type        = string
   default     = "2.9.4"
