@@ -306,7 +306,7 @@ module "edge" {
   public_subnet_id          = aws_subnet.public_subnet.id
   admin_cidrs               = ["0.0.0.0/0"]
   app_private_ip            = var.app_private_ip
-  PROMTAIL_VERSION          = var.promtail_version
+  promtail_version          = var.promtail_version
 
 
   # Use a hostname within the delegated subdomain for automatic HTTPS instead of the parent apex
