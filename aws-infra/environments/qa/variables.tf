@@ -85,7 +85,14 @@ variable "allowed_admin_cidrs" {
   default     = ["0.0.0.0/0"] # WARNING: Insecure default
 }
 
-variable "PROMTAIL_VERSION" {
+variable "promtail_version" {
   description = "The version of Promtail to install."
   type        = string
+  default     = "2.9.4"
+}
+
+variable "node_exporter_version" {
+  description = "The version of Node Exporter to install."
+  type        = string
+  default     = "1.8.1"
 }

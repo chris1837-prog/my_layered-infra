@@ -20,6 +20,7 @@ packages:
   - curl
   - gnupg
   - lsb-release
+  # Added 'systemd-timesyncd' or similar is usually a good idea in prod
 
 # Run commands to set up Docker and test the setup
 runcmd:
@@ -58,16 +59,14 @@ runcmd:
 
     mkdir -p /etc/promtail
 
-    # Deploy Promtail config
+    # Deploy Promtail config (Content is provided as a pre-rendered string from main.tf)
     cat > /etc/promtail/promtail-config-app.yml <<EOF
-    ${templatefile("${path.module}/templates/promtail-config-app.yml.tftpl", {
-    edge_private_ip = edge_private_ip
-    })}
+    ${promtail_config_content}
     EOF
 
     # Install Promtail binary
-    PROMTAIL_VERSION="${PROMTAIL_VERSION}"
-    curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v${PROMTAIL_VERSION}/promtail-linux-amd64.zip
+    promtail_version="${PROMTAIL_VERSION}" # Terraform variable PROMTAIL_VERSION passed to shell variable promtail_version
+    curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v$${promtail_version}/promtail-linux-amd64.zip
     unzip /tmp/promtail.zip -d /usr/local/bin/
     chmod +x /usr/local/bin/promtail
 
@@ -92,11 +91,11 @@ runcmd:
     - |
     # Install and enable Node Exporter
     set -euxo pipefail
-    NODE_EXP_VER="1.8.1"
+    node_exp_ver="${NODE_EXP_VER}" # Terraform variable NODE_EXP_VER passed to shell variable node_exp_ver
     cd /tmp
-    curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v${NODE_EXP_VER}/node_exporter-${NODE_EXP_VER}.linux-amd64.tar.gz
-    tar xzf node_exporter-${NODE_EXP_VER}.linux-amd64.tar.gz
-    mv node_exporter-${NODE_EXP_VER}.linux-amd64/node_exporter /usr/local/bin/
+    curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v$${node_exp_ver}/node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+    tar xzf node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+    mv node_exporter-$${node_exp_ver}.linux-amd64/node_exporter /usr/local/bin/
     id -u nodeexp >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin nodeexp
     chown nodeexp:nodeexp /usr/local/bin/node_exporter
 

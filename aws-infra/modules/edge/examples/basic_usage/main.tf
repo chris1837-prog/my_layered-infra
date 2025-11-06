@@ -18,13 +18,6 @@ variable "node_exporter_version" {
 }
 
 # -----------------------------
-# Get first available AZ
-# -----------------------------
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
-# -----------------------------
 # Locals
 # -----------------------------
 locals {
@@ -59,7 +52,7 @@ resource "aws_vpc" "test_vpc" {
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.test_vpc.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[0]
+  availability_zone       = "eu-central-1a"
   map_public_ip_on_launch = true
   tags                    = merge(local.common_tags, { Name = "${local.project_name}-public-subnet" })
 }
@@ -67,7 +60,7 @@ resource "aws_subnet" "public_subnet" {
 resource "aws_subnet" "private_subnet" {
   vpc_id            = aws_vpc.test_vpc.id
   cidr_block        = "10.0.2.0/24"
-  availability_zone = data.aws_availability_zones.available.names[0]
+  availability_zone = "eu-central-1a"
   tags              = merge(local.common_tags, { Name = "${local.project_name}-private-subnet" })
 }
 

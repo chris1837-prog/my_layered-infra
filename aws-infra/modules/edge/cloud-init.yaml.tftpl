@@ -300,8 +300,6 @@ write_files:
       # Write Prometheus config file
       cat > /opt/observability/prometheus.yml <<EOF
       ${prometheus_config_content}
-        app_private_ip = app_private_ip
-      })}
       EOF
 
       # Launch observability containers

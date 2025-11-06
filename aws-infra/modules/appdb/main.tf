@@ -1,3 +1,11 @@
+locals {
+  # This conditionally renders the Promtail config IF edge_private_ip has a value.
+  # If edge_private_ip is null (first run), this local variable is null/empty.
+  promtail_config_content_resolved = var.edge_private_ip != null ? templatefile("${path.module}/templates/promtail-config-app.yml.tftpl", {
+    edge_private_ip = var.edge_private_ip
+  }) : ""
+}
+
 data "aws_ssm_parameter" "ubuntu" {
   # Lookup Ubuntu AMI from SSM (keeps AMI up to date automatically)
   name = local.ubuntu_ssm_path
@@ -63,9 +71,11 @@ data "cloudinit_config" "app" {
       db_volume_device_name      = var.db_volume_device_name
       db_volume_mount_path       = var.db_volume_mount_path
       db_volume_id               = var.db_volume_id
-      promtail_config_content    = var.promtail_config_content
-      PROMTAIL_VERSION           = var.PROMTAIL_VERSION
-      edge_private_ip            = var.edge_private_ip
+      path_module                = path.module
+      promtail_config_content    = local.promtail_config_content_resolved # Use the conditional local
+      PROMTAIL_VERSION           = var.promtail_version
+      edge_private_ip            = var.edge_private_ip # KEEP this, as the final template uses it
+      NODE_EXP_VER               = var.node_exporter_version
     })
   }
 }
