@@ -53,11 +53,14 @@ data "cloudinit_config" "edge" {
       enable_domain_tls     = var.enable_domain_tls,
       enable_domain_acme    = var.enable_domain_acme,
       # Extract hostnames from URLs for cloud-init template
-      REGISTRY_EXTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_external_url)[0],
-      REGISTRY_INTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_internal_url)[0],
-      path_module            = path.module,
-      promtail_version       = var.promtail_version,
-      node_exporter_version  = var.node_exporter_version,
+      REGISTRY_EXTERNAL_HOST       = regex("^https://([^/]+)/?.*$", var.registry_external_url)[0],
+      REGISTRY_INTERNAL_HOST       = regex("^https://([^/]+)/?.*$", var.registry_internal_url)[0],
+      path_module                  = path.module,
+      promtail_version             = var.promtail_version,
+      node_exporter_version        = var.node_exporter_version,
+      docker_compose_obs_content   = local.docker_compose_obs_content
+      promtail_config_edge_content = local.promtail_config_edge_content
+      prometheus_config_content    = local.prometheus_config_content
     })
   }
 }

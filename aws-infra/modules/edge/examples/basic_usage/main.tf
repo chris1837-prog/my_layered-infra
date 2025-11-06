@@ -18,6 +18,7 @@ variable "node_exporter_version" {
   type        = string
 }
 
+
 # -----------------------------
 # Get first available AZ
 # -----------------------------

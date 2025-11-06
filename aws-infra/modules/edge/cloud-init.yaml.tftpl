@@ -289,17 +289,17 @@ write_files:
 
       # Write docker-compose observability file (Terraform template injects content)
       cat > /opt/observability/docker-compose.observability.yml <<EOF
-      ${templatefile("${path_module}/templates/docker-compose.observability.yml.tftpl", {})}
+      ${docker_compose_obs_content}
       EOF
 
       # Write Promtail config file
       cat > /etc/promtail/promtail-config.yml <<EOF
-      ${templatefile("${path_module}/templates/promtail-config-edge.yml.tftpl", {})}
+      ${promtail_config_edge_content}
       EOF
       
       # Write Prometheus config file
       cat > /opt/observability/prometheus.yml <<EOF
-      ${templatefile("${path_module}/templates/prometheus.yml.tftpl", {
+      ${prometheus_config_content}
         app_private_ip = app_private_ip
       })}
       EOF
