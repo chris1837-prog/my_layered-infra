@@ -19,12 +19,15 @@ import (
 )
 
 func TestEdgeModuleIntegration(t *testing.T) {
-	t.Parallel()
+    t.Parallel()
 
-	terraformOptions := &terraform.Options{
-		TerraformDir: "../examples/basic_usage",
-		NoColor:      true,
-	}
+    terraformOptions := &terraform.Options{
+        TerraformDir: "../examples/basic_usage",
+        NoColor:      true,
+        Vars: map[string]interface{}{
+            "app_private_ip": "10.0.1.5", // Add a dummy IP for the test
+        },
+    }
 
 	// Clean up resources with 'terraform destroy' at the end of the test.
 	defer terraform.Destroy(t, terraformOptions)
