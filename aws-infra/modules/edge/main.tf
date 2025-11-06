@@ -56,7 +56,7 @@ data "cloudinit_config" "edge" {
       REGISTRY_EXTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_external_url)[0],
       REGISTRY_INTERNAL_HOST = regex("^https://([^/]+)/?.*$", var.registry_internal_url)[0],
       path_module            = path.module,
-      promtail_version       = var.promtail_version,
+      PROMTAIL_VERSION       = var.promtail_version,
     })
   }
 }
