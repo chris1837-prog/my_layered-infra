@@ -97,6 +97,16 @@ resource "aws_vpc_security_group_ingress_rule" "app_http" {
   referenced_security_group_id = aws_security_group.edge.id
 }
 
+# Allow SSH from Edge instance to App instance
+resource "aws_vpc_security_group_ingress_rule" "app_ssh" {
+  security_group_id            = aws_security_group.app.id
+  description                  = "Allow SSH from Edge instance"
+  ip_protocol                  = var.tcp_protocol
+  from_port                    = var.ssh_port
+  to_port                      = var.ssh_port
+  referenced_security_group_id = aws_security_group.edge.id
+}
+
 # =============================================================================
 # EGRESS RULES
 # =============================================================================

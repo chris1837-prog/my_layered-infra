@@ -34,6 +34,9 @@ resource "aws_iam_policy" "remote_state_access" {
   name        = "terraform-remote-state-access"
   description = "IAM policy for Terraform remote state access (S3 + DynamoDB)"
   policy      = data.aws_iam_policy_document.remote_state_access.json
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 
@@ -54,6 +57,9 @@ data "aws_iam_policy_document" "engineer_trust_policy" {
 resource "aws_iam_role" "engineer" {
   name               = var.engineer_role_name
   assume_role_policy = data.aws_iam_policy_document.engineer_trust_policy.json
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # Attaches the remote state access policy to the engineer role
@@ -84,6 +90,9 @@ resource "aws_iam_role" "ec2_role" {
   tags = merge(var.common_tags, {
     Name = "${var.project_name}-${var.environment}-ec2-role"
   })
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 # -------------------------

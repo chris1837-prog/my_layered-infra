@@ -67,6 +67,7 @@ module "edge" {
   vpc_id           = module.network.vpc_id
   public_subnet_id = module.network.public_subnet_ids[0]
   sg_edge_id       = module.network.sg_edge_id
+  edge_private_ip  = "10.0.1.100"
 
   instance_type             = "t3.micro"
   key_name                  = aws_key_pair.generated_key.key_name
@@ -92,8 +93,7 @@ module "edge" {
   enable_domain_acme   = false
 
   # Observability
-  PROMTAIL_VERSION = var.PROMTAIL_VERSION
-  edge_private_ip  = module.edge.edge_private_ip
+  promtail_version = var.PROMTAIL_VERSION
 }
 
 # --- AppDB Module ---
@@ -126,8 +126,10 @@ module "appdb" {
   common_tags = local.common_tags
 
   # Observability
-  edge_private_ip  = module.edge.edge_private_ip
-  PROMTAIL_VERSION = var.PROMTAIL_VERSION
+  promtail_version = var.PROMTAIL_VERSION
+  promtail_config_content = templatefile("../../modules/appdb/templates/promtail-config-app.yml.tftpl", {
+    edge_private_ip = "10.0.1.100"
+  })
 }
 
 # --- EBS Volume for AppDB ---
