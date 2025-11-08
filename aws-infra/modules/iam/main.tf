@@ -107,11 +107,11 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
   })
 }
 
-# -------------------------
+# ------------------------
 # Attach SSM Policy
 # -------------------------
-resource "aws_iam_role_policy_attachment" "ec2_ssm_read" {
+resource "aws_iam_role_policy_attachment" "ec2_ssm_core" {
   role       = aws_iam_role.ec2_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 

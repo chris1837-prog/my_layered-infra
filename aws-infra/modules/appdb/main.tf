@@ -25,7 +25,7 @@ resource "aws_instance" "app" {
 
   # Ensure user_data is re-run on changes (important for cloud-init/docker updates)
   user_data_replace_on_change = true
-  user_data_base64            = data.cloudinit_config.app.rendered
+  user_data_base64            = data.cloudinit_config.appdb.rendered
 
   # Enable CloudWatch detailed monitoring (1-min granularity instead of 5-min)
   monitoring = var.enable_monitoring
@@ -50,7 +50,7 @@ resource "aws_instance" "app" {
   )
 }
 
-data "cloudinit_config" "app" {
+data "cloudinit_config" "appdb" {
   gzip          = true
   base64_encode = true
 

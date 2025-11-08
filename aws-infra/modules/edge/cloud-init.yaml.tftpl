@@ -2,8 +2,8 @@
 
 apt:
   debconf_selections:
-    - 'iptables-persistent iptables-persistent/autosave_v4 boolean true'
-    - 'iptables-persistent iptables-persistent/autosave_v6 boolean true'
+    iptables-v4: 'iptables-persistent iptables-persistent/autosave_v4 boolean true'
+    iptables-v6: 'iptables-persistent iptables-persistent/autosave_v6 boolean true'
 
 package_update: true
 package_upgrade: true
@@ -95,15 +95,15 @@ write_files:
       }
 
       loki.dev.uselayered.com {
-      # Observability: expose Loki through the edge
-      reverse_proxy http://loki:3100
-      tls internal
+        # Observability: expose Loki through the edge
+        reverse_proxy http://loki:3100
+        tls internal
       }
 
       prometheus.dev.uselayered.com {
-      # Observability: expose Prometheus through the edge
-      reverse_proxy http://prometheus:9090
-      tls internal
+        # Observability: expose Prometheus through the edge
+        reverse_proxy http://prometheus:9090
+        tls internal
       }
 
   - path: /etc/fail2ban/jail.local
@@ -119,6 +119,58 @@ write_files:
       bantime  = 15m
       findtime = 10m
 
+  # --- Observability Config Files ---
+  - path: /opt/observability/docker-compose.observability.yml
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${indent(6, docker_compose_obs_content)}
+
+  - path: /etc/promtail/promtail-config.yml
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${indent(6, promtail_config_edge_content)}
+
+  - path: /opt/observability/prometheus.yml
+    owner: root:root
+    permissions: "0644"
+    content: |
+      ${indent(6, prometheus_config_content)}
+
+  # --- Systemd Service Files ---
+  - path: /etc/systemd/system/promtail.service
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Promtail Service
+      After=network.target
+
+      [Service]
+      ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config.yml
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/systemd/system/node_exporter.service
+    owner: root:root
+    permissions: "0644"
+    content: |
+      [Unit]
+      Description=Prometheus Node Exporter
+      After=network-online.target
+
+      [Service]
+      User=nodeexp
+      ExecStart=/usr/local/bin/node_exporter
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+
+  # --- Main Startup Script (No Heredocs) ---
   - path: /opt/startup.sh
     owner: root:root
     permissions: "0755"
@@ -189,199 +241,7 @@ write_files:
 
       echo "[INIT] Installing Caddy..."
       export DEBIAN_FRONTEND=noninteractive
-      apt-get install -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" caddy
-      echo "[INIT] Caddy has been installed."
-
-      # NOTE: Do NOT modify /etc/hosts for registry domains here.
-      # Split-horizon DNS is expected to resolve these differently inside vs outside.
-      # Tests may pin hostnames as needed, but the appliance should not hardcode DNS.
-
-      echo "[INIT] Configuring firewall with UFW..."
-      ufw default deny incoming
-      ufw default allow outgoing
-      ufw allow 80/tcp
-      ufw allow 443/tcp
-      %{ for cidr in admin_cidrs ~}
-      ufw allow from ${cidr} to any port 22 proto tcp
-      ufw allow from ${cidr} to any port ${wireguard_port} proto udp
-      %{ endfor ~}
-      ufw --force enable
-
-      %{ if enable_wireguard }
-      echo "[INIT] Setting up WireGuard server (enabled)..."
-      mkdir -p /etc/wireguard
-      if [ ! -f /etc/wireguard/server_private.key ]; then
-        wg genkey | tee /etc/wireguard/server_private.key | wg pubkey > /etc/wireguard/server_public.key
-      fi
-      echo "[INIT] Writing WireGuard configuration..."
-      {
-        echo "[Interface]"
-        echo "PrivateKey = $(cat /etc/wireguard/server_private.key)"
-        echo "Address = 10.200.0.1/24"
-        echo "ListenPort = ${wireguard_port}"
-        echo "SaveConfig = true"
-      } > /etc/wireguard/wg0.conf
-      systemctl enable --now wg-quick@wg0
-      %{ else }
-      echo "[INIT] Skipping WireGuard setup (enable_wireguard=false)" | tee -a /var/log/edge-init.log
-      %{ endif }
-
-      echo "[INIT] Formatting Caddyfile..."
-      caddy fmt --overwrite /etc/caddy/Caddyfile || true
-
-      echo "[INIT] Enabling and starting Caddy to apply templated config..."
-      systemctl enable --now caddy
-
-      echo "[INIT] Installing Caddy internal CA to Docker and OS trust stores (only when internal CA is used)..."
-      CA_SRC1="/var/lib/caddy/.local/share/caddy/pki/authorities/local/root.crt"
-      CA_SRC2="/var/lib/caddy/pki/authorities/local/root.crt"
-      CA_SRC=""
-      # Wait briefly for Caddy to generate its local CA
-      for i in $(seq 1 15); do
-        if [ -f "$CA_SRC1" ]; then CA_SRC="$CA_SRC1"; break; fi
-        if [ -f "$CA_SRC2" ]; then CA_SRC="$CA_SRC2"; break; fi
-        sleep 2
-      done
-      # Derive hostnames from full registry URLs (avoid passing separate host vars)
-      REGISTRY_EXTERNAL_HOST=$(echo "${registry_external_url}" | sed -E 's#https://([^/]+)/?.*#\1#')
-      REGISTRY_INTERNAL_HOST=$(echo "${registry_internal_url}" | sed -E 's#https://([^/]+)/?.*#\1#')
-      DEST_DIR_EXT="/etc/docker/certs.d/${REGISTRY_EXTERNAL_HOST}"
-      DEST_DIR_EXT_PORT="/etc/docker/certs.d/${REGISTRY_EXTERNAL_HOST}:443"
-      DEST_DIR_INT="/etc/docker/certs.d/${REGISTRY_INTERNAL_HOST}"
-      DEST_DIR_INT_PORT="/etc/docker/certs.d/${REGISTRY_INTERNAL_HOST}:443"
-      install -d -m 0755 "$DEST_DIR_EXT" "$DEST_DIR_EXT_PORT" "$DEST_DIR_INT" "$DEST_DIR_INT_PORT"
-      if [ -n "$CA_SRC" ] && [ -f "$CA_SRC" ]; then
-        # For external domain, only install CA if we're not using ACME
-      %{ if enable_acme_external ~}
-        # ACME enabled for external domain; do not install local CA into external trust dirs
-      %{ else ~}
-        install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT/ca.crt"
-        install -m 0644 -D "$CA_SRC" "$DEST_DIR_EXT_PORT/ca.crt"
-      %{ endif ~}
-        install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT/ca.crt"
-        install -m 0644 -D "$CA_SRC" "$DEST_DIR_INT_PORT/ca.crt"
-        # Also expose the CA via HTTPS at /ca.crt for external clients
-      %{ if enable_acme_external ~}
-        # ACME in use externally; skip exposing CA for external
-      %{ else ~}
-        install -d -m 0755 /var/www/caddy
-        install -m 0644 -D "$CA_SRC" /var/www/caddy/ca.crt
-      %{ endif ~}
-        install -m 0644 -D "$CA_SRC" /usr/local/share/ca-certificates/caddy-local.crt
-        update-ca-certificates || true
-        echo "[INIT] CA installed to Docker (external+internal) and OS trust; restarting Docker..."
-        systemctl restart docker
-      else
-        echo "[WARN] Caddy internal CA not found; Docker CLI may not trust registry TLS"
-      fi
-
-      echo "[INIT] Enabling fail2ban..."
-      systemctl enable --now fail2ban
-      fail2ban-client status sshd || true
-
-      # -----------------------------
-      # Observability stack setup
-      # -----------------------------
-      echo "[INIT] Setting up observability stack..." >> /var/log/edge-init.log
-
-      # Create directories
-      mkdir -p /opt/observability /etc/promtail
-
-      # Write docker-compose observability file (Terraform template injects content)
-      cat > /opt/observability/docker-compose.observability.yml <<EOF
-      ${docker_compose_obs_content}
-      EOF
-
-      # Write Promtail config file
-      cat > /etc/promtail/promtail-config.yml <<EOF
-      ${promtail_config_edge_content}
-      EOF
-      
-      # Write Prometheus config file
-      cat > /opt/observability/prometheus.yml <<EOF
-      ${prometheus_config_content}
-      EOF
-
-      # Launch observability containers
-      docker compose -f /opt/observability/docker-compose.observability.yml up -d
-
-      # Install Promtail binary
-      promtail_version ="${promtail_version}"
-      curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v$${promtail_version}/promtail-linux-amd64.zip
-      unzip /tmp/promtail.zip -d /usr/local/bin/
-      chmod +x /usr/local/bin/promtail
-
-      # Create Promtail systemd service
-      cat > /etc/systemd/system/promtail.service <<EOF
-      [Unit]
-      Description=Promtail Service
-      After=network.target
-
-      [Service]
-      ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config.yml
-      Restart=always
-
-      [Install]
-      WantedBy=multi-user.target
-      EOF
-
-      # Enable and start Promtail
-      systemctl daemon-reload
-      systemctl enable --now promtail
-
-      echo "[INIT] Observability stack setup complete." >> /var/log/edge-init.log
-
-      echo "[INIT] Script finished successfully."
-      echo "[MARK] final-success $(date -Is)" >> /var/log/edge-progress.log
-      touch /var/lib/cloud/instance/edge-init-finished
-      ls -l /var/lib/cloud/instance/edge-init-finished || true
-
-      
-
-  - path: /etc/systemd/system/edge-startup.service
-    owner: root:root
-    permissions: "0644"
-    content: |
-      [Unit]
-      Description=Edge module bootstrap (fallback)\n
-      After=network-online.target docker.service
-      Wants=network-online.target
-
-      [Service]
-      Type=oneshot
-      ExecStart=/opt/startup.sh
-      RemainAfterExit=yes
-
-      [Install]
-      WantedBy=multi-user.target
+      apt-get install -y caddy
 
 runcmd:
-  - [ bash, -c, "echo '[RUNCMD] minimal execution starting $(date -Is)' > /var/log/edge-debug.log" ]
-  - [ bash, /opt/startup.sh ]
-  - |
-    # Install and enable Node Exporter
-     set -euxo pipefail
-    node_exp_ver="${node_exporter_version}"
-    cd /tmp
-    curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v$${node_exp_ver}/node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
-    tar xzf node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
-    mv node_exporter-$${node_exp_ver}.linux-amd64/node_exporter /usr/local/bin/
-    id -u nodeexp >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin nodeexp
-    chown nodeexp:nodeexp /usr/local/bin/node_exporter
-
-    cat >/etc/systemd/system/node_exporter.service <<'UNIT'
-    [Unit]
-    Description=Prometheus Node Exporter
-    After=network-online.target
-
-    [Service]
-    User=nodeexp
-    ExecStart=/usr/local/bin/node_exporter
-    Restart=on-failure
-
-    [Install]
-    WantedBy=multi-user.target
-    UNIT
-
-    systemctl daemon-reload
-    systemctl enable --now node_exporter
+  - /opt/startup.sh

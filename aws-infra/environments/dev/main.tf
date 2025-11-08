@@ -76,7 +76,7 @@ module "edge" {
   eip_allocation_id         = local.edge_config.eip_allocation_id
   iam_instance_profile_name = module.iam.ec2_instance_profile_name
   admin_user                = "ubuntu"
-  domain_name               = local.edge_config.parameter_paths.edge_primary_url
+  domain_name               = data.aws_ssm_parameter.edge_primary_url.value
   backend_servers           = ["${module.appdb.appdb_private_ip}:3000"]
   admin_cidrs               = var.allowed_admin_cidrs
   wireguard_port            = 51820

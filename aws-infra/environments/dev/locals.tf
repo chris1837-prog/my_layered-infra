@@ -41,7 +41,12 @@ locals {
       external_registry_url = local.ssm_parameters.parameter_paths.external_registry_url
       internal_registry_url = local.ssm_parameters.parameter_paths.internal_registry_url
       edge_primary_url      = local.ssm_parameters.parameter_paths.edge_primary_url
+    }
 
+    parameter_values = {
+      domain_name           = local.ssm_parameters.parameter_values.edge_primary_url
+      external_registry_url = local.ssm_parameters.parameter_values.external_registry_url
+      internal_registry_url = local.ssm_parameters.parameter_values.internal_registry_url
     }
   }
 
