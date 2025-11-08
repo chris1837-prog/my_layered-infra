@@ -22,6 +22,7 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [var.sg_app_id]
   iam_instance_profile   = try(var.appdb_instance_profile_name, null)
   key_name               = var.key_pair_name
+  private_ip             = var.app_private_ip
 
   # Ensure user_data is re-run on changes (important for cloud-init/docker updates)
   user_data_replace_on_change = true

@@ -23,6 +23,10 @@ packages:
 
 bootcmd:
   - echo "[BOOTCMD] edge bootcmd executed $(date -Is)" > /var/log/edge-bootcmd.log
+  - echo "[BOOTCMD] Enabling IP forwarding and in-memory NAT rules..." | tee -a /var/log/edge-bootcmd.log
+  - sysctl -w net.ipv4.ip_forward=1
+  - PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
+  - iptables -t nat -A POSTROUTING -o "$PRIMARY_IFACE" -j MASQUERADE
 
 users:
   - name: ${admin_user}
@@ -226,11 +230,8 @@ write_files:
         -p 5000:5000 \
         registry:2
 
-      echo "[INIT] Enabling IP forwarding for NAT..."
-      sysctl -w net.ipv4.ip_forward=1
+      echo "[INIT] Persisting IP forwarding for NAT..."
       sed -i 's/^#net.ipv4.ip_forward=1/net.ipv4.ip_forward=1/' /etc/sysctl.conf
-      PRIMARY_IFACE=$(ip route show default | awk '{print $5}' | head -n1)
-      iptables -t nat -A POSTROUTING -o "$PRIMARY_IFACE" -j MASQUERADE
       iptables-save > /etc/iptables/rules.v4
 
       echo "[INIT] Adding Caddy repository..."

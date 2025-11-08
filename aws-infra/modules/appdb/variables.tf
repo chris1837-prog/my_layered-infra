@@ -198,3 +198,8 @@ variable "node_exporter_version" {
   type        = string
   default     = "1.8.1"
 }
+
+variable "app_private_ip" {
+  description = "The static private IP to assign to the AppDB instance."
+  type        = string
+}

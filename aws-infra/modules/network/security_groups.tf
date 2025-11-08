@@ -50,6 +50,14 @@ resource "aws_vpc_security_group_ingress_rule" "edge_http" {
   cidr_ipv4         = var.open_internet_cidr
 }
 
+# Allow ALL traffic from the App SG TO the Edge SG
+resource "aws_vpc_security_group_ingress_rule" "edge_allow_all_from_app_for_nat" {
+  security_group_id            = aws_security_group.edge.id
+  referenced_security_group_id = aws_security_group.app.id
+  ip_protocol                  = "-1"
+  description                  = "Allow all traffic from App SG for NAT egress"
+}
+
 # Allow WireGuard VPN traffic from admin devices
 resource "aws_vpc_security_group_ingress_rule" "edge_wireguard" {
   for_each          = toset(var.allowed_admin_cidrs)
