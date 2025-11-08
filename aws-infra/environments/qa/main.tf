@@ -91,6 +91,7 @@ module "edge" {
   registry_internal_url = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
   registry_user         = data.aws_ssm_parameter.registry_user_value.value
   registry_password     = data.aws_ssm_parameter.registry_password_value.value
+  app_private_ip        = module.appdb.appdb_private_ip
   # acme_email          = var.acme_email
 
   # Feature flags
@@ -100,8 +101,8 @@ module "edge" {
   enable_domain_acme   = false
 
   # Observability
-  PROMTAIL_VERSION = var.PROMTAIL_VERSION
-  edge_private_ip  = module.edge.edge_private_ip
+  promtail_version = var.promtail_version
+  edge_private_ip  = "10.0.1.130"
 }
 
 # --- AppDB Module ---
@@ -132,9 +133,24 @@ module "appdb" {
   common_tags = local.common_tags
 
   # Observability
-  PROMTAIL_VERSION       = var.PROMTAIL_VERSION
+  promtail_version       = var.promtail_version
   docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
-  edge_private_ip        = module.edge.edge_private_ip
+  promtail_config_content = templatefile("../../modules/appdb/templates/promtail-config-app.yml.tftpl", {
+    edge_private_ip = module.edge.edge_private_ip
+  })
+  node_exporter_version = var.node_exporter_version
+}
+
+resource "aws_vpc_security_group_ingress_rule" "appdb_from_edge_node_exporter" {
+  description = "Allow Prometheus on Edge to scrape Node Exporter on App (port 9100)"
+
+  security_group_id = module.network.sg_app_id
+
+  ip_protocol = "tcp"
+  from_port   = 9100
+  to_port     = 9100
+
+  referenced_security_group_id = module.network.sg_edge_id
 }
 
 

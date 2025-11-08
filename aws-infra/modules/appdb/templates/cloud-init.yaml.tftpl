@@ -52,39 +52,70 @@ runcmd:
   - echo "Cloud-init completed successfully" >> /var/log/cloud-init-output.log
 
   # Install and config promtail
-  - |
-    set -euxo pipefail
-    echo "[RUNCMD] Setting up Promtail on App VM" >> /var/log/appdb-init.log
+  - - /bin/bash
+    - -c
+    - |
+      set -euxo pipefail
+      echo "[RUNCMD] Setting up Promtail on App VM" >> /var/log/appdb-init.log
 
-    mkdir -p /etc/promtail
+      mkdir -p /etc/promtail
 
-    # Deploy Promtail config
-    cat > /etc/promtail/promtail-config-app.yml <<EOF
-    ${templatefile("${path.module}/templates/promtail-config-app.yml.tftpl", {
-    edge_private_ip = edge_private_ip
-    })}
-    EOF
+      # Deploy Promtail config (Content is provided as a pre-rendered string from main.tf)
+      cat > /etc/promtail/promtail-config-app.yml <<EOF
+      ${promtail_config_content}
+      EOF
 
-    # Install Promtail binary
-    PROMTAIL_VERSION="${PROMTAIL_VERSION}"
-    curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v${PROMTAIL_VERSION}/promtail-linux-amd64.zip
-    unzip /tmp/promtail.zip -d /usr/local/bin/
-    chmod +x /usr/local/bin/promtail
+      # Install Promtail binary
+      promtail_version="${PROMTAIL_VERSION}" # Terraform variable PROMTAIL_VERSION passed to shell variable promtail_version
+      curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v$${promtail_version}/promtail-linux-amd64.zip
+      unzip /tmp/promtail.zip -d /usr/local/bin/
+      chmod +x /usr/local/bin/promtail
 
-    # Create systemd service
-    cat > /etc/systemd/system/promtail.service <<EOF
-    [Unit]
-    Description=Promtail Service (App VM)
-    After=network.target
+      # Create systemd service
+      cat > /etc/systemd/system/promtail.service <<EOF
+      [Unit]
+      Description=Promtail Service (App VM)
+      After=network.target
 
-    [Service]
-    ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config-app.yml
-    Restart=always
+      [Service]
+      ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config-app.yml
+      Restart=always
 
-    [Install]
-    WantedBy=multi-user.target
-    EOF
+      [Install]
+      WantedBy=multi-user.target
+      EOF
 
-    systemctl daemon-reload
-    systemctl enable --now promtail
-    echo "[RUNCMD] Promtail setup complete" >> /var/log/appdb-init.log
+      systemctl daemon-reload
+      systemctl enable --now promtail
+      echo "[RUNCMD] Promtail setup complete" >> /var/log/appdb-init.log
+
+  - - /bin/bash
+    - -c
+    - |
+      # Install and enable Node Exporter
+      set -euxo pipefail
+      node_exp_ver="${NODE_EXP_VER}" # Terraform variable NODE_EXP_VER passed to shell variable node_exp_ver
+      cd /tmp
+      curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v$${node_exp_ver}/node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+      tar xzf node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+      mv node_exporter-$${node_exp_ver}.linux-amd64/node_exporter /usr/local/bin/
+      id -u nodeexp >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin nodeexp
+      chown nodeexp:nodeexp /usr/local/bin/node_exporter
+
+      cat >/etc/systemd/system/node_exporter.service <<'UNIT'
+      [Unit]
+      Description=Prometheus Node Exporter
+      After=network-online.target
+
+      [Service]
+      User=nodeexp
+      ExecStart=/usr/local/bin/node_exporter
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+      UNIT
+
+      systemctl daemon-reload
+      systemctl enable --now node_exporter
+      echo "[RUNCMD] Node Exporter setup complete" >> /var/log/appdb-init.log

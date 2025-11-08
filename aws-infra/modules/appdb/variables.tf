@@ -176,7 +176,7 @@ variable "db_volume_id" {
   type        = string
 }
 
-variable "PROMTAIL_VERSION" {
+variable "promtail_version" {
   description = "Version of Promtail to install"
   type        = string
   default     = "2.9.4"
@@ -189,5 +189,17 @@ variable "promtail_config_content" {
 
 variable "edge_private_ip" {
   description = "The private IP of the Edge VM for the Loki endpoint."
+  type        = string
+  default     = null
+}
+
+variable "node_exporter_version" {
+  description = "The version of Node Exporter to install."
+  type        = string
+  default     = "1.8.1"
+}
+
+variable "app_private_ip" {
+  description = "The static private IP to assign to the AppDB instance."
   type        = string
 }

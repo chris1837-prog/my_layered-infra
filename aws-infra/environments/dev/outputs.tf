@@ -26,4 +26,5 @@ output "generated_key" {
 output "app_domain" {
   description = "Public domain for the app (edge layer)"
   value       = module.edge.primary_domain
+  sensitive   = true
 }

@@ -42,3 +42,8 @@ output "generated_key" {
   description = "The generated key-pair for main.tf"
   value       = aws_key_pair.generated_key.key_name
 }
+
+output "edge_public_ip" {
+  description = "The public IP address of the Edge VM for SSH access."
+  value       = module.edge.edge_public_ip
+}

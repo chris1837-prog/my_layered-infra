@@ -171,8 +171,18 @@ variable "acme_email" {
   }
 }
 
-variable "PROMTAIL_VERSION" {
+variable "promtail_version" {
   description = "Promtail binary version to install on the edge VM (e.g., 2.9.4)."
   type        = string
   default     = "2.9.4"
+}
+
+variable "app_private_ip" {
+  type = string
+}
+
+variable "node_exporter_version" {
+  description = "The version of Node Exporter to install."
+  type        = string
+  default     = "1.8.1"
 }

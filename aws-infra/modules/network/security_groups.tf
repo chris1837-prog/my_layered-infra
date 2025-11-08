@@ -50,6 +50,14 @@ resource "aws_vpc_security_group_ingress_rule" "edge_http" {
   cidr_ipv4         = var.open_internet_cidr
 }
 
+# Allow ALL traffic from the App SG TO the Edge SG
+resource "aws_vpc_security_group_ingress_rule" "edge_allow_all_from_app_for_nat" {
+  security_group_id            = aws_security_group.edge.id
+  referenced_security_group_id = aws_security_group.app.id
+  ip_protocol                  = "-1"
+  description                  = "Allow all traffic from App SG for NAT egress"
+}
+
 # Allow WireGuard VPN traffic from admin devices
 resource "aws_vpc_security_group_ingress_rule" "edge_wireguard" {
   for_each          = toset(var.allowed_admin_cidrs)
@@ -94,6 +102,27 @@ resource "aws_vpc_security_group_ingress_rule" "app_http" {
   ip_protocol                  = var.tcp_protocol
   from_port                    = var.application_port
   to_port                      = var.application_port
+  referenced_security_group_id = aws_security_group.edge.id
+}
+
+# Allow HTTPS from the internet for SSM.
+# TODO: This is not ideal for production. We should restrict this to the SSM service IP ranges.
+resource "aws_vpc_security_group_ingress_rule" "app_https_ssm" {
+  security_group_id = aws_security_group.app.id
+  description       = "Allow HTTPS from the internet for SSM"
+  ip_protocol       = var.tcp_protocol
+  from_port         = var.https_port
+  to_port           = var.https_port
+  cidr_ipv4         = var.open_internet_cidr
+}
+
+# Allow SSH from Edge instance to App instance
+resource "aws_vpc_security_group_ingress_rule" "app_ssh" {
+  security_group_id            = aws_security_group.app.id
+  description                  = "Allow SSH from Edge instance"
+  ip_protocol                  = var.tcp_protocol
+  from_port                    = var.ssh_port
+  to_port                      = var.ssh_port
   referenced_security_group_id = aws_security_group.edge.id
 }
 

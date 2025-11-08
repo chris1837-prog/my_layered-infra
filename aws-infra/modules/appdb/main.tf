@@ -1,3 +1,11 @@
+locals {
+  # This conditionally renders the Promtail config IF edge_private_ip has a value.
+  # If edge_private_ip is null (first run), this local variable is null/empty.
+  promtail_config_content_resolved = var.edge_private_ip != null ? templatefile("${path.module}/templates/promtail-config-app.yml.tftpl", {
+    edge_private_ip = var.edge_private_ip
+  }) : ""
+}
+
 data "aws_ssm_parameter" "ubuntu" {
   # Lookup Ubuntu AMI from SSM (keeps AMI up to date automatically)
   name = local.ubuntu_ssm_path
@@ -14,10 +22,11 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [var.sg_app_id]
   iam_instance_profile   = try(var.appdb_instance_profile_name, null)
   key_name               = var.key_pair_name
+  private_ip             = var.app_private_ip
 
   # Ensure user_data is re-run on changes (important for cloud-init/docker updates)
   user_data_replace_on_change = true
-  user_data_base64            = data.cloudinit_config.app.rendered
+  user_data_base64            = data.cloudinit_config.appdb.rendered
 
   # Enable CloudWatch detailed monitoring (1-min granularity instead of 5-min)
   monitoring = var.enable_monitoring
@@ -42,7 +51,7 @@ resource "aws_instance" "app" {
   )
 }
 
-data "cloudinit_config" "app" {
+data "cloudinit_config" "appdb" {
   gzip          = true
   base64_encode = true
 
@@ -63,9 +72,11 @@ data "cloudinit_config" "app" {
       db_volume_device_name      = var.db_volume_device_name
       db_volume_mount_path       = var.db_volume_mount_path
       db_volume_id               = var.db_volume_id
-      promtail_config_content    = var.promtail_config_content
-      PROMTAIL_VERSION           = var.PROMTAIL_VERSION
+      path_module                = path.module
+      promtail_config_content    = local.promtail_config_content_resolved
+      PROMTAIL_VERSION           = var.promtail_version
       edge_private_ip            = var.edge_private_ip
+      NODE_EXP_VER               = var.node_exporter_version
     })
   }
 }

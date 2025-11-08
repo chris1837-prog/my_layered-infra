@@ -1,14 +1,20 @@
 provider "aws" {
-  region  = "eu-central-1"
-  profile = "AdministratorAccess-694816839566"
+  region = "eu-central-1"
 }
 
+variable "app_private_ip" {
+  description = "The private IP of the app server, passed in from the test."
+  type        = string
+}
 
-# -----------------------------
-# Get first available AZ
-# -----------------------------
-data "aws_availability_zones" "available" {
-  state = "available"
+variable "promtail_version" {
+  description = "The version of Promtail, passed in from the test."
+  type        = string
+}
+
+variable "node_exporter_version" {
+  description = "The version of Node Exporter, passed in from the test."
+  type        = string
 }
 
 # -----------------------------
@@ -46,7 +52,7 @@ resource "aws_vpc" "test_vpc" {
 resource "aws_subnet" "public_subnet" {
   vpc_id                  = aws_vpc.test_vpc.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = data.aws_availability_zones.available.names[0]
+  availability_zone       = "eu-central-1a"
   map_public_ip_on_launch = true
   tags                    = merge(local.common_tags, { Name = "${local.project_name}-public-subnet" })
 }
@@ -54,7 +60,7 @@ resource "aws_subnet" "public_subnet" {
 resource "aws_subnet" "private_subnet" {
   vpc_id            = aws_vpc.test_vpc.id
   cidr_block        = "10.0.2.0/24"
-  availability_zone = data.aws_availability_zones.available.names[0]
+  availability_zone = "eu-central-1a"
   tags              = merge(local.common_tags, { Name = "${local.project_name}-private-subnet" })
 }
 
@@ -296,12 +302,19 @@ module "edge" {
   iam_instance_profile_name = aws_iam_instance_profile.ec2_instance_profile.name
   public_subnet_id          = aws_subnet.public_subnet.id
   admin_cidrs               = ["0.0.0.0/0"]
+  app_private_ip            = var.app_private_ip
+  promtail_version          = var.promtail_version
+  node_exporter_version     = var.node_exporter_version
+
+
   # Use a hostname within the delegated subdomain for automatic HTTPS instead of the parent apex
   domain_name     = "edge.dev.uselayered.com"
   backend_servers = ["10.0.2.10:3000", "10.0.2.11:3000"]
+
   # Primary domain TLS controls
   enable_domain_tls  = true # set false to test HTTP-only bootstrap
   enable_domain_acme = true # if true (and TLS enabled) use public ACME cert, else internal CA
+
   # Ensure the Edge instance gets a public IP via the created Elastic IP
   enable_eip_association = true
   eip_allocation_id      = aws_eip.edge.id

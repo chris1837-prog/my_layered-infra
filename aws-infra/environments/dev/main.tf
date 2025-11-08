@@ -67,6 +67,7 @@ module "edge" {
   vpc_id           = module.network.vpc_id
   public_subnet_id = module.network.public_subnet_ids[0]
   sg_edge_id       = module.network.sg_edge_id
+  edge_private_ip  = "10.0.1.100"
 
   instance_type             = "t3.micro"
   key_name                  = aws_key_pair.generated_key.key_name
@@ -75,7 +76,7 @@ module "edge" {
   eip_allocation_id         = local.edge_config.eip_allocation_id
   iam_instance_profile_name = module.iam.ec2_instance_profile_name
   admin_user                = "ubuntu"
-  domain_name               = local.edge_config.parameter_paths.edge_primary_url
+  domain_name               = data.aws_ssm_parameter.edge_primary_url.value
   backend_servers           = ["${module.appdb.appdb_private_ip}:3000"]
   admin_cidrs               = var.allowed_admin_cidrs
   wireguard_port            = 51820
@@ -83,6 +84,7 @@ module "edge" {
   registry_internal_url     = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
   registry_user             = data.aws_ssm_parameter.registry_user_value.value
   registry_password         = data.aws_ssm_parameter.registry_password_value.value
+  app_private_ip            = local.appdb_private_ip
   # acme_email              = var.acme_email
 
   enable_acme_external = false
@@ -91,8 +93,7 @@ module "edge" {
   enable_domain_acme   = false
 
   # Observability
-  PROMTAIL_VERSION = var.PROMTAIL_VERSION
-  edge_private_ip  = module.edge.edge_private_ip
+  promtail_version = var.PROMTAIL_VERSION
 }
 
 # --- AppDB Module ---
@@ -104,6 +105,7 @@ module "appdb" {
 
   private_subnet_id = module.network.private_subnet_ids[0]
   sg_app_id         = module.network.sg_app_id
+  app_private_ip    = local.appdb_private_ip
 
   instance_type               = "t3.micro"
   key_pair_name               = aws_key_pair.generated_key.key_name
@@ -125,8 +127,16 @@ module "appdb" {
   common_tags = local.common_tags
 
   # Observability
-  edge_private_ip  = module.edge.edge_private_ip
-  PROMTAIL_VERSION = var.PROMTAIL_VERSION
+  promtail_version = var.PROMTAIL_VERSION
+  promtail_config_content = templatefile("../../modules/appdb/templates/promtail-config-app.yml.tftpl", {
+    edge_private_ip = "10.0.1.100"
+  })
+}
+
+resource "aws_route" "private_to_edge_nat" {
+  route_table_id         = module.network.private_route_table_id
+  destination_cidr_block = "0.0.0.0/0"
+  network_interface_id   = module.edge.primary_network_interface_id
 }
 
 # --- EBS Volume for AppDB ---
