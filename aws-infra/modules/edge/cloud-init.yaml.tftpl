@@ -20,6 +20,7 @@ packages:
   - wireguard
   - qrencode
   - fail2ban
+  - unzip
 
 bootcmd:
   - echo "[BOOTCMD] edge bootcmd executed $(date -Is)" > /var/log/edge-bootcmd.log
@@ -149,11 +150,13 @@ write_files:
     content: |
       [Unit]
       Description=Promtail Service
-      After=network.target
+      After=network.target docker.service
+      Requires=docker.service
 
       [Service]
       ExecStart=/usr/local/bin/promtail --config.file=/etc/promtail/promtail-config.yml
       Restart=always
+      RestartSec=10
 
       [Install]
       WantedBy=multi-user.target
@@ -243,6 +246,36 @@ write_files:
       echo "[INIT] Installing Caddy..."
       export DEBIAN_FRONTEND=noninteractive
       apt-get install -y -o Dpkg::Options::="--force-confold" caddy
+
+      echo "[INIT] Enabling Fail2ban..."
+      systemctl enable --now fail2ban
+
+      echo "[INIT] Installing Node Exporter..."
+      node_exp_ver="1.8.1" # You can make this a variable later
+      cd /tmp
+      curl -fsSL -O https://github.com/prometheus/node_exporter/releases/download/v$${node_exp_ver}/node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+      tar xzf node_exporter-$${node_exp_ver}.linux-amd64.tar.gz
+      mv node_exporter-$${node_exp_ver}.linux-amd64/node_exporter /usr/local/bin/
+      id -u nodeexp >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin nodeexp
+      chown nodeexp:nodeexp /usr/local/bin/node_exporter
+      systemctl daemon-reload
+      systemctl enable --now node_exporter
+
+      echo "[INIT] Starting Observability Stack (Prometheus, Loki, Grafana)..."
+      apt-get install -y docker-compose-v2
+      cd /opt/observability
+      docker compose -f docker-compose.observability.yml up -d
+
+      echo "[INIT] Installing Promtail..."
+      promtail_version="3.1.1" # You can make this a variable later
+      curl -Lo /tmp/promtail.zip https://github.com/grafana/loki/releases/download/v$${promtail_version}/promtail-linux-amd64.zip
+      unzip /tmp/promtail.zip -d /usr/local/bin/
+      chmod +x /usr/local/bin/promtail
+      systemctl daemon-reload
+      systemctl enable --now promtail
+
+      echo "[INIT] Startup script finished."
+      touch /var/lib/cloud/instance/edge-init-finished
 
 runcmd:
   - /opt/startup.sh
