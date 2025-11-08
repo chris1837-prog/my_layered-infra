@@ -241,7 +241,7 @@ write_files:
 
       echo "[INIT] Installing Caddy..."
       export DEBIAN_FRONTEND=noninteractive
-      apt-get install -y caddy
+      apt-get install -y -o Dpkg::Options::="--force-confold" caddy
 
 runcmd:
   - /opt/startup.sh
