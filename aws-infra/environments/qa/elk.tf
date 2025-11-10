@@ -73,7 +73,7 @@ resource "aws_instance" "obs_elk_vm" {
   instance_type          = "t3.large"
   subnet_id              = module.network.private_subnet_ids[0]
   key_name               = aws_key_pair.generated_key.key_name
-  iam_instance_profile   = module.elk_vm_iam.ec2_instance_profile_name
+  iam_instance_profile   = module.iam.ec2_instance_profile_name
   vpc_security_group_ids = [aws_security_group.elk_vm_sg.id]
 
   user_data = file("${path.module}/cloud-init-elk.tpl")

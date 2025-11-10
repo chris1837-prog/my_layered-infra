@@ -91,7 +91,8 @@ module "edge" {
   registry_internal_url = "https://${data.aws_ssm_parameter.internal_registry_url_value.value}"
   registry_user         = data.aws_ssm_parameter.registry_user_value.value
   registry_password     = data.aws_ssm_parameter.registry_password_value.value
-  app_private_ip        = module.appdb.appdb_private_ip
+  app_private_ip        = local.appdb_private_ip
+  promtail_version      = var.promtail_version
   # acme_email          = var.acme_email
 
   # Feature flags
@@ -102,7 +103,7 @@ module "edge" {
 
   # Observability
   promtail_version = var.promtail_version
-  edge_private_ip  = "10.0.1.130"
+  edge_private_ip       = "10.0.101.100"
 }
 
 # --- AppDB Module ---
@@ -114,6 +115,7 @@ module "appdb" {
 
   private_subnet_id = module.network.private_subnet_ids[0]
   sg_app_id         = module.network.sg_app_id
+  app_private_ip    = local.appdb_private_ip
 
   instance_type               = "t3.micro"
   key_pair_name               = aws_key_pair.generated_key.key_name
@@ -136,9 +138,15 @@ module "appdb" {
   promtail_version       = var.promtail_version
   docker_compose_content = file("../../../mvp-compose/docker-compose.yml")
   promtail_config_content = templatefile("../../modules/appdb/templates/promtail-config-app.yml.tftpl", {
-    edge_private_ip = module.edge.edge_private_ip
+    edge_private_ip = "10.0.101.100"
   })
   node_exporter_version = var.node_exporter_version
+}
+
+resource "aws_route" "private_to_edge_nat" {
+  route_table_id         = module.network.private_route_table_id
+  destination_cidr_block = "0.0.0.0/0"
+  network_interface_id   = module.edge.primary_network_interface_id
 }
 
 resource "aws_vpc_security_group_ingress_rule" "appdb_from_edge_node_exporter" {

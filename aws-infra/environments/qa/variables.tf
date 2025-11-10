@@ -88,7 +88,7 @@ variable "allowed_admin_cidrs" {
 variable "promtail_version" {
   description = "The version of Promtail to install."
   type        = string
-  default     = "2.9.4"
+  default     = "3.1.1"
 }
 
 variable "node_exporter_version" {
