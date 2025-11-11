@@ -119,3 +119,19 @@ runcmd:
       systemctl daemon-reload
       systemctl enable --now node_exporter
       echo "[RUNCMD] Node Exporter setup complete" >> /var/log/appdb-init.log
+
+  # Mount EBS Volume for PostgreSQL and register in etc/fstab
+  - echo "[mount-postgres-ebs] Mounting EBS volume"
+  - DEVICE="${db_volume_device_name}"
+  - MOUNTPOINT="${db_volume_mount_path}" # default /var/lib/postgresql/data
+  - mkdir -p $MOUNTPOINT
+  - if ! blkid $DEVICE; then mkfs.ext4 -E lazy_itable_init=0,lazy_journal_init=0 $DEVICE; fi
+  - UUID=$(blkid -s UUID -o value $DEVICE)
+  - if ! grep -q $UUID /etc/fstab; then echo "UUID=$UUID $MOUNTPOINT ext4 noatime,nofail 0 2" >> /etc/fstab; fi
+  - mount -a
+  - chown -R 999:999 $MOUNTPOINT
+  - chmod 700 $MOUNTPOINT
+  - echo "[mount-postgres-ebs] Volume ready at $MOUNTPOINT"
+
+  # Log success for debugging
+  - echo "Cloud-init completed successfully" >> /var/log/cloud-init-output.log

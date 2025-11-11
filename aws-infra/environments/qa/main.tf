@@ -70,7 +70,7 @@ module "edge" {
 
   # Network/Instance config
   vpc_id           = module.network.vpc_id
-  public_subnet_id = module.network.public_subnet_ids[0]
+  public_subnet_id = module.network.public_subnet_ids[1] # switched from [0] to [1] for QA subnet alignment
   sg_edge_id       = module.network.sg_edge_id
   instance_type    = "t3.micro"
   key_name         = aws_key_pair.generated_key.key_name
@@ -92,7 +92,7 @@ module "edge" {
   registry_user         = data.aws_ssm_parameter.registry_user_value.value
   registry_password     = data.aws_ssm_parameter.registry_password_value.value
   app_private_ip        = local.appdb_private_ip
-  promtail_version      = var.promtail_version
+  # promtail_version      = var.promtail_version  # duplicate definition removed to prevent error
   # acme_email          = var.acme_email
 
   # Feature flags
@@ -103,7 +103,7 @@ module "edge" {
 
   # Observability
   promtail_version = var.promtail_version
-  edge_private_ip       = "10.0.101.100"
+  edge_private_ip  = "10.0.101.100"
 }
 
 # --- AppDB Module ---
@@ -113,7 +113,7 @@ module "appdb" {
   project_name = var.project_name
   environment  = var.environment
 
-  private_subnet_id = module.network.private_subnet_ids[0]
+  private_subnet_id = module.network.private_subnet_ids[1] # switched from [0] to [1] for QA subnet alignment
   sg_app_id         = module.network.sg_app_id
   app_private_ip    = local.appdb_private_ip
 
@@ -161,15 +161,16 @@ resource "aws_vpc_security_group_ingress_rule" "appdb_from_edge_node_exporter" {
   referenced_security_group_id = module.network.sg_edge_id
 }
 
-
-
 # --- EBS Volume for AppDB ---
 module "db_volume" {
   source = "../../modules/ebs_data_volume"
+
   # Basic parameters
-  project           = var.project_name
-  env               = var.environment
-  availability_zone = data.aws_availability_zones.available.names[0]
+  project = var.project_name
+  env     = var.environment
+
+  # Volume configuration
+  availability_zone = data.aws_availability_zones.available.names[1] # switched from [0] to [1] for QA subnet alignment
   size_gb           = 20
   type              = "gp3"
   encrypted         = true
@@ -184,5 +185,6 @@ module "db_volume" {
   attach_to_instances = {
     appdb = module.appdb.appdb_instance_id
   }
-
 }
+
+

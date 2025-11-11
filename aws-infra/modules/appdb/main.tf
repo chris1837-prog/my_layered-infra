@@ -40,8 +40,7 @@ resource "aws_instance" "app" {
     volume_type = var.ebs_volume_type
     encrypted   = true
 
-    # For now: delete volume when instance is destroyed (stateless app design).
-    # ⚠️ If persistence for database is required, set this to false or attach a separate volume.
+    # Root volume is persistent (delete_on_termination = false by default)
     delete_on_termination = var.delete_on_termination
   }
 

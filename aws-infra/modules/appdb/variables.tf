@@ -58,13 +58,13 @@ variable "ebs_volume_type" {
 variable "delete_on_termination" {
   description = "Whether to delete root volume when instance is terminated"
   type        = bool
-  default     = true # ⚠️ If you want DB persistence, set to false
+  default     = false # DB is persistent
 }
 
 variable "db_volume_size" {
   description = "Size of the dedicated Postgres data volume in GB"
   type        = number
-  default     = 50
+  default     = 20
 }
 
 variable "db_volume_type" {

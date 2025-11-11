@@ -47,3 +47,16 @@ output "edge_public_ip" {
   description = "The public IP address of the Edge VM for SSH access."
   value       = module.edge.edge_public_ip
 }
+# --- QA Outputs ---
+
+output "db_volume_info" {
+  value = {
+    id        = module.db_volume.db_volume_id
+    az        = module.db_volume.db_volume_az
+    size      = module.db_volume.db_volume_size
+    type      = module.db_volume.db_volume_type
+    device    = module.db_volume.db_volume_device
+    instances = module.db_volume.db_volume_instance_ids
+  }
+}
+
